@@ -1,9 +1,11 @@
 /**
  * =================================================================
- * 00_SheetConfig.gs
+ * SheetConfig.gs
  * 스프레드시트 및 시트 관련 설정
  * =================================================================
  */
+
+const { SPREADSHEET_IDS } = require("../security_info.js");
 
 // -----------------------------------------------------------------
 // 1. 사업 / 시트 ID별 상세 설정
@@ -104,4 +106,15 @@ const COLUMN_CONFIG = {
     EMAIL: ["이메일", "이메일주소", "이메일 주소", "Email", "강사이메일", "메일"],
     PHONE: ["연락처", "전화번호", "휴대전화", "핸드폰", "휴대폰"]
   }
+};
+
+module.exports = {
+    SHEET_CONFIGS,
+    LOG_SHEET_IDS,
+    MGMT_SHEET_IDS,
+    SHEET_NAME_INSTRUCTOR,
+    SHEET_NAME_LOG,
+    EXTRA_SHEET_HEADER_ROW,
+    EXTRA_SHEET_DATA_START_ROW,
+    COLUMN_CONFIG
 };
