@@ -1,5 +1,5 @@
 /**
- * 03_GroupService.gs
+ * 04_GroupService.gs
  *
  * 동일 교육 일정 그룹화
  *
