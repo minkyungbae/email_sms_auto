@@ -1,11 +1,11 @@
 /**
  * =================================================================
  * Config.js
- * 시스템 전역 설정 및 범용 헤더(컬럼) 매핑
+ * 시스템 전역 설정
  * =================================================================
  */
 
-const { getPpurioConfig,} = require("../security_info.js");
+const { getPpurioConfig } = require("../security_info.js");
 
 const CONFIG = {
 
