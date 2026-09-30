@@ -13,6 +13,7 @@
 
 const CONFIG = require("../Configs/Config.js");
 const MESSAGE_CONFIG = require("../Configs/MessageConfig.js");
+const { ACCOUNT_CONFIG } = require("../security_info.js");
 
 const TemplateService = {
 
@@ -34,7 +35,16 @@ const TemplateService = {
       throw new Error(`[템플릿 오류] 지원하지 않는 사업 유형: ${businessType}`);
     }
 
-    // 1-2. 채널에 맞는 제목 선택
+    // 1-2. 보안 설정 가져오기
+    const secureConfig = ACCOUNT_CONFIG[businessType] || {};
+
+    // 1-3. 템플릿 설정 + 보안 설정 결합
+    const templateData = {
+      ...templateConfig,
+      ...secureConfig
+    };
+
+    // 1-4. 채널에 맞는 제목 선택
     let rawSubject = "";
 
     if (normalizedChannel === "EMAIL") {
@@ -47,15 +57,22 @@ const TemplateService = {
       throw new Error(`[템플릿 오류] 지원하지 않는 채널: ${normalizedChannel}`);
     }
 
-    // 1-3. 공통 부분
+    // 1-5. 본문
     const rawBody = templateConfig.BODY || "";
 
-    // 1-4. Placeholder 치환
-    const subject = this.replacePlaceholders(
-      rawSubject, classItem, templateConfig
+    // 1-6. Placeholder 치환
+    const subject =
+      this.replacePlaceholders(
+        rawSubject,
+        classItem,
+        templateConfig
     );
-    const bodyText = this.replacePlaceholders(
-      rawBody, classItem, templateConfig
+
+    const bodyText =
+      this.replacePlaceholders(
+        rawBody,
+        classItem,
+        templateConfig
     );
 
     console.log(`[템플릿 생성 완료] 사업=${businessType} | 채널=${normalizedChannel}`);
@@ -77,16 +94,19 @@ const TemplateService = {
    */
   getBusinessType: function(classItem) {
 
-    if (!classItem) { return "GW"; }
+    if (!classItem) {
+      return "GW";
+    }
 
     const rawType =
       classItem.businessType ||
       classItem.type ||
       "GW";
 
-    const businessType = String(rawType)
-      .trim()
-      .toUpperCase();
+    const businessType = 
+      String(rawType)
+        .trim()
+        .toUpperCase();
 
     if (businessType === "DS") {
       return "DS";
@@ -100,6 +120,7 @@ const TemplateService = {
   // 3. 채널명 정규화
   // -------------------------------------------------------------
   normalizeChannel: function(channel) {
+
     if (!channel) {
       return "";
     }
@@ -118,21 +139,26 @@ const TemplateService = {
     classItem,
     tpl
   ) {
+
     if (!templateStr) {
       return "";
+
     }
     return templateStr
-      .replace( /{INSTRUCTOR}/g, classItem.instructorName || "")
-      .replace( /{ASSISTANT_INSTRUCTOR}/g, classItem.assistantInstructor || "")
-      .replace(/{LOCATION}/g, classItem.location || "")
-      .replace(/{COURSE_NAME}/g, classItem.courseName || "")
+      // 수업 정보
+      .replace(/{INSTRUCTOR}/g, classItem.instructorName || "") // 강사명
+      .replace(/{ASSISTANT_INSTRUCTOR}/g, classItem.assistantInstructor || "") // 보조강사
+      .replace(/{LOCATION}/g, classItem.location || "") // 수요처명
+      .replace(/{COURSE_NAME}/g, classItem.courseName || "") // 과정명
       .replace(/{STUDENT_COUNT}/g, classItem.studentCount ?? "") // 0명도 허용
-      .replace(/{DATE}/g, this.formatDisplayDate(classItem.date))
-      .replace(/{TIME}/g, classItem.classTime || "")
-      .replace(/{CLASS_NAME}/g, classItem.className || "")
+      .replace(/{DATE}/g, this.formatDisplayDate(classItem.date)) // 수업일
+      .replace(/{TIME}/g, classItem.classTime || "") // 수업 시간
+      .replace(/{CLASS_NAME}/g, classItem.className || "") // 반명
       .replace(/{DAYS_BEFORE}/g, CONFIG.DAYS_BEFORE ?? "") // 0일도 허용
-      .replace(/{ORGANIZATION}/g, tpl.ORGANIZATION || "")
-      .replace(/{CONTACT_LINK}/g, tpl.CONTACT_LINK || "");
+      .replace(/{ORGANIZATION}/g, tpl.ORGANIZATION || "") // 운영국 명
+      .replace(/{CONTACT_LINK}/g, tpl.CONTACT_LINK || "") // 문의 채팅 링크
+      .replace(/{EDUCATION_MANUAL_URL}/g, tpl.EDUCATION_MANUAL_URL || "") // 교육 메뉴얼 url (DS)
+      .replace(/{TEACHER_CHECKLIST_URL}/g, tpl.TEACHER_CHECKLIST_URL || "") // 사전 체크리스트 url (DS)
   },
 
 
@@ -140,12 +166,18 @@ const TemplateService = {
   // 5. 날짜 표시용 포맷 (M월 d일)
   // -------------------------------------------------------------
   formatDisplayDate: function(dateString) {
-    if (!dateString) { return ""; }
 
-    const match = String(dateString).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!dateString) {
+      return "";
+    }
+
+    const match =
+      String(dateString).match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
     // 이미 다른 형식의 날짜라면 원본 유지
-    if (!match) { return dateString; }
+    if (!match) {
+      return dateString;
+    }
 
     const month = Number(match[2]);
     const day = Number(match[3]);
