@@ -1,9 +1,26 @@
 /**
  * =================================================================
- * 07_NotificationService.gs
+ * 07_NotificationService.js
  * 이메일과 SMS 발송 과정을 통합 관리
+ * 
+ * 역할
+ * - 이메일 / SMS 채널 통합 처리
+ * - 중복 발송 확인
+ * - 메시지 생성
+ * - 채널별 실제 발송
+ * - 발송 로그 저장
+ * - 발송 결과 통계 관리
  * =================================================================
  */
+
+// -----------------------------------------------------------------
+// 1. 모듈 가져오기
+// -----------------------------------------------------------------  
+const LogService = require("./05_LogService");
+const TemplateService = require("./08_TemplateService");
+const GmailService = require("./09_GmailService");
+const SmsService = require("./06_SmsService");
+
 
 const NotificationService = {
   // -----------------------------------------------------------------
@@ -32,13 +49,13 @@ const NotificationService = {
   // -----------------------------------------------------------------
   // 3. 이메일/SMS 발송 통합 처리
   // -----------------------------------------------------------------
-  send: function(classItem, channel, recipient) {
+  send: async function(classItem, channel, recipient) {
 
+    // 3-0. 채널명 정규화
     const normalizedChannel = this.normalizeChannel(channel);
 
-    // -----------------------------------------------------------------
+
     // 3-1. 채널 확인
-    // -----------------------------------------------------------------
     if (
       normalizedChannel !== "EMAIL" &&
       normalizedChannel !== "SMS"
@@ -46,26 +63,27 @@ const NotificationService = {
       return this.createFailedResult(normalizedChannel, "지원하지 않는 채널");
     }
 
-    // -----------------------------------------------------------------
+
     // 3-2. 중복 발송 확인
-    // -----------------------------------------------------------------
-    if (LogService.isAlreadySent(classItem.logKey, normalizedChannel)
+    if (
+      LogService.isAlreadySent(
+        classItem.logKey,
+        normalizedChannel
+        )
     ) {
       return this.createSkippedResult(normalizedChannel, "이미 발송됨");
     }
 
-    // -----------------------------------------------------------------
+
     // 3-3. 수신자 확인
-    // -----------------------------------------------------------------
     if (!recipient) {
       console.warn(`[발송 실패] ${normalizedChannel} 수신자 정보 없음 | ${classItem.instructorName}`);
 
       return this.createFailedResult(normalizedChannel, "수신자 정보 없음");
     }
 
-    // -----------------------------------------------------------------
+
     // 3-4. 메시지 생성
-    // -----------------------------------------------------------------
     let message;
 
     try {
@@ -74,17 +92,20 @@ const NotificationService = {
       console.error(`[메시지 생성 실패] ${normalizedChannel} | ${error}`);
       return this.createFailedResult(normalizedChannel, `메시지 생성 실패: ${error.message}`);
     }
+
     console.log(
-      `[메시지 생성 완료] 사업: ${classItem.businessType || classItem.type || "GW"} | 채널: ${normalizedChannel} | 제목: ${message.subject}`
+      `[메시지 생성 완료] 
+      사업: ${classItem.businessType || classItem.type || "GW"} | 
+      채널: ${normalizedChannel} | 
+      제목: ${message.subject}`
     );
 
-    // -----------------------------------------------------------------
+
     // 3-5. 채널별 실제 발송
-    // -----------------------------------------------------------------
     let result;
 
     try {
-      result = this.sendByChannel(
+      result = await this.sendByChannel(
         classItem,
         normalizedChannel,
         recipient,
@@ -100,9 +121,8 @@ const NotificationService = {
       );
     }
 
-    // -----------------------------------------------------------------
+
     // 3-6. 발송 결과 확인
-    // -----------------------------------------------------------------
     if (!result || !result.success) {
       const errorMessage = result && result.error ? result.error : "알 수 없는 오류";
       console.error(`[${normalizedChannel} 발송 실패] ${errorMessage}`);
@@ -113,9 +133,8 @@ const NotificationService = {
       );
     }
 
-    // -----------------------------------------------------------------
+
     // 3-7. 발송 로그 저장
-    // -----------------------------------------------------------------
     this.queueLog(
       classItem,
       recipient,
@@ -124,9 +143,8 @@ const NotificationService = {
       result
     );
 
-    // -----------------------------------------------------------------
+
     // 3-8. 성공 결과 반환
-    // -----------------------------------------------------------------
     return {
       status: "SUCCESS",
       channel: normalizedChannel,
@@ -147,7 +165,7 @@ const NotificationService = {
   // -----------------------------------------------------------------
   // 5. 채널별 실제 발송 처리
   // -----------------------------------------------------------------
-  sendByChannel: function(
+  sendByChannel: async function(
     classItem,
     channel,
     recipient,
@@ -157,14 +175,14 @@ const NotificationService = {
 
       case "EMAIL":
 
-        return GmailService.send(
+        return await GmailService.send(
           classItem,
           recipient,
           message
         );
 
       case "SMS":
-        return SmsService.send(
+        return await SmsService.send(
           recipient,
           message,
           classItem.logKey
@@ -231,12 +249,23 @@ const NotificationService = {
     statistics,
     result
   ) {
-    if (!statistics || !result) { return; }
+    if (!statistics || !result) {
+      return;
+    }
+
     const stat = statistics[result.channel];
 
-    if (!stat) { return; }
+    if (!stat) {
+      return;
+    }
+
     const statusKey = String(result.status || "").toLowerCase();
 
-    if (stat[statusKey] !== undefined) { stat[statusKey]++; }
+    if (stat[statusKey] !== undefined) {
+      stat[statusKey]++;
+    }
   }
 };
+
+
+module.exports = NotificationService;
