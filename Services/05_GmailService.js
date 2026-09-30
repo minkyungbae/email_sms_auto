@@ -1,15 +1,32 @@
 /**
  * =================================================================
- * 05_GmailService.gs
+ * 05_GmailService.js
  * 메일 생성 및 발송 담당
  * 수신 이메일 검증 → 메시지 생성 → 테스트 모드 처리 → 실제 발송 → 결과 반환
  * =================================================================
  */
+
+const { google } = require("googleapis");
+
+const CONFIG = require("../Configs/Config.js");
+const TemplateService = require("./08_TemplateService.js");
+const MESSAGE_CONFIG = require("../Configs/MessageConfig.js");
+
 const GmailService = {
   // -----------------------------------------------------------------
-  // 1. 메일 발송
+  // 1. Gmail API 클라이언트 생성
   // -----------------------------------------------------------------
-  send: function(classItem, recipientEmail) {
+  getGmailClient: function(auth) {
+    return google.gmail({ 
+      version: "v1", 
+      auth: auth });
+  },
+
+
+  // -----------------------------------------------------------------
+  // 2. 메일 발송
+  // -----------------------------------------------------------------
+  send: async function(classItem, recipientEmail, auth) {
     const email = this.normalizeEmail(recipientEmail);
 
     if (!email) {
@@ -19,18 +36,27 @@ const GmailService = {
     try {
       const message = TemplateService.createMessage(classItem, "EMAIL");
 
-      // 테스트 모드에서는 실제 메일을 발송하지 않음
+      // 2-1. 테스트 모드에서는 실제 메일을 발송하지 않음
       if (CONFIG.TEST_MODE) {
         return this.createSuccessResult(email, message, true);
       }
-      GmailApp.sendEmail(
-        email,
-        message.subject,
-        message.bodyText,
-        {
-          name: this.getSenderName(classItem)
+
+      // 2-2.Gmail API
+      const gmail = this.getGmailClient(auth);
+
+      // 2-3. 발신자 이름
+      const senderName = this.getSenderName(classItem);
+
+      // 2-4. 메일 생성
+      const rawMessage = this.encodeMessage(email, message.subject, message.bodyText, senderName);
+
+      // 2-5. 메일 발송
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: rawMessage
         }
-      );
+      });
       return this.createSuccessResult(email, message);
     } catch (error) {
       return this.createFailureResult(error.toString());
@@ -39,28 +65,50 @@ const GmailService = {
 
 
   // -----------------------------------------------------------------
-  // 2. 수신 이메일 정규화
+  // 3. 수신 이메일 정규화
   // -----------------------------------------------------------------
   normalizeEmail: function(email) { return String(email || "").trim(); },
 
 
   // -----------------------------------------------------------------
-  // 3. 발신자 이름 조회
+  // 4. 발신자 이름 조회
   // -----------------------------------------------------------------
   getSenderName: function(classItem) {
-    return MESSAGE_CONFIG[classItem.businessType].SENDER_NAME;
+    const businessType = classItem.businessType;
+    return MESSAGE_CONFIG[businessType].SENDER_NAME;
   },
 
   
   // -----------------------------------------------------------------
-  // 4. 성공 결과 생성
+  // 5. 메시지 생성
   // -----------------------------------------------------------------
-  createSuccessResult: function(email, message, testMode) {
+  createSuccessResult: function(recipientEmail, subject, bodyText, senderName) {
+    const message = [
+      `From: ${senderName}`,
+      `To: ${recipientEmail}`,
+      `Subject: ${subject}`,
+      "Content-Type: text/plain; charset=UTF-8",
+      "", bodyText 
+    ].join("\r\n");
+
+    return Buffer
+    .from(message, "utf-8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  },
+
+
+  // -----------------------------------------------------------------
+  // 6. 성공 결과 생성
+  // -----------------------------------------------------------------
+  createSuccessResult: function(email, message, testMode = false) {
     const result = {
-      success: true,
-      email: email,
-      subject: message.subject,
-      bodyText: message.bodyText
+        success: true,
+        email: email,
+        subject: message.subject,
+        bodyText: message.bodyText
     };
 
     if (testMode) { result.testMode = true; }
@@ -68,9 +116,8 @@ const GmailService = {
     return result;
   },
 
-
   // -----------------------------------------------------------------
-  // 5. 실패 결과 생성
+  // 7. 실패 결과 생성
   // -----------------------------------------------------------------
   createFailureResult: function(errorMessage) {
     return {
@@ -78,4 +125,9 @@ const GmailService = {
       error: errorMessage
     };
   }
+};
+
+
+module.exports = {
+  GmailService
 };
