@@ -17,16 +17,23 @@ const GmailService = {
   // 1. Gmail API 클라이언트 생성
   // -----------------------------------------------------------------
   getGmailClient: function(auth) {
+
     return google.gmail({ 
       version: "v1", 
-      auth: auth });
+      auth: auth
+    });
   },
 
 
   // -----------------------------------------------------------------
   // 2. 메일 발송
   // -----------------------------------------------------------------
-  send: async function(classItem, recipientEmail, auth) {
+  send: async function(
+    classItem,
+    recipientEmail,
+    auth
+  ) {
+
     const email = this.normalizeEmail(recipientEmail);
 
     if (!email) {
@@ -34,7 +41,10 @@ const GmailService = {
     }
 
     try {
-      const message = TemplateService.createMessage(classItem, "EMAIL");
+      // 2-0. 메시지 생성
+      const message = TemplateService.createMessage(
+        classItem, "EMAIL"
+      );
 
       // 2-1. 테스트 모드에서는 실제 메일을 발송하지 않음
       if (CONFIG.TEST_MODE) {
@@ -48,7 +58,12 @@ const GmailService = {
       const senderName = this.getSenderName(classItem);
 
       // 2-4. 메일 생성
-      const rawMessage = this.encodeMessage(email, message.subject, message.bodyText, senderName);
+      const rawMessage = this.encodeMessage(
+          email,
+          message.subject,
+          message.bodyText,
+          senderName
+      );
 
       // 2-5. 메일 발송
       await gmail.users.messages.send({
@@ -57,6 +72,8 @@ const GmailService = {
           raw: rawMessage
         }
       });
+
+      // 2-6. 성공 결과 반환
       return this.createSuccessResult(email, message);
     } catch (error) {
       return this.createFailureResult(error.toString());
@@ -67,14 +84,18 @@ const GmailService = {
   // -----------------------------------------------------------------
   // 3. 수신 이메일 정규화
   // -----------------------------------------------------------------
-  normalizeEmail: function(email) { return String(email || "").trim(); },
+  normalizeEmail: function(email) {
+    return String(email || "").trim();
+  },
 
 
   // -----------------------------------------------------------------
   // 4. 발신자 이름 조회
   // -----------------------------------------------------------------
   getSenderName: function(classItem) {
-    const businessType = classItem.businessType;
+    const businessType =
+      classItem.businessType;
+
     return MESSAGE_CONFIG[businessType].SENDER_NAME;
   },
 
@@ -82,13 +103,19 @@ const GmailService = {
   // -----------------------------------------------------------------
   // 5. 메시지 생성
   // -----------------------------------------------------------------
-  createSuccessResult: function(recipientEmail, subject, bodyText, senderName) {
+  createSuccessResult: function(
+    recipientEmail,
+    subject,
+    bodyText,
+    senderName
+  ) {
     const message = [
       `From: ${senderName}`,
       `To: ${recipientEmail}`,
       `Subject: ${subject}`,
       "Content-Type: text/plain; charset=UTF-8",
-      "", bodyText 
+      "",
+      bodyText 
     ].join("\r\n");
 
     return Buffer
@@ -103,7 +130,11 @@ const GmailService = {
   // -----------------------------------------------------------------
   // 6. 성공 결과 생성
   // -----------------------------------------------------------------
-  createSuccessResult: function(email, message, testMode = false) {
+  createSuccessResult: function(
+    email,
+    message,
+    testMode
+  ) {
     const result = {
         success: true,
         email: email,
@@ -111,7 +142,9 @@ const GmailService = {
         bodyText: message.bodyText
     };
 
-    if (testMode) { result.testMode = true; }
+    if (testMode) {
+      result.testMode = true;
+    }
 
     return result;
   },
@@ -119,7 +152,9 @@ const GmailService = {
   // -----------------------------------------------------------------
   // 7. 실패 결과 생성
   // -----------------------------------------------------------------
-  createFailureResult: function(errorMessage) {
+  createFailureResult: function(
+    errorMessage
+  ) {
     return {
       success: false,
       error: errorMessage
