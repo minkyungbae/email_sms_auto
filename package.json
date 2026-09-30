@@ -21,6 +21,7 @@
   "homepage": "https://github.com/minkyungbae/email_sms_auto#readme",
   "dependencies": {
     "dotenv": "^18.0.4",
+    "googleapis": "^182.0.0",
     "node-cron": "^4.6.0"
   }
 }
