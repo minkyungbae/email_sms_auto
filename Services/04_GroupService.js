@@ -1,5 +1,5 @@
 /**
- * 04_GroupService.gs
+ * 04_GroupService.js
  *
  * 동일 교육 일정 그룹화
  *
@@ -119,7 +119,6 @@ function createGroupKey(
 // 4. 그룹 객체 생성
 // -----------------------------------------------------------------
 function createGroup(item, instructorName, businessType) {
-
   const normalizedBusinessType = normalizeBusinessType(
     businessType || item.businessType || item.type
   );
@@ -267,3 +266,15 @@ function addUniqueValue(array, value) {
     array.push(normalized);
   }
 }
+
+module.exports = {
+    groupClassesForMail,
+    splitInstructors,
+    createGroupKey,
+    createGroup,
+    mergeIntoGroup,
+    formatGroupedClass,
+    normalizeBusinessType,
+    normalizeGroupValue,
+    addUniqueValue
+};
