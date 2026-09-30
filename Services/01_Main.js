@@ -1,6 +1,6 @@
 /**
  * =================================================================
- * 01_Main.gs
+ * 01_Main.js
  *
  * 교육 안내 자동 발송 메인 실행 파일
  *
@@ -19,8 +19,7 @@
 // -----------------------------------------------------------------
 // 1. 메인 실행 함수
 // -----------------------------------------------------------------
-function runNotificationProcess() {
-
+async function runNotificationProcess() {
   console.log("=== 교육 안내 자동 발송 시작 ===");
 
   try {
@@ -52,7 +51,7 @@ function runNotificationProcess() {
     // -----------------------------------------------------------------
     // 1-5. 대상 날짜의 수업 조회
     // -----------------------------------------------------------------
-    const classes = SheetService.getClassesByDate(targetDate);
+    const classes = await SheetService.getClassesByDate(targetDate);
     console.log(`[조회된 수업 행] ${classes.length}건`);
 
 
@@ -94,9 +93,7 @@ function runNotificationProcess() {
     // -----------------------------------------------------------------
     // 1-10. 이메일 / 문자 발송
     // -----------------------------------------------------------------
-    groupedClasses.forEach(
-      function(item) {
-
+    for (const item of groupedClasses) {
         // 강사 연락처 정보
         const contact = instructorContacts[item.instructorName] || {};
 
@@ -105,7 +102,7 @@ function runNotificationProcess() {
         // ---------------------------------------------------------
         if (CONFIG.ENABLE_EMAIL) {
           const email = item.email || contact.email || "";
-          const result = NotificationService.send(item, "EMAIL", email);
+          const result = await NotificationService.send(item, "EMAIL", email);
 
           NotificationService.updateStatistics(statistics, result);
 
@@ -118,14 +115,14 @@ function runNotificationProcess() {
         // ---------------------------------------------------------
         if (CONFIG.ENABLE_SMS) {
           const phone = item.phone || contact.phone || "";
-          const result = NotificationService.send(item, "SMS", phone);
+          const result = await NotificationService.send(item, "SMS", phone);
 
           NotificationService.updateStatistics(statistics, result);
         } else {
           console.log("[SMS 스킵] CONFIG.ENABLE_SMS=false");
         }
       }
-    );
+
     // ---------------------------------------------------------
     // 1-11. 로그 일괄 저장
     // ---------------------------------------------------------
@@ -136,22 +133,22 @@ function runNotificationProcess() {
     // 1-12. 최종 결과 출력
     // ---------------------------------------------------------
     console.log("=== 교육 안내 자동 발송 결과 ===");
-
-    ["EMAIL", "SMS"].forEach(
-      function(channel) {
-        const stat = statistics[channel];
-        console.log(`[${channel}] 성공 ${stat.success}건 | 스킵 ${stat.skipped}건 | 실패 ${stat.failed}건`);
-      }
-    );
+    printStatistics(statistics);
+    
   } catch (error) {
     console.error(`[전체 프로세스 오류] ${error}`);
     console.error(error.stack);
-    LogService.writeErrorLog(error);
+    // LogService.writeErrorLog(error);
 
   } finally {
     try { 
         LogService.flushLogs();
-     } catch (logError) { console.error(`[로그 최종 저장 실패] ${logError}`);
+     } catch (logError) {
+          console.error(`[로그 최종 저장 실패] ${logError}`);
     }
   }
 }
+
+module.exports = {
+  runNotificationProcess
+};
