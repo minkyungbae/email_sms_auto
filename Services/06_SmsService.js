@@ -18,7 +18,9 @@ const SmsService = {
    * 한글 등 ASCII 범위를 벗어나는 문자는 2바이트로 계산
    */
   getByteLength: function(str) {
-    if (!str) return 0;
+    if (!str) {
+      return 0;
+    }
 
     let byteLength = 0;
 
@@ -31,7 +33,9 @@ const SmsService = {
 
 
   // 2. 뿌리오 API 설정을 반환
-  getConfig: function() { return CONFIG.PPURIO; },
+  getConfig: function() {
+    return CONFIG.PPURIO;
+  },
 
 
   // 3. 뿌리오 API Access Token을 발급받음 (캐시에 토큰이 있으면 재사용)
@@ -44,16 +48,22 @@ const SmsService = {
     const cachedToken = tokenCache.get(cacheKey);
 
     if (
-      cachedToken && cachedToken.expiresAt > Date.now()
+      cachedToken &&
+      cachedToken.expiresAt > Date.now()
     ) {
       console.log("[뿌리오] 캐시된 Access Token 사용");
+
       return cachedToken.token;
       }
 
-    // 3-2. 인증 정보 생성
-    const rawAuth = `${ppurioCfg.ACCOUNT}:${ppurioCfg.REF_KEY}`;
 
-    const encodedAuth = Buffer.from(rawAuth).toString("base64");
+    // 3-2. 인증 정보 생성
+    const rawAuth = 
+      `${ppurioCfg.ACCOUNT}:${ppurioCfg.REF_KEY}`;
+
+    const encodedAuth = 
+      Buffer.from(rawAuth).toString("base64");
+
 
     // 3-3. 토큰 발급 API 호출
     try{
@@ -93,9 +103,12 @@ const SmsService = {
     );
 
     console.log("[뿌리오] Access Token 발급 및 캐싱 완료");
+
     return data.token;
+
     } catch (error) {
         console.error("[뿌리오] 토큰 발급 API 호출 오류", error);
+
         return null;
       }
   },
@@ -105,8 +118,10 @@ const SmsService = {
   async parseResponse(response) {
     try {
       return await response.json();
+
     } catch (error) {
       console.error("[뿌리오] API 응답 JSON 파싱 실패", error);
+
       return null;
     }
   },
@@ -120,11 +135,10 @@ const SmsService = {
   },
 
 
-  // 6. 메시지 참조 키를 생성하고 최대 길이를 제한
+  // 6. 메시지 참조 키를 생성하고 최대 길이를 제한 (최대 32자)
   createRefKey: function(customRefKey) {
     const refKey = 
-    customRefKey || 
-    `MSG_${Date.now()}`;
+      customRefKey || `MSG_${Date.now()}`;
 
     return refKey.substring(0, 32);
   },
@@ -254,6 +268,7 @@ const SmsService = {
 
     // 11-1. 수신 전화번호 검증
     if (!phone) {
+
       return {
         success: false,
         error: "수신 전화번호가 없습니다."
@@ -284,20 +299,32 @@ const SmsService = {
 
 
     // 11-5. API Payload 생성
-    const payload = SmsService.buildPayload(phone, message, refKey, isLms);
+    const payload = SmsService.buildPayload(
+      phone,
+      message,
+      refKey,
+      isLms
+    );
 
 
     // 11-6. 테스트 모드
     if (CONFIG.TEST_MODE) {
       console.log("[뿌리오] 테스트 모드 - 실제 발송 없이 결과 생성");
-      return SmsService.createTestResult(phone, message, messageText);
+      return SmsService.createTestResult(
+        phone,
+        message,
+        messageText
+      );
     }
 
 
     // 11-7. 실제 문자 발송
     try {
       const result = 
-          await SmsService.requestMessage(accessToken, payload);
+          await SmsService.requestMessage(
+            accessToken,
+            payload
+          );
 
       return SmsService.parseSendResult(
         result.response,
