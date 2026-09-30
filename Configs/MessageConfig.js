@@ -5,6 +5,8 @@
  * =================================================================
  */
 
+const { ACCOUNT_CONFIG } = require("../security_info.js")
+
 const MESSAGE_CONFIG = {
   // -----------------------------------------------------------------
   // 강원SW미래채움 (GW) 메일 템플릿
@@ -15,6 +17,8 @@ const MESSAGE_CONFIG = {
     ORGANIZATION: "강원SW미래채움",
 
     SENDER_NAME: "강원SW미래채움",
+
+    CONTACT_LINK : ACCOUNT_CONFIG.GW.CONTACT_LINK,
 
     EMAIL_SUBJECT:
       "[강의 리마인드] 안녕하세요 {INSTRUCTOR} 강사님, {DATE} {LOCATION} 수업이 {DAYS_BEFORE}일 전입니다.",
@@ -53,6 +57,8 @@ const MESSAGE_CONFIG = {
     ORGANIZATION: "디지털새싹 운영기관 코코아팹",
 
     SENDER_NAME: "코코아팹",
+
+    CONTACT_LINK: ACCOUNT_CONFIG.DS.CONTACT_LINK,
 
     SMS_SUBJECT:
       "[코코아팹] 디지털새싹 담당교사",
