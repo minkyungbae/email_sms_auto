@@ -16,9 +16,9 @@
 // -----------------------------------------------------------------
 // 1. 모듈 가져오기
 // -----------------------------------------------------------------  
-const LogService = require("./05_LogService");
+const LogService = require("./09_LogService");
 const TemplateService = require("./08_TemplateService");
-const GmailService = require("./09_GmailService");
+const GmailService = require("./05_GmailService");
 const SmsService = require("./06_SmsService");
 
 
@@ -49,10 +49,11 @@ const NotificationService = {
   // -----------------------------------------------------------------
   // 3. 이메일/SMS 발송 통합 처리
   // -----------------------------------------------------------------
-  send: async function(classItem, channel, recipient) {
+  async send(classItem, channel, recipient, auth) {
 
     // 3-0. 채널명 정규화
-    const normalizedChannel = this.normalizeChannel(channel);
+    const normalizedChannel =
+      this.normalizeChannel(channel);
 
 
     // 3-1. 채널 확인
@@ -60,7 +61,10 @@ const NotificationService = {
       normalizedChannel !== "EMAIL" &&
       normalizedChannel !== "SMS"
     ) {
-      return this.createFailedResult(normalizedChannel, "지원하지 않는 채널");
+      return this.createFailedResult(
+        normalizedChannel,
+        "지원하지 않는 채널"
+      );
     }
 
 
@@ -71,7 +75,10 @@ const NotificationService = {
         normalizedChannel
         )
     ) {
-      return this.createSkippedResult(normalizedChannel, "이미 발송됨");
+      return this.createSkippedResult(
+        normalizedChannel,
+        "이미 발송됨"
+      );
     }
 
 
@@ -79,7 +86,10 @@ const NotificationService = {
     if (!recipient) {
       console.warn(`[발송 실패] ${normalizedChannel} 수신자 정보 없음 | ${classItem.instructorName}`);
 
-      return this.createFailedResult(normalizedChannel, "수신자 정보 없음");
+      return this.createFailedResult(
+        normalizedChannel,
+        "수신자 정보 없음"
+      );
     }
 
 
@@ -87,10 +97,18 @@ const NotificationService = {
     let message;
 
     try {
-      message = TemplateService.createMessage(classItem, normalizedChannel);
+      message = TemplateService.createMessage(
+        classItem,
+        normalizedChannel
+      );
+
     } catch (error) {
       console.error(`[메시지 생성 실패] ${normalizedChannel} | ${error}`);
-      return this.createFailedResult(normalizedChannel, `메시지 생성 실패: ${error.message}`);
+      
+      return this.createFailedResult(
+        normalizedChannel,
+        `메시지 생성 실패: ${error.message}`
+      );
     }
 
     console.log(
@@ -111,6 +129,7 @@ const NotificationService = {
         recipient,
         message
       );
+
     } catch (error) {
       console.error(`[${normalizedChannel} 발송 예외] ${error}`);
       console.error(error.stack);
@@ -124,7 +143,11 @@ const NotificationService = {
 
     // 3-6. 발송 결과 확인
     if (!result || !result.success) {
-      const errorMessage = result && result.error ? result.error : "알 수 없는 오류";
+      const errorMessage = 
+        result && result.error
+        ? result.error
+        : "알 수 없는 오류";
+
       console.error(`[${normalizedChannel} 발송 실패] ${errorMessage}`);
 
       return this.createFailedResult(
@@ -157,7 +180,10 @@ const NotificationService = {
   // 4. 채널명 정규화
   // -----------------------------------------------------------------
   normalizeChannel: function(channel) {
-    if (!channel) { return ""; }
+    if (!channel) {
+      return ""; 
+    }
+
     return String(channel).trim().toUpperCase();
   },
 
@@ -165,11 +191,12 @@ const NotificationService = {
   // -----------------------------------------------------------------
   // 5. 채널별 실제 발송 처리
   // -----------------------------------------------------------------
-  sendByChannel: async function(
+  async sendByChannel(
     classItem,
     channel,
     recipient,
-    message
+    message,
+    auth
   ) {
     switch (channel) {
 
@@ -178,7 +205,7 @@ const NotificationService = {
         return await GmailService.send(
           classItem,
           recipient,
-          message
+          auth
         );
 
       case "SMS":
@@ -207,6 +234,7 @@ const NotificationService = {
     message,
     result
   ) {
+
     LogService.queueLog(
       classItem.logKey,
       classItem,
@@ -221,7 +249,11 @@ const NotificationService = {
   // -----------------------------------------------------------------
   // 7. 실패 결과 생성
   // -----------------------------------------------------------------
-  createFailedResult: function(channel, reason) {
+  createFailedResult: function(
+    channel,
+    reason
+  ) {
+
     return {
       status: "FAILED",
       channel: channel,
@@ -233,7 +265,11 @@ const NotificationService = {
   // -----------------------------------------------------------------
   // 8. 중복 발송 결과 생성
   // -----------------------------------------------------------------
-  createSkippedResult: function(channel, reason) {
+  createSkippedResult: function(
+    channel,
+    reason
+  ) {
+
     return {
       status: "SKIPPED",
       channel: channel,
@@ -249,6 +285,7 @@ const NotificationService = {
     statistics,
     result
   ) {
+
     if (!statistics || !result) {
       return;
     }
@@ -259,7 +296,8 @@ const NotificationService = {
       return;
     }
 
-    const statusKey = String(result.status || "").toLowerCase();
+    const statusKey =
+      String(result.status || "").toLowerCase();
 
     if (stat[statusKey] !== undefined) {
       stat[statusKey]++;
