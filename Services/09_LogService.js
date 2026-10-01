@@ -24,7 +24,6 @@ const {
 } = require("../Configs/SheetConfig.js");
 
 const { Utils } = require("../Utils/Utils.js");
-const { version } = require("react");
 
 // ====================================================================
 // Google Sheets API 인증
