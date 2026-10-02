@@ -17,6 +17,8 @@ const {
   COLUMN_CONFIG,
 } = require("../Configs/SheetConfig.js");
 
+console.log("[DEBUG] LOG_SHEET_IDS:", LOG_SHEET_IDS); // LOG_SHEET_IDS 확인
+
 const { Utils } = require("../Utils/Utils.js");
 
 // -----------------------------------------------------------------
@@ -287,10 +289,9 @@ const SheetService = {
             targetDateStr
           );
 
-        results.push.apply(
-          results,
-          classes
-        );
+        if (Array.isArray(classes)) {
+          results.push.apply(results, classes);
+        }
 
       } catch (error) {
         console.error(`[수업 조회 실패] ${sheetId}: ${error}`);
