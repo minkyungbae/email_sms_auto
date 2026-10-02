@@ -204,3 +204,10 @@ async function runNotificationProcess() {
 module.exports = {
   runNotificationProcess
 };
+
+
+// 직접 실행할 때만 메인 함수 실행
+if (require.main === module) {
+
+  runNotificationProcess();
+}
