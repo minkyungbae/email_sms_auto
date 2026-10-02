@@ -20,7 +20,8 @@ const { google } = require("googleapis");
 const CONFIG = require("../Configs/Config.js");
 const {
   SHEET_CONFIG,
-  SHEET_NAME_LOG
+  SHEET_NAME_LOG,
+  LOG_SHEET_IDS,  // 10/2 추가
 } = require("../Configs/SheetConfig.js");
 
 const { Utils } = require("../Utils/Utils.js");
@@ -29,7 +30,7 @@ const { Utils } = require("../Utils/Utils.js");
 // Google Sheets API 인증
 // ====================================================================
 const auth = new google.auth.GoogleAuth({
-  keyFile: "security_info.json",
+  keyFile: "security_info.js",
   scopes: [
     "https://www.googleapis.com/auth/spreadsheets"
   ]
