@@ -21,6 +21,7 @@ async function getOneRow() {
     return DataMapper.rowToObjects(result.data); // 2026-10-06 변경: 여러 행을 객체 배열로 변환
 }
 
+
 module.exports = {
     getOneRow,
 };
