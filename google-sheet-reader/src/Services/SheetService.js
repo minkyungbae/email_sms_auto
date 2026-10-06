@@ -37,7 +37,7 @@ async function getRowsByDate(date) { // 2026-10-06 변경: 특정 날짜의 여�
     }
 
      // 2026-10-06 변경: 특정 날짜의 여러 행을 객체 배열로 변환
-    return DataMapper.rowsToObjects(
+    return DataMapper.rowToObjects(
         result.data,
         date
     );
