@@ -7,13 +7,28 @@ async function getRowsByDate(date) { // 2026-10-06 변경: 특정 날짜의 여�
 
     const response = await fetch(url);
 
+    console.log("HTTP 상태:", response.status);
+
+    const responseText = await response.text();
+
+    console.log("Apps Script 실제 응답:");
+    console.log(responseText);
+
     if (!response.ok) {
         throw new Error(
             `Apps Script 요청 실패: ${response.status}`
         );
     }
 
-    const result = await response.json();
+    let result;
+
+    try {
+        result = JSON.parse(responseText);
+    } catch (error) {
+        throw new Error(
+            "Apps Script가 JSON이 아닌 응답을 반환했습니다."
+        );
+    }
 
     if (!result.success) {
         throw new Error(
@@ -21,12 +36,12 @@ async function getRowsByDate(date) { // 2026-10-06 변경: 특정 날짜의 여�
         );
     }
 
-    return DataMapper.rowToObjects(
+     // 2026-10-06 변경: 특정 날짜의 여러 행을 객체 배열로 변환
+    return DataMapper.rowsToObjects(
         result.data,
-        date); 
-        // 2026-10-06 변경: 특정 날짜의 여러 행을 객체 배열로 변환
+        date
+    );
 }
-
 
 module.exports = {
     getRowsByDate,
