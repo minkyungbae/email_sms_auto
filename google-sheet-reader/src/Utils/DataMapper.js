@@ -12,6 +12,11 @@ function rowToObject(row) {
     );
 }
 
+function rowToObjects(rows) {
+    return rows.map(rowToObject);
+} // 2026-10-06 추가: 여러 행을 객체 배열로 변환하는 함수
+
 module.exports = {
     rowToObject,
+    rowToObjects, // 2026-10-06 추가: 여러 행을 객체 배열로 변환하는 함수
 };
