@@ -11,8 +11,8 @@ async function getRowsByDate(date) { // 2026-10-06 변경: 특정 날짜의 여�
 
     const responseText = await response.text();
 
-    console.log("Apps Script 실제 응답:");
-    console.log(responseText);
+    // console.log("Apps Script 실제 응답:");
+    // console.log(responseText);
 
     if (!response.ok) {
         throw new Error(
@@ -25,15 +25,11 @@ async function getRowsByDate(date) { // 2026-10-06 변경: 특정 날짜의 여�
     try {
         result = JSON.parse(responseText);
     } catch (error) {
-        throw new Error(
-            "Apps Script가 JSON이 아닌 응답을 반환했습니다."
-        );
+        throw new Error("Apps Script가 JSON이 아닌 응답을 반환했습니다.");
     }
 
     if (!result.success) {
-        throw new Error(
-            result.message || "Google Sheet 조회 실패"
-        );
+        throw new Error(result.message || "Google Sheet 조회 실패");
     }
 
      // 2026-10-06 변경: 특정 날짜의 여러 행을 객체 배열로 변환
