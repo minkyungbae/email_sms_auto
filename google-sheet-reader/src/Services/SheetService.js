@@ -1,4 +1,5 @@
 const SHEET_CONFIG = require("../Configs/SheetConfig.js");
+const DataMapper = require("../Utils/DataMapper.js");
 
 async function getOneRow() {
     const response = await fetch(SHEET_CONFIG.APPS_SCRIPT_URL);
@@ -12,10 +13,12 @@ async function getOneRow() {
     const result = await response.json();
 
     if (!result.success) {
-        throw new Error("Google Sheet 조회 실패");
+        throw new Error(
+            result.message || "Google Sheet 조회 실패"
+        );
     }
 
-    return result.data;
+    return DataMapper.rowToObject(result.data);
 }
 
 module.exports = {
