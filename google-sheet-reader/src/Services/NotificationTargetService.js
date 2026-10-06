@@ -20,10 +20,16 @@ function createTargets(groups) {
 function createTarget(group) {
     const matched = isMatched(group);
 
+    // 이메일 목록 중 첫 번째 이메일만 발송 대상으로 사용
+    const primaryEmail = 
+        Array.isArray(group.이메일목록) &&
+        group.이메일목록.length > 0
+            ? group.이메일목록[0]
+            : "";
+
     const 이메일발송가능 =
         matched &&
-        Array.isArray(group.이메일목록) &&
-        group.이메일목록.length > 0;
+        primaryEmail !== "";
 
     const 문자발송가능 =
         matched &&
@@ -43,6 +49,8 @@ function createTarget(group) {
         강사이름: group.강사이름,
 
         연락처: group.연락처,
+
+        이메일: primaryEmail,
 
         이메일목록: Array.isArray(group.이메일목록)
             ? group.이메일목록
