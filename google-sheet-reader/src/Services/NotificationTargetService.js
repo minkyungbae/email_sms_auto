@@ -1,12 +1,12 @@
 /**
- * 교육 일정 그룹을 실제 발송 대상으로 변환
+ * 교육 일정 그룹을 기반으 로 누구에게 이메일과 문자를  발송할지 결정
  *
  * 역할
  * - 연락처 매칭 상태 확인
- * - 이메일 발송 가능 여부 판단
- * - 문자 발송 가능 여부 판단
+ * - 이메일, 문자 발송 가능 여부 판단
  * - 실제 발송 채널 결정
  */
+
 function createTargets(groups) {
     return groups
         .map(createTarget)
@@ -92,9 +92,7 @@ function createTarget(group) {
  * → 발송 제외
  */
 function isMatched(group) {
-    const status = String(
-        group.연락처매칭상태 || ""
-    );
+    const status = String(group.연락처매칭상태 || "");
 
     return status.startsWith("매칭(");
 }
