@@ -4,9 +4,8 @@ const GroupService = require("./Services/GroupService");
 const NotificationTargetService = require(
     "./Services/NotificationTargetService"
 );
+const NotificationService = require("./Services/NotificationService");
 const TemplateService = require("./Services/TemplateService");
-const GmailService = require("./Services/GmailService");
-const SmsService = require("./Services/SmsService");
 
 
 // ===============================================================
@@ -54,68 +53,44 @@ async function main() {
 
         
         /** 실제 발송 테스트 */
-
-        // 첫 번째 대상만 발송 테스트
         const target = targets[0];
 
-        // // 이메일 발송 테스트
-        // const subject = TemplateService.createEmailSubject(target);
-        // const body = TemplateService.createEmailBody(target);
-
-        // console.log("\n===== 테스트 메일 =====");
-        // console.log("테스트 수신자: ", TEST_PERSONAL_INFO.TEST_EMAIL);
-        // console.log("원래 수신 대상:", target.이메일);
-        // console.log("제목:", subject);
-
-        // const result = await GmailService.sendEmail({
-        //     to: TEST_PERSONAL_INFO.TEST_EMAIL,
-        //     subject,
-        //     text: body,
-        // });
-
-        // console.log("테스트 메일 발송 성공");
-        // console.log(result);
-
-
-        // SMS 발송 테스트
-        if (!target) {
-            throw new Error("SMS 발송 대상이 없습니다.");
+        if(!target) {
+            throw new Error("발송 대상이 없습니다.");
         }
 
-        // 테스트용 수신 번호
+        const testEmail = TEST_PERSONAL_INFO.TEST_EMAIL;
         const testPhone = TEST_PERSONAL_INFO.TEST_PHONE;
 
-        if(!testPhone) {
-            throw new Error("테스트용 수신 번호가 설정되지 않았습니다.");
+        if (!testEmail) {
+            throw new Error("테스트용 이메일 주소가 설정되지 않았습니다.");
         }
 
-        console.log("\n===== 테스트 문자 =====");
-        console.log("테스트 수신 번호:", TEST_PERSONAL_INFO.TEST_PHONE);
+        if (!testPhone) {
+            throw new Error("테스트용 전화번호가 설정되지 않았습니다.");
+        }
+
+        console.log("\n===== 통합 발송 테스트 =====");
         console.log("강사:", target.강사이름);
-        console.log("실제 강사 번호:", target.연락처);
+        console.log("실제 이메일:", target.이메일);
+        console.log("실제 전화번호:", target.연락처);
+        console.log("테스트 이메일:", testEmail);
+        console.log("테스트 전화번호:", testPhone);
+        console.log("발송 채널:", target.발송채널);
 
-        const message = {
-            subject: TemplateService.createSmsSubject(),
-            bodyText: TemplateService.createSmsBody(target),
-        };
-
-        console.log("문자 제목:", message.subject);
-        console.log("문자 본문:");
-        console.log(message.bodyText);
-
-        const result = await SmsService.send(
+        // 이메일 + 문자 통합 발송
+        const result = await NotificationService.sendTarget(target, {
+            testEmail,
             testPhone,
-            message
-        );
-        console.log("\n===== SMS 테스트 결과 =====");
-        console.log(result);
-
+        });
+        console.log("\n===== 통합 발송 결과 =====");
+        console.dir(result, { depth: null });
     } catch (error) {
         console.error("프로그램 실행 실패");
         console.error("Gmail 연결 실패");
         console.error("뿌리오 연결 실패");
         console.error(error.message);
-    }
+        }
 }
 
 main();
