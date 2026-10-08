@@ -1,3 +1,15 @@
+/**
+ * @file SheetConfig.js
+ * @author 배민경
+ * @created 2026-10-06
+ * @updated 2026-10-08
+ * @description
+ * 이 파일은 Google Sheets와의 상호작용을 위한 설정을 관리.
+ * 주요 기능 :
+ * - Apps Script URL 설정
+ * - 시트 헤더 설정
+ */
+
 require("dotenv").config();
 
 const SHEET_CONFIG = {
