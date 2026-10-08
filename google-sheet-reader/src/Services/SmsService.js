@@ -1,8 +1,23 @@
+/**
+ * @file SmsService.js
+ * @author 배민경
+ * @created 2026-10-06
+ * @updated 2026-10-08
+ * @description
+ * 뿌리오 API를 연동하여 문자 바이트 수 계산, 인증 토큰 캐싱 및 SMS/LMS 발송을 처리
+ * 
+ * 주요 기능 :
+ * - 문자 본문의 바이트 수 계산(90byte 기준)을 통한 SMS / LMS 규격 자동 판별
+ * - Basic 인증 기반 뿌리오 Access Token 발급 및 10분 단위 메모리 캐싱 관리
+ * - 수신자 전화번호 정제 및 API 표준 Payload 규격 생성
+ * - 테스트 모드 환경에서의 mock 발송 결과 반환 처리
+ * - 뿌리오 API 연동을 통한 실제 메시지 발송 요청 및 응답 결과 데이터 변환
+ */
+
 const CONFIG = require("../Configs/Config.js");
 
 // Access Token 캐시
 const tokenCache = new Map();
-
 const TOKEN_CACHE_TIME = 10 * 60 * 1000; // 10분
 
 
@@ -39,9 +54,7 @@ const SmsService = {
 
     /**
      * 전화번호 정제
-     *
-     * 010-1234-5678
-     * → 01012345678
+     * 010-1234-5678 → 01012345678
      */
     normalizePhone(phone) {
         return String(phone || "")
@@ -72,13 +85,8 @@ const SmsService = {
         // ---------------------------------------------
         // 인증 정보 생성
         // ---------------------------------------------
-        const rawAuth =
-            `${ppurioConfig.ACCOUNT}:${ppurioConfig.REF_KEY}`;
-
-        const encodedAuth =
-            Buffer
-                .from(rawAuth)
-                .toString("base64");
+        const rawAuth = `${ppurioConfig.ACCOUNT}:${ppurioConfig.REF_KEY}`;
+        const encodedAuth = Buffer.from(rawAuth).toString("base64");
 
 
         // ---------------------------------------------
@@ -121,10 +129,8 @@ const SmsService = {
                     expiresAt: Date.now() + TOKEN_CACHE_TIME,
                 }
             );
+            console.log("[뿌리오] Access Token 발급 및 캐싱 완료");
 
-            console.log("[뿌리오] Access Token 발급 및 캐싱 완료"
-
-            );
             return data.token;
 
         } catch (error) {
@@ -167,8 +173,7 @@ const SmsService = {
 
 
     /**
-     * 참조 키 생성
-     * 최대 32자
+     * 참조 키 생성(최대 32자)
      */
     createRefKey(customRefKey) {
         const refKey = customRefKey || `MSG_${Date.now()}`;
@@ -178,8 +183,7 @@ const SmsService = {
 
 
     /**
-     * SMS / LMS 타입 결정
-     * 90byte 초과 → LMS
+     * SMS / LMS 타입 결정 (90byte 초과: LMS)
      */
     getMessageType(messageText) {
         const byteSize = SmsService.getByteLength(messageText);
@@ -187,10 +191,7 @@ const SmsService = {
         return {
             byteSize,
             isLms: byteSize > 90,
-            messageType:
-                byteSize > 90
-                    ? "LMS"
-                    : "SMS",
+            messageType: byteSize > 90 ? "LMS" : "SMS",
         };
     },
 
@@ -205,7 +206,7 @@ const SmsService = {
         const ppurioConfig = SmsService.getConfig();
         const payload = {
             account: ppurioConfig.ACCOUNT,
-            messageType: isLms  ? "LMS" : "SMS",
+            messageType: isLms ? "LMS" : "SMS",
             content: message.bodyText,
             from: ppurioConfig.SENDER_NUMBER,
             duplicateFlag: "N",
@@ -221,10 +222,7 @@ const SmsService = {
 
 
         // LMS만 제목 사용
-        if (
-            isLms &&
-            message.subject
-        ) {
+        if (isLms &&  message.subject) {
             payload.subject = message.subject;
         }
         return payload;
@@ -236,7 +234,6 @@ const SmsService = {
         accessToken,
         payload
     ) {
-
         const ppurioConfig = SmsService.getConfig();
 
         const response = await fetch(
@@ -352,8 +349,7 @@ const SmsService = {
             byteSize,
             isLms,
             messageType,
-        } =
-            SmsService.getMessageType(messageText);
+        } = SmsService.getMessageType(messageText);
 
         console.log(`[뿌리오] ${messageType} (${byteSize}byte)`);
 
@@ -409,11 +405,7 @@ const SmsService = {
         // 8. 실제 발송
         // ---------------------------------------------
         try {
-            const result =
-                await SmsService.requestMessage(
-                    accessToken,
-                    payload
-                );
+            const result = await SmsService.requestMessage(accessToken, payload);
 
             return SmsService.parseSendResult({
                 response: result.response,
@@ -425,7 +417,6 @@ const SmsService = {
             });
 
         } catch (error) {
-
             console.error("[뿌리오] 문자 발송 API 호출 오류:", error.message);
 
             return {

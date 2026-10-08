@@ -1,3 +1,16 @@
+/**
+ * @file GmailService.js
+ * @author 배민경
+ * @created 2026-10-06
+ * @updated 2026-10-08
+ * @description
+ * 이 파일은 Gmail을 통한 이메일 발송 서비스를 제공.
+ * 주요 기능 :
+ * - Gmail SMTP 연결 설정
+ * - 이메일 발송 기능
+ */
+
+
 const nodemailer = require("nodemailer");
 const EMAIL_CONFIG = require("../Configs/GmailConfig");
 

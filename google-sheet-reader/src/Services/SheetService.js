@@ -1,9 +1,23 @@
+/**
+ * @file SheetService.js
+ * @author 배민경
+ * @created 2026-10-06
+ * @updated 2026-10-08
+ * @description
+ * Google Apps Script API를 연동하여 특정 날짜의 구글 시트 데이터를 조회하고 객체 배열 구조로 매핑
+ * 
+ * 주요 기능 :
+ * - 지정된 날짜 파라미터를 기반으로 Google Apps Script URL HTTP GET 요청
+ * - API 응답 상태 및 JSON 포맷 검증과 예외 처리
+ * - 조회된 원시 시트 데이터를 DataMapper를 통해 애플리케이션용 객체 배열 구조로 변환
+ */
+
+
 const SHEET_CONFIG = require("../Configs/SheetConfig.js");
 const DataMapper = require("../Utils/DataMapper.js");
 
 async function getRowsByDate(date) { // 2026-10-06 변경: 특정 날짜의 여러 행을 조회하는 함수로 변경
-    const url =
-        `${SHEET_CONFIG.APPS_SCRIPT_URL}?date=${encodeURIComponent(date)}`;
+    const url = `${SHEET_CONFIG.APPS_SCRIPT_URL}?date=${encodeURIComponent(date)}`;
 
     const response = await fetch(url);
 

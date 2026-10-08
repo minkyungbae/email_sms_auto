@@ -1,10 +1,16 @@
 /**
- * 교육 일정 그룹을 기반으 로 누구에게 이메일과 문자를  발송할지 결정
- *
- * 역할
- * - 연락처 매칭 상태 확인
- * - 이메일, 문자 발송 가능 여부 판단
- * - 실제 발송 채널 결정
+ * @file NotificationTargetService.js
+ * @author 배민경
+ * @created 2026-10-06
+ * @updated 2026-10-08
+ * @description
+ * 그룹화된 교육 데이터를 기반으로 연락처 매칭 상태 및 수신 정보 유무를 검증하여 실제 알림 발송 대상 생성
+ * 
+ * 주요 기능 :
+ * - 연락처 매칭 상태 검증을 통한 발송 대상 부적합 데이터(미매칭, 중복 등) 필터링
+ * - 그룹 데이터에서 첫 번째 항목 이메일 및 대표 연락처 추출
+ * - 수신 수단 유무 및 매칭 결과에 따른 채널별 발송 가능 여부 판별
+ * - 최종 발송 가능 채널이 1개 이상 존재하는 유효 발송 대상 목록 생성
  */
 
 function createTargets(groups) {
@@ -27,13 +33,9 @@ function createTarget(group) {
             ? group.이메일목록[0]
             : "";
 
-    const 이메일발송가능 =
-        matched &&
-        primaryEmail !== "";
+    const 이메일발송가능 = matched && primaryEmail !== "";
 
-    const 문자발송가능 =
-        matched &&
-        Boolean(group.연락처);
+    const 문자발송가능 = matched && Boolean(group.연락처);
 
     const 발송채널 = [];
 
@@ -52,9 +54,7 @@ function createTarget(group) {
 
         이메일: primaryEmail,
 
-        이메일목록: Array.isArray(group.이메일목록)
-            ? group.이메일목록
-            : [],
+        이메일목록: Array.isArray(group.이메일목록) ? group.이메일목록 : [],
 
         연락처매칭상태: group.연락처매칭상태,
 
