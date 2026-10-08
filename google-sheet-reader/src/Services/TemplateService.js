@@ -16,6 +16,7 @@
 
 
 const MESSAGE_CONFIG = require("../Configs/MessageConfig");
+const { ACCOUNT_CONFIG } = require("../../../security_info")
 
 /**
  * 내부 날짜 YYYY-MM-DD → 화면 표시용 M월 D일
@@ -115,7 +116,48 @@ const TemplateService = {
             template,
             variables
         );
-    }
+    },
+
+    
+    /** DS SMS 생성 */
+    createDsVariables(target) {
+    return {
+        TEACHER: target.담당교사명 || "",
+
+        INSTRUCTOR: target.주강사표기 || "",
+        ASSISTANT_INSTRUCTOR: target.보조강사표기 || "",
+
+        DATE: formatDisplayDate(target.근무날짜),
+        LOCATION: target.학교명 || "",
+        COURSE_NAME: target.과정명 || "",
+
+        TIME: target.교육목록
+            ?.map(classInfo => classInfo.근무시간)
+            .join("\n") || "",
+
+        STUDENT_COUNT: target.학생수 || "",
+
+        ORGANIZATION: MESSAGE_CONFIG.DS.ORGANIZATION,
+        CONTACT_LINK: MESSAGE_CONFIG.DS.CONTACT_LINK,
+
+        EDUCATION_MANUAL_URL:
+            ACCOUNT_CONFIG.DS.EDUCATION_MANUAL_URL || "",
+
+        TEACHER_CHECKLIST_URL:
+            ACCOUNT_CONFIG.DS.TEACHER_CHECKLIST_URL || "",
+        };
+    },
+
+    createDsSmsSubject() {
+        return MESSAGE_CONFIG.DS.SMS_SUBJECT;
+    },
+
+    createDsSmsBody(target) {
+        const template = MESSAGE_CONFIG.DS.SMS_BODY;
+        const variables = this.createDsVariables(target);
+
+        return this.replaceVariables(template, variables);
+    },
 };
 
 

@@ -29,35 +29,51 @@ const TemplateService = require("./Services/TemplateService");
 async function main() {
 
     try {
-        const targetDate = "2026-10-10";
+        const targetDate = "2026-10-08";
 
         // 사업 설정
         const businessType = "DS";
         // const businessType = "GW";
 
+
         console.log(`\n[${businessType}] ${targetDate} 교육 데이터 조회 시작`);
 
         // 교육 데이터 조회
-        const rows = await SheetService.getRowsByDate(targetDate, businessType);
+        const rows = await SheetService.getRowsByDate(
+            targetDate,
+            businessType
+        );
+
         console.log(`[${businessType}] 조회된 데이터: ${rows.length}건`);
 
         // 교육 일정 그룹화
-        const groups = GroupService.groupClasses(rows, businessType);
+        const groups = GroupService.groupClasses(
+            rows,
+            businessType
+        );
+
         console.log(`[${businessType}] 교육 일정 그룹: ${groups.length}건`);
 
         // 발송 대상 생성
-        const targets = NotificationTargetService.createTargets(groups, businessType);
+        const targets = NotificationTargetService.createTargets(
+            groups,
+            businessType
+        );
+
         console.log(`[${businessType}] 실제 발송 대상: ${targets.length}건`);
+
         console.dir(
             targets,
             { depth: null }
         );
 
 
-        // DS 데이터 확인용 출력
+        // DS
+        // 담당교사에게만 SMS 발송
         if (businessType === "DS") {
 
             for (const target of targets) {
+
                 console.log("\n========================================");
                 console.log(`[학교] ${target.학교명}`);
                 console.log(`[과정] ${target.과정명}`);
@@ -65,38 +81,59 @@ async function main() {
                 console.log(`[담당교사] ${target.담당교사명} / ${target.담당교사연락처}`);
                 console.log(`[주강사] ${target.주강사표기} / ${target.주강사연락처}`);
                 console.log(`[보조강사] ${target.보조강사표기} / ${target.보조강사연락처}`);
-                console.log("\n[SMS 수신자 목록]");
 
-                console.dir(
-                    target.수신자목록,
-                    { depth: null }
-                );
-                console.log( `발송 채널: ${target.발송채널.join(", ")}`);
-                console.log("========================================");
+
+                // 테스트 전화번호 확인
+                const testPhone = TEST_PERSONAL_INFO.TEST_PHONE;
+
+                if (!testPhone) {
+                    throw new Error("테스트용 전화번호가 설정되지 않았습니다.");
+                }
+
+
+                // DS SMS 템플릿 미리보기
+                console.log("\n[SMS 제목]");
+                console.log(TemplateService.createDsSmsSubject());
+                console.log("\n[SMS 본문]");
+                console.log(TemplateService.createDsSmsBody(target));
+
+                console.log("\n----------------------------------------");
+                console.log(`[실제 담당교사 번호] ${target.담당교사연락처}`);
+                console.log(`[테스트 발송 번호] ${testPhone}`);
+                console.log("----------------------------------------");
             }
-            // 현재는 DS의 Target 생성까지만 테스트
+
+            // DS 처리 종료
             return;
         }
 
 
-        // GW 템플릿 미리보기
+        // GW
+        // 기존 템플릿 미리보기
         for (const target of targets) {
             console.log("\n========================================");
             console.log(`강사: ${target.강사이름}`);
             console.log(`이메일: ${target.이메일}`);
             console.log(`연락처: ${target.연락처}`);
 
+            // 이메일 제목
             console.log("\n[이메일 제목]");
             console.log(TemplateService.createEmailSubject(target));
+
+            // 이메일 본문
             console.log("\n[이메일 본문]");
             console.log(TemplateService.createEmailBody(target));
 
+            // SMS 제목
             console.log("\n[SMS 제목]");
             console.log(TemplateService.createSmsSubject());
+
+            // SMS 본문
             console.log("\n[SMS 본문]");
             console.log(TemplateService.createSmsBody(target));
             console.log("========================================");
         }
+
 
         // GW 실제 발송 테스트
         const target = targets[0];
@@ -116,31 +153,16 @@ async function main() {
             throw new Error("테스트용 전화번호가 설정되지 않았습니다.");
         }
 
-
         // 통합 발송
         console.log("\n===== 통합 발송 테스트 =====");
-        console.log("사업:", businessType);
-        console.log("강사:", target.강사이름);
-        console.log("실제 이메일:", target.이메일);
-        console.log("실제 전화번호:", target.연락처);
-        console.log("테스트 이메일:", testEmail);
-        console.log("테스트 전화번호:", testPhone);
-        console.log( "발송 채널:", target.발송채널);
-
-        const result = await NotificationService.sendTarget(
-            target,
-            {
-                testEmail,
-                testPhone,
-            }
-        );
-
-        console.log("\n===== 통합 발송 결과 =====");
-
-        console.dir(
-            result,
-            { depth: null }
-        );
+        console.log("[Main.js] 사업:", businessType);
+        console.log("[Main.js] 강사:", target.강사이름);
+        console.log("[Main.js] 실제 이메일:", target.이메일);
+        console.log("[Main.js] 실제 전화번호:", target.연락처);
+        console.log("[Main.js] 테스트 이메일:", testEmail);
+        console.log("[Main.js] 테스트 전화번호:", testPhone);
+        console.log("[Main.js] 발송 채널:", target.발송채널);
+        
     } catch (error) {
         console.error("프로그램 실행 실패");
         console.error(error.message);
