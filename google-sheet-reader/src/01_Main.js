@@ -1,9 +1,23 @@
+/**
+ * @file 01_Main.js
+ * @author 배민경
+ * @created 2026-10-06
+ * @updated 2026-10-08
+ * @description
+* 특정 날짜의 교육 데이터를 조회하여 그룹화, 발송 대상 선정, 템플릿 미리보기 및 통합 알림 발송을 총괄 실행하는 메인 엔트리 파일
+ * 
+ * 주요 기능 :
+ * - SheetService를 통한 지정 날짜 교육 데이터 수집 및 객체화
+ * - GroupService 및 NotificationTargetService를 활용한 일정 그룹화 및 유효 발송 대상 추출
+ * - TemplateService를 이용해 발송 대상별 이메일 및 SMS/LMS 발송 문구 미리보기 출력
+ * - 테스트 수신 정보(TEST_PERSONAL_INFO) 기반으로 알림 통합 발송 수행 및 결과 확인
+ */
+
+
 const { TEST_PERSONAL_INFO } = require("../../security_info")
 const SheetService = require("./Services/SheetService");
 const GroupService = require("./Services/GroupService");
-const NotificationTargetService = require(
-    "./Services/NotificationTargetService"
-);
+const NotificationTargetService = require("./Services/NotificationTargetService");
 const NotificationService = require("./Services/NotificationService");
 const TemplateService = require("./Services/TemplateService");
 
@@ -18,7 +32,7 @@ async function main() {
         console.log(`조회된 데이터: ${rows.length}건`);
 
         const groups = GroupService.groupClasses(rows);
-        console.log( `교육 일정 그룹: ${groups.length}건`);
+        console.log(`교육 일정 그룹: ${groups.length}건`);
 
         const targets = NotificationTargetService.createTargets(groups);
         console.log(`실제 발송 대상: ${targets.length}건`);
