@@ -2,15 +2,17 @@
  * @file NotificationService.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-08
+ * @updated 2026-10-12
  * @description
- * 발송 대상의 채널 설정에 따라 이메일 및 문자(SMS/LMS) 알림을 생성하고 통합 발송
- * 
+ * 발송 대상의 채널 및 사업 유형에 따라 이메일과 문자(SMS/LMS)를 통합 발송
+ *
  * 주요 기능 :
- * - Target 데이터 기반 템플릿 매핑을 통한 이메일 및 SMS 문구 생성
- * - 지정된 발송 채널 포함 여부 판별 및 조건별 메시지 발송 처리
- * - 테스트용 수신자 옵션 지원을 통한 테스트 발송 가능
- * - 채널별 발송 성공/실패/스킵 결과 및 에러 로그 관리
+ * - GW / DS 사업별 발송 처리
+ * - GW : 이메일 및 SMS 발송
+ * - DS : 담당교사 / 주강사 / 보조강사 역할별 SMS 발송
+ * - DS : 지정된 교육 과정에 한해 대여 교구 확인 문자 추가 발송
+ * - 테스트용 수신자 옵션 지원
+ * - 발송 성공 / 실패 / 스킵 결과 관리
  */
 
 
@@ -19,9 +21,10 @@ const GmailService = require("./GmailService");
 const SmsService = require("./SmsService");
 
 
-/**
- * 이메일 / 문자 통합 발송
- */
+// =============================================================
+// 메인
+// 사업 유형에 따라 발송 함수 분기
+// =============================================================
 async function sendTarget(target, options = {}) {
 
     const {
@@ -29,28 +32,37 @@ async function sendTarget(target, options = {}) {
         testPhone = null,
     } = options;
 
-    const businessType = target.사업구분 || "GW";
 
-    // DS
+    const businessType = String(target.사업구분 || "GW")
+        .trim()
+        .toUpperCase();
+
+
+    // DS 발송
     if (businessType === "DS") {
+
         return await sendDsTarget(target, {
             testPhone,
         });
+
     }
 
-    // GW
-    return await sendGwTarget(target, {
-        testEmail,
-        testPhone,
-    });
+    // GW 발송
+    if (businessType === "GW") {
+
+        return await sendGwTarget(target, {
+            testEmail,
+            testPhone,
+        });
+
+    }
+
+    throw new Error(`지원하지 않는 사업 유형입니다: ${businessType}`);
+
 }
 
 
-/**
- * =========================================================
- * GW 발송
- * =========================================================
- */
+// GW 발송
 async function sendGwTarget(target, options = {}) {
 
     const {
@@ -62,14 +74,15 @@ async function sendGwTarget(target, options = {}) {
     const smsRecipient = testPhone || target.연락처;
 
     const result = {
+        사업구분: "GW",
         강사이름: target.강사이름,
         EMAIL: null,
         SMS: null,
     };
 
 
-    // EMAIL
-    if (target.발송채널.includes("EMAIL")) {
+    // 1. EMAIL 발송
+    if ((target.발송채널 || []).includes("EMAIL")) {
 
         const message = {
             subject: TemplateService.createEmailSubject(target),
@@ -77,7 +90,6 @@ async function sendGwTarget(target, options = {}) {
         };
 
         try {
-
             const emailResult = await GmailService.sendEmail({
                 to: emailRecipient,
                 subject: message.subject,
@@ -90,22 +102,20 @@ async function sendGwTarget(target, options = {}) {
                 result: emailResult,
             };
 
-            console.log(`[EMAIL 성공] ${target.강사이름} → ${emailRecipient}`);
+            console.log(`[NotificationService.js] GW EMAIL 성공 ${target.강사이름} → ${emailRecipient}`);
 
         } catch (error) {
-
             result.EMAIL = {
                 success: false,
                 recipient: emailRecipient,
                 error: error.message,
             };
 
-            console.error(`[EMAIL 실패] ${target.강사이름} → ${emailRecipient}: ${error.message}`);
+            console.error(`[NotificationService.js] GW EMAIL 실패 ${target.강사이름} → ${emailRecipient}: ${error.message}`);
 
         }
 
     } else {
-
         result.EMAIL = {
             success: false,
             skipped: true,
@@ -114,16 +124,17 @@ async function sendGwTarget(target, options = {}) {
     }
 
 
-    // SMS / LMS
-    if (target.발송채널.includes("SMS")) {
+    // 2. SMS / LMS 발송
+    if ((target.발송채널 || []).includes("SMS")) {
 
         const message = {
+
             subject: TemplateService.createSmsSubject(),
             bodyText: TemplateService.createSmsBody(target),
+
         };
 
         try {
-
             const smsResult = await SmsService.send(
                 smsRecipient,
                 message
@@ -136,119 +147,238 @@ async function sendGwTarget(target, options = {}) {
             };
 
             if (smsResult.success) {
-
-                console.log(`[SMS 성공] ${target.강사이름} → ${smsRecipient}`);
-
+                console.log(`[NotificationService.js] GW SMS 성공 ${target.강사이름} → ${smsRecipient}`);
             } else {
-
-                console.error(`[SMS 실패] ${target.강사이름} → ${smsRecipient}: ${smsResult.error}`);
-
+                console.error(`[NotificationService.js] GW SMS 실패 ${target.강사이름} → ${smsRecipient}: ${smsResult.error}`);
             }
-
         } catch (error) {
-
             result.SMS = {
                 success: false,
                 recipient: smsRecipient,
                 error: error.message,
             };
-
-            console.error(`[SMS 실패] ${target.강사이름} → ${smsRecipient}: ${error.message}`);
+            console.error(`[NotificationService.js] GW SMS 실패 ${target.강사이름} → ${smsRecipient}: ${error.message}`);
         }
 
     } else {
-
         result.SMS = {
             success: false,
             skipped: true,
             reason: "문자 발송 불가",
         };
     }
-
     return result;
 }
 
 
-/**
- * =========================================================
- * DS 발송
- * 담당교사에게만 SMS 발송
- * =========================================================
- */
+// =============================================================
+// DS 발송
+//
+// 1. 담당교사 → 담당교사 안내 템플릿
+// 2. 주강사 → 강사 안내 템플릿
+// 3. 보조강사 → 강사 안내 템플릿
+// 4. 지정 과정 → 세 역할 모두 대여 교구 확인 템플릿 추가 발송
+//
+// 동일인이 여러 역할을 맡아도 역할별로 각각 발송
+// =============================================================
 async function sendDsTarget(target, options = {}) {
 
     const {
         testPhone = null,
     } = options;
 
-    const smsRecipient = testPhone || target.담당교사연락처;
-
     const result = {
         사업구분: "DS",
         학교명: target.학교명,
         과정명: target.과정명,
         교육일: target.근무날짜,
-        담당교사: target.담당교사명,
-        SMS: null,
+        역할별안내: {},
+        대여교구확인: {},
     };
 
+    // 1. 역할별 수신자 및 템플릿 설정
+    const roleMessages = [
 
-    // 담당교사 연락처 확인
-    if (!smsRecipient) {
+        // 담당교사
+        {
+            role: "담당교사",
+            name: target.담당교사명,
+            phone: target.담당교사연락처,
+            subject: () => TemplateService.createDsTeacherSmsSubject(),
+            body: () => TemplateService.createDsTeacherSmsBody(target),
+        },
 
-        result.SMS = {
-            success: false,
-            skipped: true,
-            reason: "담당교사 연락처 없음",
+
+        // 주강사
+        {
+            role: "주강사",
+            name: target.주강사명,
+            phone: target.주강사연락처,
+            subject: () => TemplateService.createDsInstructorSmsSubject(),
+            body: () => TemplateService.createDsInstructorSmsBody(target),
+        },
+
+
+        // 보조강사
+        {
+            role: "보조강사",
+            name: target.보조강사명,
+            phone: target.보조강사연락처,
+            subject: () => TemplateService.createDsInstructorSmsSubject(),
+            body: () => TemplateService.createDsInstructorSmsBody(target),
+        },
+    ];
+
+
+    // 2. 역할별 교육 안내 문자 발송
+    console.log("\n========================================");
+    console.log("[NotificationService.js] DS 역할별 교육 안내 문자 발송");
+    console.log(`학교명: ${target.학교명}`);
+    console.log(`과정명: ${target.과정명}`);
+    console.log("========================================");
+
+
+    for (const recipient of roleMessages) {
+
+        const message = {
+            subject: recipient.subject(),
+            bodyText: recipient.body(),
         };
 
-        console.log(`[DS SMS 스킵] ${target.학교명} → 담당교사 연락처 없음`);
+        const smsResult = await sendRoleSms({
+            target,
+            role: recipient.role,
+            name: recipient.name,
+            phone: recipient.phone,
+            testPhone,
+            message,
+        });
 
-        return result;
+        result.역할별안내[recipient.role] = smsResult;
+
     }
 
 
-    // DS SMS 메시지 생성
-    const message = {
-        subject: TemplateService.createDsSmsSubject(),
-        bodyText: TemplateService.createDsSmsBody(target),
-    };
+    // 3. 대여 교구 확인 문자 발송 여부 확인
+    const isRentalEquipmentCourse = TemplateService.isRentalEquipmentCourse(target);
+
+    if (isRentalEquipmentCourse) {
+
+        console.log("\n========================================");
+        console.log("[NotificationService.js] DS 대여 교구 수량 확인 문자 발송");
+        console.log(`대상 과정: ${target.과정명}`);
+        console.log("========================================");
+
+        // 대여 교구 확인 문자 생성
+        const rentalMessage = {
+            subject: TemplateService.createRentalEquipmentSmsSubject(),
+            bodyText: TemplateService.createRentalEquipmentSmsBody(target),
+        };
+
+
+        // 담당교사 / 주강사 / 보조강사 모두에게 발송
+        for (const recipient of roleMessages) {
+
+            const smsResult = await sendRoleSms({
+                target,
+                role: `${recipient.role} 대여 교구 확인`,
+                name: recipient.name,
+                phone: recipient.phone,
+                testPhone,
+                message: rentalMessage,
+            });
+
+            result.대여교구확인[recipient.role] = smsResult;
+        }
+    } else {
+        console.log(`[DS 대여 교구 문자 스킵] 대상 과정 아님: ${target.과정명}`);
+
+        result.대여교구확인 = {
+            skipped: true,
+            reason: "대여 교구 확인 문자 대상 과정이 아님",
+        };
+    }
+    return result;
+}
+
+// =============================================================
+// DS 역할별 SMS 발송 공통 함수
+//
+// 담당교사 / 주강사 / 보조강사
+// 역할별로 각각 호출하여 문자 발송 처리
+// =============================================================
+async function sendRoleSms({
+    target,
+    role,
+    name,
+    phone,
+    testPhone,
+    message,
+}) {
+
+    // 테스트 번호가 있으면 실제 역할별 연락처 대신 사용
+    const recipientPhone = testPhone || phone;
+
+
+    // 연락처 확인
+    if (!recipientPhone) {
+
+        console.log(`[NotificationService.js] DS SMS 스킵 ${target.학교명} / ${role}: 연락처 없음`);
+
+        return {
+            success: false,
+            skipped: true,
+            reason: "해당 역할 연락처 없음",
+            role,
+            name: name || "",
+        };
+    }
 
 
     // SMS / LMS 발송
     try {
         const smsResult = await SmsService.send(
-            smsRecipient,
+            recipientPhone,
             message
         );
 
-        result.SMS = {
-            success: smsResult.success,
-            recipient: smsRecipient,
+        const result = {
+            success: Boolean(smsResult.success),
+            recipient: recipientPhone,
+            role,
+            name: name || "",
             result: smsResult,
         };
 
-
+        // 발송 성공 / 실패 로그
         if (smsResult.success) {
-            
-            console.log(`[DS SMS 성공] ${target.담당교사명} → ${smsRecipient}`);
+
+            console.log(
+                `[NotificationService.js] DS SMS 성공 ${target.학교명} / ${role} ${name || ""} → ${recipientPhone}`
+            );
 
         } else {
-            console.error(`[DS SMS 실패] ${target.담당교사명} → ${smsRecipient}: ${smsResult.error}`);
+            console.error(
+                `[NotificationService.js] DS SMS 실패 ${target.학교명} / ${role} ${name || ""} → ${recipientPhone}: ${smsResult.error}`
+            );
         }
+        return result;
 
     } catch (error) {
+        console.error(
+            `[NotificationService.js] DS SMS 실패 ${target.학교명} / ${role} ${name || ""} → ${recipientPhone}: ${error.message}`
+        );
 
-        result.SMS = {
+        return {
             success: false,
-            recipient: smsRecipient,
+            recipient: recipientPhone,
+            role,
+            name: name || "",
             error: error.message,
         };
-
-        console.error(`[DS SMS 실패] ${target.담당교사명} → ${smsRecipient}: ${error.message}`);
     }
-    return result;
 }
+
 
 module.exports = {
     sendTarget,
