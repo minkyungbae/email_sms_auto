@@ -315,13 +315,8 @@ async function sendRoleSms({
     testPhone,
     message,
 }) {
-
-    // 테스트 번호가 있으면 실제 역할별 연락처 대신 사용
-    const recipientPhone = testPhone || phone;
-
-
     // 연락처 확인
-    if (!recipientPhone) {
+    if (!phone) {
 
         console.log(`[NotificationService.js] DS SMS 스킵 ${target.학교명} / ${role}: 연락처 없음`);
 
@@ -334,6 +329,8 @@ async function sendRoleSms({
         };
     }
 
+    // 테스트 번호가 있으면 실제 역할별 연락처 대신 사용
+    const recipientPhone = testPhone || phone;
 
     // SMS / LMS 발송
     try {
