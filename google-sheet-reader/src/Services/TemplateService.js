@@ -150,11 +150,11 @@ const TemplateService = {
 
     // 담당교사 SMS 제목
     createDsTeacherSmsSubject() {
-        return MESSAGE_CONFIG.DS.SMS_SUBJECT;
+        return MESSAGE_CONFIG.DS.TEACHER_SMS_SUBJECT;
     },
     // 담당교사 SMS 본문
     createDsTeacherSmsBody(target) {
-        const template = MESSAGE_CONFIG.DS.SMS_BODY;
+        const template = MESSAGE_CONFIG.DS.TEACHER_SMS_BODY;
         const variables = this.createDsVariables(target);
 
         return this.replaceVariables(template, variables);
@@ -175,13 +175,13 @@ const TemplateService = {
 
     // 강사용 SMS 제목
     createDsInstructorSmsSubject() {
-        return MESSAGE_CONFIG.DS.TEACHER_SMS_SUBJECT;
+        return MESSAGE_CONFIG.DS.INSTRUCTOR_SMS_SUBJECT;
     },
 
 
     // 강사용 SMS 본문
     createDsInstructorSmsBody(target) {
-        const template = MESSAGE_CONFIG.DS.TEACHER_SMS_BODY;
+        const template = MESSAGE_CONFIG.DS.INSTRUCTOR_SMS_BODY;
         const variables = this.createDsVariables(target);
 
         return this.replaceVariables(template, variables);
