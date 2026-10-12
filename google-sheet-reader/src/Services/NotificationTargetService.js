@@ -2,7 +2,7 @@
  * @file NotificationTargetService.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-08
+ * @updated 2026-10-12
  * @description
  * 사업별 그룹화된 교육 데이터를 기반으로 실제 알림 발송 대상 생성
  * 
@@ -10,9 +10,8 @@
  * - GW / DS 사업별 발송 대상 생성
  * - GW : 이메일 및 SMS 발송 가능 여부 판별
  * - DS : 교육 일정 단위의 SMS 발송 대상 생성
- * - DS : 담당교사 / 주강사 / 보조강사 중 동일 인물 중복 제거
- */
-
+ * - DS : 담당교사 / 주강사 / 보조강사 역할별 수신자 정보 유지
+*/
 
 // 메인
 function createTargets(groups, businessType = "GW") {
@@ -35,8 +34,9 @@ function createTargets(groups, businessType = "GW") {
     throw new Error(`지원하지 않는 사업 유형입니다: ${businessType}`);
 }
 
-
+// =============================================================
 // GW 발송 대상
+// =============================================================
 function createGwTarget(group) {
 
     const matched = isMatched(group);
@@ -48,8 +48,11 @@ function createGwTarget(group) {
             ? group.이메일목록[0]
             : "";
 
+    // 이메일 / 문자 발송 가능 여부
     const 이메일발송가능 = matched && primaryEmail !== "";
     const 문자발송가능 = matched && Boolean(group.연락처);
+
+    // 발송 채널 설정
     const 발송채널 = [];
 
     if (이메일발송가능) {
@@ -71,10 +74,7 @@ function createGwTarget(group) {
 
         이메일: primaryEmail,
 
-        이메일목록:
-            Array.isArray(group.이메일목록)
-                ? group.이메일목록
-                : [],
+        이메일목록: Array.isArray(group.이메일목록) ? group.이메일목록 : [],
 
         연락처매칭상태: group.연락처매칭상태,
 
@@ -99,22 +99,25 @@ function createGwTarget(group) {
 }
 
 
+// =============================================================
 // DS 발송 대상
+// =============================================================
 function createDsTarget(group) {
 
-    // 1. 교육 일정의 수신자 목록 생성
+    // 교육 일정의 수신자 목록 생성
     const 수신자목록 = createDsRecipients(group);
 
 
-    // 2. SMS 발송 가능 여부
+    // SMS 발송 가능 여부
     const 문자발송가능 = 수신자목록.length > 0;
+
     const 발송채널 = 문자발송가능 ? ["SMS"] : [];
 
 
-    // 3. 최종 Target
     return {
 
         사업구분: "DS",
+
         // 교육 정보
         학교명: group.학교명,
         학생수: group.학생수,
@@ -150,19 +153,22 @@ function createDsTarget(group) {
         // 실제 SMS 수신자
         수신자목록,
 
+        // 발송 설정
         이메일발송가능: false,
 
         문자발송가능,
 
         발송채널,
 
-        발송가능:
-            발송채널.length > 0,
+        발송가능: 발송채널.length > 0,
     };
 }
 
 
-// DS 수신자 목록 생성
+// =============================================================
+// DS 역할별 수신자 목록 생성
+// 동일인이 여러 역할을 맡아도 역할별로 별도 등록
+// =============================================================
 function createDsRecipients(group) {
 
     const recipients = [];
@@ -192,7 +198,9 @@ function createDsRecipients(group) {
 }
 
 
-// DS 수신자 추가 및 중복 제거
+// =============================================================
+// DS 역할별 수신자 추가
+// =============================================================
 function addDsRecipient(
     recipients,
     role,
@@ -203,64 +211,22 @@ function addDsRecipient(
     const normalizedPhone = normalizePhone(phone);
 
     // 이름과 전화번호가 모두 없으면 수신자로 추가하지 않음
-    if (
-        !normalizedName &&
-        !normalizedPhone
-    ) {
+    if (!normalizedName && !normalizedPhone) {
         return;
     }
 
-    // 동일 인물인지 확인
-    //
-    // 1순위 : 전화번호
-    // 2순위 : 이름
-    const existing = recipients.find(recipient => {
-
-        // 전화번호가 둘 다 존재하면 전화번호 비교
-        if (
-            normalizedPhone &&
-            recipient.연락처
-        ) {
-            return (
-                normalizePhone(recipient.연락처) ===
-                normalizedPhone
-            );
-        }
-
-        // 전화번호가 없을 경우 이름 비교
-        if (
-            normalizedName &&
-            recipient.이름
-        ) {
-            return (
-                normalizeValue(recipient.이름) ===
-                normalizedName
-            );
-        }
-
-        return false;
-    });
-
-    // 동일 인물이 이미 존재하는 경우 역할만 추가
-    if (existing) {
-        if (!existing.역할.includes(role)) {
-            existing.역할.push(role);
-        }
-        return;
-    }
-
-    // 새로운 수신자
+    // 동일인 / 동일 연락처여도 역할별 발송이 필요하므로 중복 제거하지 않고 각각 수신자로 추가
     recipients.push({
         이름: name || "",
         연락처: phone || "",
-        역할: [
-            role
-        ],
+        역할: role,
     });
 }
 
 
+// =============================================================
 // 값 정규화
+// =============================================================
 function normalizeValue(value) {
 
     return String(value || "")
@@ -270,7 +236,9 @@ function normalizeValue(value) {
 }
 
 
+// =============================================================
 // 전화번호 정규화
+// =============================================================
 function normalizePhone(phone) {
 
     return String(phone || "")
@@ -279,7 +247,9 @@ function normalizePhone(phone) {
 }
 
 
+// =============================================================
 // GW 연락처 매칭 확인
+// =============================================================
 function isMatched(group) {
 
     const status = String(group.연락처매칭상태 || "");
