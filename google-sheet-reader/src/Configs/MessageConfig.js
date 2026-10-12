@@ -2,7 +2,7 @@
  * @file MessageConfig.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-08
+ * @updated 2026-10-12
  * @description
  * 이 파일은 이메일 및 문자 발송을 위한 메시지 템플릿 설정을 관리.
  * 주요 기능 :
@@ -11,6 +11,7 @@
  */
 
 const { ACCOUNT_CONFIG } = require("../../../security_info.js")
+const { EMAIL_SMS_INFO, RENTAL_EQUIPMENT_COURSES } = require("./SmsBody.js")
 
 const MESSAGE_CONFIG = {
 
@@ -23,147 +24,68 @@ const MESSAGE_CONFIG = {
         ORGANIZATION: "강원SW미래채움",
         SENDER_NAME: "강원SW미래채움",
 
-        CONTACT_LINK: ACCOUNT_CONFIG.GW.CONTACT_LINK,
+        CONTACT_LINK: 
+            ACCOUNT_CONFIG.GW.CONTACT_LINK,
 
         // 이메일 제목
-        EMAIL_SUBJECT:
-            "[{ORGANIZATION}] {DATE} {LOCATION} 교육 리마인드 안내",
+        EMAIL_SUBJECT: 
+            EMAIL_SMS_INFO.GW.GW_EMAIL_SUBJECT,
 
         // 이메일 본문
-        EMAIL_BODY:
-`안녕하세요 {INSTRUCTOR} 강사님. {ORGANIZATION} 운영국입니다.
+        EMAIL_BODY: 
+            EMAIL_SMS_INFO.GW.GW_EMAIL_BODY,
 
-{DATE} 교육 일정을 안내드립니다.
-아래 세부 일정을 확인해주시기 바랍니다.
-
---------------------------------------------------
-■ 교육 일자 : {DATE}
-■ 수요처명 : {LOCATION}
-■ 교육 일정 :
-{CLASS_SCHEDULE}
---------------------------------------------------
-
-※ 문의사항
-: {CONTACT_LINK}
-플러스 친구 채팅으로 문의바랍니다.
-
-감사합니다.
-
-{ORGANIZATION} 운영사무국 드림`,
 
 // --------------------------------------------------------------
         // SMS 제목
-        SMS_SUBJECT:
-            "[강원SW미래채움] 강의 리마인드",
+        SMS_SUBJECT: 
+            EMAIL_SMS_INFO.GW.GW_SMS_SUBJECT,
 
         // SMS 본문
-        SMS_BODY:
-`안녕하세요 {INSTRUCTOR} 강사님.
-{ORGANIZATION} 운영국입니다.
-
-{DATE} 교육 일정을 안내드립니다.
-아래 세부 일정을 확인해주시기 바랍니다.
-
---------------------------------------------------
-■ 교육 일자 : {DATE}
-■ 수요처명 : {LOCATION}
-■ 교육 일정 :
-{CLASS_SCHEDULE}
---------------------------------------------------
-
-※ 문의사항
-: {CONTACT_LINK}
-플러스 친구 채팅으로 문의바랍니다.
-
-감사합니다.
-
-{ORGANIZATION} 운영사무국 드림`,
+        SMS_BODY: 
+            EMAIL_SMS_INFO.GW.GW_SMS_BODY,
     },
     
-        // -------------------------------------------------------------
-        // Sms 발송용 템플릿 (GW)
-        // -------------------------------------------------------------
-        SMS_SUBJECT:
-        "[강원SW미래채움] 강의 리마인드",
-
-        SMS_BODY:
-`안녕하세요 {INSTRUCTOR} 강사님.
-{ORGANIZATION} 운영국입니다.
-
-{DATE} 교육 일정을 안내드립니다.
-아래 세부 일정을 확인해주시기 바랍니다.
-
---------------------------------------------------
-■ 교육 일자 : {DATE}
-■ 수요처명 : {LOCATION}
-■ 교육 일정 :
-{CLASS_SCHEDULE}
---------------------------------------------------
-
-※ 문의사항
-: {CONTACT_LINK}
-플러스 친구 채팅으로 문의바랍니다.
-
-감사합니다.
-
-{ORGANIZATION} 운영사무국 드림`,
 
 // -------------------------------------------------------------
 // Sms 발송용 템플릿 (DS)
 // -------------------------------------------------------------
 DS: {
+
+    /** 담당교사용 */
+
     ORGANIZATION: "디지털새싹 운영기관 코코아팹",
 
     SENDER_NAME: "코코아팹",
 
     CONTACT_LINK: ACCOUNT_CONFIG.DS.CONTACT_LINK,
 
-    SMS_SUBJECT:
-        "[코코아팹] 디지털새싹 담당교사",
+    TEACHER_SMS_SUBJECT:
+        EMAIL_SMS_INFO.DS.DS_TEACHER_SUBJECT,
 
-    SMS_BODY:
-`안녕하세요 {TEACHER} 선생님 {ORGANIZATION}입니다.
+    TEACHER_SMS_BODY:
+        EMAIL_SMS_INFO.DS.DS_TEACHER_BODY,
 
-하기 교육안내 매뉴얼 꼼꼼하게 확인 부탁드립니다.
-아래 세부 일정을 확인해주시기 바랍니다.
+// ======================================================
+    /** 주 강사, 보조 강사용 */
+    
+    INSTRUCTOR_SMS_SUBJECT: 
+        EMAIL_SMS_INFO.DS.DS_INSTRUCTOR_SUBJECT,
 
-★ (ASAP) 담당교사 필수제출 서류: 학교피난도, 학교안전 체크리스트, 화재보험증권
-   (학교안전 체크리스트는 구글폼으로 대체 가능, 학교는 화재보험증권 미제출)
-   25년 교육 개설 학교도 26년에 담당교사 서류를 다시 제출해주시기 바랍니다.
-★ (수업 1주전) 디지털새싹 학교별 LMS 학생 등록을 진행해주시기 바랍니다.
-★ (공문 발송)'교육과정 확정 공문' 및 '강사위촉 공문'을 문서24를 통해 송부드리오니, 확인 바랍니다.
-★ 원활한 소통을 위해 담당선생님의 연락처가 강사님들에게 전달되는 점 확인 바랍니다.
+    INSTRUCTOR_SMS_BODY:
+        EMAIL_SMS_INFO.DS.DS_INSTRUCTOR_BODY,
 
-1) 담당교사 사전/사후 체크사항(담당교사 매뉴얼 및 과정별 필수 준비물 탭 확인)
+// ======================================================
+    /** 대여 교구 수량 확인용 */
 
-★교육매뉴얼
-{EDUCATION_MANUAL_URL}
+    RENTAL_EQUIPMENT_COURSES: 
+        RENTAL_EQUIPMENT_COURSES,
 
-*담당교사 사전 체크사항 확인 부탁드립니다.
-{TEACHER_CHECKLIST_URL}
+    RENTAL_EQUIPMENT_SMS_SUBJECT: 
+        EMAIL_SMS_INFO.DS.DS_RENTAL_EQUIPMENT_SMS_SUBJECT,
 
-2) 강사진
-- 메인 강사 : {INSTRUCTOR}
-- 보조 강사 : {ASSISTANT_INSTRUCTOR}
-
-3) 수업안내 : 26년 디지털새싹
-- 학교명: {LOCATION}
-- 과정명: {COURSE_NAME}
-- 인원 : {STUDENT_COUNT}
-- 일정: {DATE}
-- 시간: 
-{TIME}
-
-4) 물품 발송(학교로 발송)
-- 운영물품, 다과 : 수업 5일 전 택배발송
-
-
-*본 문자는 발신전용이므로 문의사항은 카카오채널로 연락주시기 바랍니다.
-★1:1 문의: {CONTACT_LINK}
-
-문의사항 있으시면 연락 부탁드립니다.
-감사합니다`
-
+    RENTAL_EQUIPMENT_SMS_BODY:
+        EMAIL_SMS_INFO.DS.DS_RENTAL_EQUIPMENT_SMS_BODY,
 },
 };
 
