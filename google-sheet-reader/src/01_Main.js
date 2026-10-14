@@ -2,7 +2,7 @@
  * @file 01_Main.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-12
+ * @updated 2026-10-14
  * @description
  * 설정된 발송 기준일의 교육 데이터를 조회하여 사업별 그룹화, 발송 대상 선정 및 통합 알림 발송 수행
  * 
@@ -67,6 +67,7 @@ function getTargetDate(daysBefore) {
 // Config.js의 BUSINESS_TYPE을 배열로 변환
 // =============================================================
 function getBusinessTypes() {
+
     const configuredTypes = CONFIG.BUSINESS_TYPE;
 
     // 문자열 또는 배열 모두 지원
@@ -106,9 +107,9 @@ async function main() {
         // -----------------------------------------------------
         // 2. 테스트 발송 설정
         // -----------------------------------------------------
-        const emailTestMode = CONFIG.EMAIL_TEST_MODE !== false; // 이메일 테스트 261012 추가
+        const emailTestMode = CONFIG.EMAIL_TEST_MODE !== false;                 // 이메일 테스트 261012 추가
         const smsTestRecipientMode = CONFIG.SMS_TEST_RECIPIENT_MODE !== false; // SMS 수신번호 테스트 261012 추가
-        const smsApiTestMode = CONFIG.TEST_MODE; // 뿌리오로 문자 발송 테스트 261012 추가
+        const smsApiTestMode = CONFIG.TEST_MODE;                               // 뿌리오로 문자 발송 테스트 261012 추가
 
         // 이메일 수신자
         const testEmail = emailTestMode ? TEST_PERSONAL_INFO.TEST_EMAIL : null;
@@ -149,192 +150,232 @@ async function main() {
 
 
         // -----------------------------------------------------
-        // 4. 교육 데이터 조회
+        // 4. 사업별 처리 시작 261014 추가
         // -----------------------------------------------------
-        console.log(`\n[${businessType}] ${targetDate} 교육 데이터 조회 시작`);
+        for (const businessType of selectedBusinessTypes) {
 
-        const rows = await SheetService.getRowsByDate(targetDate, businessType);
-        console.log(`[${businessType}] 조회된 데이터: ${rows.length}건`);
+            console.log(`\n[${businessType}] 사업 처리 시작`);
 
-        if (rows.length === 0) {
-            console.log("조회 결과가 없습니다.");
-            return;
-        }
+            // -----------------------------------------------------
+            // 4-1. 교육 데이터 조회
+            // -----------------------------------------------------
+            console.log(`\n[${businessType}] ${targetDate} 교육 데이터 조회 시작`);
 
+            const rows = await SheetService.getRowsByDate(targetDate, businessType);
+            console.log(`[${businessType}] 조회된 데이터: ${rows.length}건`);
 
-        // -----------------------------------------------------
-        // 5. 교육 일정 그룹화
-        // -----------------------------------------------------
-        const groups = GroupService.groupClasses(rows, businessType);
-        console.log(`[${businessType}] 교육 일정 그룹: ${groups.length}건`);
+            if (rows.length === 0) {
+                console.log(`[${businessType}] 조회 결과가 없습니다.`);
+                continue;
+            }
 
+            // -----------------------------------------------------
+            // 4-2. 교육 일정 그룹화
+            // -----------------------------------------------------
 
-        // -----------------------------------------------------
-        // 6. 발송 대상 생성
-        // -----------------------------------------------------
-        const targets = NotificationTargetService.createTargets(groups, businessType);
-        console.log(`[${businessType}] 실제 발송 대상: ${targets.length}건`);
+            const groups = GroupService.groupClasses(
+                rows,
+                businessType
+            );
 
-        if (targets.length === 0) {
-            console.log("발송 가능한 대상이 없습니다.");
-            return;
-        }
-
-
-        // =====================================================
-        // DS 사업일 때
-        // =====================================================
-        if (businessType === "DS") {
-            console.log("\n========================================");
-            console.log("[DS] 역할별 문자 발송 시작");
-            console.log("========================================");
-
-            const sendResults = [];
-
-            for (const target of targets) {
-                console.log("\n========================================");
-                console.log(`[학교] ${target.학교명}`);
-                console.log(`[과정] ${target.과정명}`);
-                console.log(`[교육일] ${target.근무날짜}`);
-                console.log(`[담당교사] ${target.담당교사명} / ${target.담당교사연락처}`);
-                console.log(`[주강사] ${target.주강사표기} / ${target.주강사연락처}`);
-                console.log(`[보조강사] ${target.보조강사표기} / ${target.보조강사연락처}`);
+            console.log(`[${businessType}] 교육 일정 그룹: ${groups.length}건`);
 
 
-                // -------------------------------------------------
-                // 담당교사 템플릿 미리보기
-                // -------------------------------------------------
-                if (target.담당교사연락처) {
-                    console.log("\n[담당교사 SMS 제목]");
-                    console.log(TemplateService.createDsTeacherSmsSubject());
-                    console.log("\n[담당교사 SMS 본문]");
-                    console.log(TemplateService.createDsTeacherSmsBody(target));
-                }
+            // -----------------------------------------------------
+            // 4-3. 발송 대상 생성
+            // -----------------------------------------------------
 
+            const targets = NotificationTargetService.createTargets(
+                groups,
+                businessType
+            );
 
-                // -------------------------------------------------
-                // 주강사 템플릿 미리보기
-                // -------------------------------------------------
-                if (target.주강사연락처) {
-                    console.log("\n[주강사 SMS 제목]");
-                    console.log(TemplateService.createDsInstructorSmsSubject());
-                    console.log("\n[주강사 SMS 본문]");
-                    console.log(TemplateService.createDsInstructorSmsBody(target));
-                }
+            console.log(`[${businessType}] 실제 발송 대상: ${targets.length}건`);
 
-
-                // -------------------------------------------------
-                // 보조강사 템플릿 미리보기
-                // -------------------------------------------------
-                if (target.보조강사연락처) {
-                    console.log("\n[보조강사 SMS 제목]");
-                    console.log(TemplateService.createDsInstructorSmsSubject());
-                    console.log("\n[보조강사 SMS 본문]");
-                    console.log(TemplateService.createDsInstructorSmsBody(target));
-                }
-
-
-
-                // -------------------------------------------------
-                // 대여 교구 확인 문자 미리보기
-                // -------------------------------------------------
-                if (
-                    TemplateService.isRentalEquipmentCourse(target)
-                ) {
-                    console.log("\n[대여 교구 확인 SMS 제목]");
-                    console.log(TemplateService.createRentalEquipmentSmsSubject());
-                    console.log("\n[대여 교구 확인 SMS 본문]");
-                    console.log(TemplateService.createRentalEquipmentSmsBody(target));
-                } else {
-                    console.log("\n[대여 교구 확인 문자] 대상 과정 아님");
-                }
-
-
-
-                // -------------------------------------------------
-                // 실제 발송
-                // -------------------------------------------------
-                console.log("\n[DS 문자 발송 시작]");
-                console.log(`[수신번호 설정] ${testPhone || "각 역할의 실제 연락처"}`);
-
-                const result = await NotificationService.sendTarget(target, {testPhone,});
-
-                sendResults.push(result);
+            if (targets.length === 0) {
+                console.log(`[${businessType}] 발송 가능한 대상이 없습니다.`);
+                continue;
             }
 
 
-            // -----------------------------------------------------
-            // DS 최종 발송 결과
-            // -----------------------------------------------------
-            console.log("\n========================================");
-            console.log("[DS 최종 처리 결과]");
-            console.log(`처리한 교육 일정: ${sendResults.length}건`);
-            console.log("========================================");
+            // =====================================================
+            // 4-4. DS 사업일 때
+            // =====================================================
+            if (businessType === "DS") {
 
-            return;
-        }
-
-
-
-        // =====================================================
-        // GW 사업일 때
-        // =====================================================
-        if (businessType === "GW") {
-            console.log("\n========================================");
-            console.log("[GW] 이메일 및 문자 발송 시작");
-            console.log("========================================");
-
-            const sendResults = [];
-
-
-            for (const target of targets) {
                 console.log("\n========================================");
-                console.log(`[강사] ${target.강사이름}`);
-                console.log(`[실제 이메일] ${target.이메일}`);
-                console.log(`[실제 연락처] ${target.연락처}`);
+                console.log("[DS] 역할별 문자 발송 시작");
+                console.log("========================================");
 
-                // -------------------------------------------------
-                // 이메일 미리보기
-                // -------------------------------------------------
+                const sendResults = [];
 
-                if (target.이메일발송가능) {
-                    console.log("\n[이메일 제목]");
-                    console.log(TemplateService.createEmailSubject(target));
-                    console.log("\n[이메일 본문]");
-                    console.log(TemplateService.createEmailBody(target));
+                for (const target of targets) {
+
+                    console.log("\n========================================");
+                    console.log(`[학교] ${target.학교명}`);
+                    console.log(`[과정] ${target.과정명}`);
+                    console.log(`[교육일] ${target.근무날짜}`);
+                    console.log(`[담당교사] ${target.담당교사명} / ${target.담당교사연락처}`);
+                    console.log(`[주강사] ${target.주강사표기} / ${target.주강사연락처}`);
+                    console.log(`[보조강사] ${target.보조강사표기} / ${target.보조강사연락처}`);
+
+
+                    // -------------------------------------------------
+                    // 4-4-1. 담당교사 템플릿 미리보기
+                    // -------------------------------------------------
+                    if (target.담당교사연락처) {
+
+                        console.log("\n[담당교사 SMS 제목]");
+                        console.log(TemplateService.createDsTeacherSmsSubject());
+
+                        console.log("\n[담당교사 SMS 본문]");
+                        console.log(TemplateService.createDsTeacherSmsBody(target));
+                    }
+
+
+                    // -------------------------------------------------
+                    // 4-4-2. 주강사 템플릿 미리보기
+                    // -------------------------------------------------
+                    if (target.주강사연락처) {
+
+                        console.log("\n[주강사 SMS 제목]");
+                        console.log(TemplateService.createDsInstructorSmsSubject());
+
+                        console.log("\n[주강사 SMS 본문]");
+                        console.log(TemplateService.createDsInstructorSmsBody(target));
+                    }
+
+
+                    // -------------------------------------------------
+                    // 4-4-3. 보조강사 템플릿 미리보기
+                    // -------------------------------------------------
+                    if (target.보조강사연락처) {
+
+                        console.log("\n[보조강사 SMS 제목]");
+                        console.log(TemplateService.createDsInstructorSmsSubject());
+
+                        console.log("\n[보조강사 SMS 본문]");
+                        console.log(TemplateService.createDsInstructorSmsBody(target));
+                    }
+
+
+                    // -------------------------------------------------
+                    // 4-4-4. 대여 교구 확인 문자 미리보기
+                    // -------------------------------------------------
+                    if (
+                        TemplateService.isRentalEquipmentCourse(target)
+                    ) {
+                        console.log("\n[대여 교구 확인 SMS 제목]");
+                        console.log(TemplateService.createRentalEquipmentSmsSubject());
+
+                        console.log("\n[대여 교구 확인 SMS 본문]");
+                        console.log(TemplateService.createRentalEquipmentSmsBody(target));
+
+                    } else {
+                        console.log("\n[대여 교구 확인 문자] 대상 과정 아님");
+                    }
+
+
+                    // -------------------------------------------------
+                    // 4-4-5. 실제 발송
+                    // -------------------------------------------------
+                    console.log("\n[DS 문자 발송 시작]");
+                    console.log(`[수신번호 설정] ${testPhone || "각 역할의 실제 연락처"}`);
+
+                    const result = await NotificationService.sendTarget(
+                        target,
+                        {
+                            testPhone,
+                        }
+                    );
+                    sendResults.push(result);
                 }
 
 
-                // -------------------------------------------------
-                // SMS 미리보기
-                // -------------------------------------------------
-                if (target.문자발송가능) {
-                    console.log("\n[SMS 제목]");
-                    console.log(TemplateService.createSmsSubject());
-                    console.log("\n[SMS 본문]");
-                    console.log(TemplateService.createSmsBody(target));
-                }
+                // -----------------------------------------------------
+                // 4-4-6. DS 최종 발송 결과
+                // -----------------------------------------------------
+                console.log("\n========================================");
+                console.log("[DS 최종 처리 결과]");
+                console.log(`처리한 교육 일정: ${sendResults.length}건`);
+                console.log("========================================");
 
+                // DS 처리가 끝나면 다음 사업으로 이동
+                continue;
 
-                // -------------------------------------------------
-                // 실제 발송 함수 호출
-                // -------------------------------------------------
-                console.log("\n[GW 통합 발송 시작]");
-                const result = await NotificationService.sendTarget(target, {testEmail, testPhone,});
-                sendResults.push(result);
             }
 
 
-            // -----------------------------------------------------
-            // GW 최종 발송 결과
-            // -----------------------------------------------------
-            console.log("\n========================================");
-            console.log("[GW 최종 처리 결과]");
-            console.log(`처리한 발송 대상: ${sendResults.length}건`);
-            console.log("========================================");
-        }
+            // =====================================================
+            // 4-5. GW 사업일 때
+            // =====================================================
+            if (businessType === "GW") {
+
+                console.log("\n========================================");
+                console.log("[GW] 이메일 및 문자 발송 시작");
+                console.log("========================================");
+
+                const sendResults = [];
 
 
+                for (const target of targets) {
+
+                    console.log("\n========================================");
+                    console.log(`[강사] ${target.강사이름}`);
+                    console.log(`[실제 이메일] ${target.이메일}`);
+                    console.log(`[실제 연락처] ${target.연락처}`);
+
+                    // -------------------------------------------------
+                    // 4-5-1. 이메일 미리보기
+                    // -------------------------------------------------
+                    if (target.이메일발송가능) {
+                        console.log("\n[이메일 제목]");
+                        console.log(TemplateService.createEmailSubject(target));
+
+                        console.log("\n[이메일 본문]");
+                        console.log(TemplateService.createEmailBody(target));
+                    }
+
+
+                    // -------------------------------------------------
+                    // 4-5-2. SMS 미리보기
+                    // -------------------------------------------------
+                    if (target.문자발송가능) {
+                        console.log("\n[SMS 제목]");
+                        console.log(TemplateService.createSmsSubject());
+
+                        console.log("\n[SMS 본문]");
+                        console.log(TemplateService.createSmsBody(target));
+                    }
+
+
+                    // -------------------------------------------------
+                    // 4-5-3. 실제 발송 함수 호출
+                    // -------------------------------------------------
+                    console.log("\n[GW 통합 발송 시작]");
+
+                    const result = await NotificationService.sendTarget(
+                        target,
+                        {
+                            testEmail,
+                            testPhone,
+                        }
+                    );
+
+                    sendResults.push(result);
+
+                }
+
+                // -----------------------------------------------------
+                // 4-5-4. GW 최종 발송 결과
+                // -----------------------------------------------------
+                console.log("\n========================================");
+                console.log("[GW 최종 처리 결과]");
+                console.log(`처리한 발송 대상: ${sendResults.length}건`);
+                console.log("========================================");
+            }
+
+        } // 사업별 반복문 종료
     } catch (error) {
         console.error("\n프로그램 실행 실패");
         console.error(error.message);
