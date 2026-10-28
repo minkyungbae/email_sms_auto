@@ -123,9 +123,9 @@ async function getRowsByDate(
     const controller = new AbortController();
 
     const timeoutId = setTimeout(() => {
-        console.log(`[SheetService] ${type} 요청 시간 초과 (60초)`);
+        console.log(`[SheetService] ${type} 요청 시간 초과 (600초)`);
         controller.abort();
-    }, 60000);
+    }, 600000);
 
     let response;
 
