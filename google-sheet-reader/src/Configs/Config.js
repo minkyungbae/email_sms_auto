@@ -22,7 +22,7 @@ const CONFIG = {
     BUSINESS_TYPE: ["GW", "DS"],
 
     // 발송 기준일 (0 : 수업 당일 / 7 : 수업 일주일 전)
-    DAYS_BEFORE: 0,
+    DAYS_BEFORE: 2,
 
     // SMS 수신번호 테스트 모드 (true: 테스트 전화번호 / false: 실제 수신자 전화번호)
     SMS_TEST_RECIPIENT_MODE: true,
