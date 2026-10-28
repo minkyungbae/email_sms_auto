@@ -2,7 +2,7 @@
  * @file SheetConfig.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-08
+ * @updated 2026-10-28
  * @description
  * 이 파일은 Google Sheets와의 상호작용을 위한 설정을 관리.
  * 주요 기능 :
@@ -11,6 +11,8 @@
  */
 
 require("dotenv").config();
+
+const SPREADSHEET_IDS = require("../../../security_info");
 
 const SHEET_CONFIG = {
     // -------------------------------------------------------------
@@ -21,6 +23,14 @@ const SHEET_CONFIG = {
         GW: process.env.APPS_SCRIPT_URL,
         // 디지털새싹 사업
         DS: process.env.DS_APPS_SCRIPT_URL,
+    },
+
+    LOG: {
+        SPREADSHEET: {
+            ID: SPREADSHEET_IDS.LOG_SPREADSHEET_ID,
+            SHEET_NAME: "4.문자/메일별발송",
+            HEADER_ROW: 5,
+        }
     },
 
 
@@ -80,6 +90,38 @@ const SHEET_CONFIG = {
             "수업차시",
             "학교주소",
         ],
+
+        // =========================================================
+        // LOG - 로그 기록 (20261028 추가)
+        // =========================================================
+        LOG: [
+            "ID",
+            "No.",
+            "과정명",
+            "차시",
+            "교육일",
+            "요일",
+            "시간",
+            "교육상세장소",
+            "역할",
+            "성명",
+            "소속기관명",
+            "연락처",
+            "이메일",
+            "발송필수일",
+            "문자발송상태",
+            "문자발송일",
+            "문자내용",
+            "발송인",
+            "발송번호",
+            "발송이메일",
+            "수신인",
+            "수신번호",
+            "수신이메일",
+            "문자/이메일구분",
+            "제목",
+            "본문",
+        ]
     },
 };
 
