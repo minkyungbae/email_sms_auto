@@ -23,7 +23,7 @@ const SHEET_CONFIG = {
     // =============================================================
     APPS_SCRIPT_URL: {
         // 강원 사업
-        GW: process.env.APPS_SCRIPT_URL,
+        GW: process.env.GW_APPS_SCRIPT_URL,
         // 디지털새싹 사업
         DS: process.env.DS_APPS_SCRIPT_URL,
     },
