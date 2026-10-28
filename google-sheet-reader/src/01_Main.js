@@ -225,11 +225,13 @@ async function main() {
                     // -------------------------------------------------
                     if (target.담당교사연락처) {
 
+                        console.log("\n========================================");
                         console.log("\n[담당교사 SMS 제목]");
                         console.log(TemplateService.createDsTeacherSmsSubject());
 
                         console.log("\n[담당교사 SMS 본문]");
                         console.log(TemplateService.createDsTeacherSmsBody(target));
+                        console.log("\n========================================");
                     }
 
 
@@ -238,11 +240,13 @@ async function main() {
                     // -------------------------------------------------
                     if (target.주강사연락처) {
 
+                        console.log("\n========================================");
                         console.log("\n[주강사 SMS 제목]");
                         console.log(TemplateService.createDsInstructorSmsSubject());
 
                         console.log("\n[주강사 SMS 본문]");
                         console.log(TemplateService.createDsInstructorSmsBody(target));
+                        console.log("\n========================================");                       
                     }
 
 
@@ -251,11 +255,13 @@ async function main() {
                     // -------------------------------------------------
                     if (target.보조강사연락처) {
 
+                        console.log("\n========================================");                        
                         console.log("\n[보조강사 SMS 제목]");
                         console.log(TemplateService.createDsInstructorSmsSubject());
 
                         console.log("\n[보조강사 SMS 본문]");
                         console.log(TemplateService.createDsInstructorSmsBody(target));
+                        console.log("\n========================================");
                     }
 
 
@@ -265,11 +271,13 @@ async function main() {
                     if (
                         TemplateService.isRentalEquipmentCourse(target)
                     ) {
+                        console.log("\n========================================");
                         console.log("\n[대여 교구 확인 SMS 제목]");
                         console.log(TemplateService.createRentalEquipmentSmsSubject());
 
                         console.log("\n[대여 교구 확인 SMS 본문]");
                         console.log(TemplateService.createRentalEquipmentSmsBody(target));
+                        console.log("\n========================================");
 
                     } else {
                         console.log("\n[대여 교구 확인 문자] 대상 과정 아님");
@@ -329,11 +337,13 @@ async function main() {
                     // 4-5-1. 이메일 미리보기
                     // -------------------------------------------------
                     if (target.이메일발송가능) {
+                        console.log("\n========================================");
                         console.log("\n[이메일 제목]");
                         console.log(TemplateService.createEmailSubject(target));
 
                         console.log("\n[이메일 본문]");
                         console.log(TemplateService.createEmailBody(target));
+                        console.log("\n========================================");
                     }
 
 
@@ -341,11 +351,13 @@ async function main() {
                     // 4-5-2. SMS 미리보기
                     // -------------------------------------------------
                     if (target.문자발송가능) {
+                        console.log("\n========================================");
                         console.log("\n[SMS 제목]");
                         console.log(TemplateService.createSmsSubject());
 
                         console.log("\n[SMS 본문]");
                         console.log(TemplateService.createSmsBody(target));
+                        console.log("\n========================================");
                     }
 
 
