@@ -26,6 +26,9 @@ const SHEET_CONFIG = {
     },
 
     LOG: {
+        // 로그 API
+        APPS_SCRIPT_URL: process.env.LOG_APPS_SCRIPT_URL,
+        TOKEN: process.env.LOG_API_TOKEN,
         SPREADSHEET: {
             ID: SPREADSHEET_IDS.LOG_SPREADSHEET_ID,
             SHEET_NAME: "4.문자/메일별발송",
