@@ -15,7 +15,7 @@
 
 require("dotenv").config();
 
-const SPREADSHEET_IDS = require("../../../security_info");
+const { SPREADSHEET_IDS } = require("../../../security_info");
 
 const SHEET_CONFIG = {
     // =============================================================
