@@ -636,6 +636,7 @@ async function AppendLogs(records) {
 
     const url = logConfig.APPS_SCRIPT_URL;
     const token = logConfig.TOKEN;
+    const spreadsheetId = logConfig.SPREADSHEET.ID;  // 20261029 추가
 
     if (!url) {
         throw new Error("로그 Apps Script URL이 설정되지 않았습니다.");
@@ -643,6 +644,10 @@ async function AppendLogs(records) {
 
     if (!token) {
         throw new Error("로그 API 인증키가 설정되지 않았습니다.");
+    }
+
+    if (!spreadsheetId) {
+        throw new Error("로그 스프레드시트 ID가 설정되지 않았습니다.");
     }
 
     if (typeof fetch !== "function") {
@@ -676,6 +681,7 @@ async function AppendLogs(records) {
             },
             body: JSON.stringify({
                 token,
+                spreadsheetId, // 20261029 추가
                 records,
             }),
             redirect: "follow",
