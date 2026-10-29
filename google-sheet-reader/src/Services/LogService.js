@@ -3,7 +3,7 @@
  * @file LogService.js
  * @author 배민경
  * @created 2026-10-28
- * @updated 2026-10-28
+ * @updated 2026-10-29
  * @description
  * 문자/이메일 발송 결과를 Google Sheets 로그 시트에 기록
  *
@@ -41,37 +41,16 @@ function BuildRecords({
     console.log(`[LogService] ${type} 로그 데이터 생성 시작`);
 
     if (!target || !result) {
-        console.warn("[LogService] target 또는 result가 없습니다.");
+        console.warn(`[LogService] ${type} 로그 생성 실패: target 또는 result가 없습니다.`);
         return [];
     }
-
-    console.log("[LogService] target keys:", Object.keys(target));
-    console.log("[LogService] result keys:", Object.keys(result));
 
     let records = [];
 
     if (type === "GW") {
-
-        console.log("[LogService] GW EMAIL 결과:", {
-            success: result.EMAIL?.success,
-            skipped: result.EMAIL?.skipped,
-            recipientExists: Boolean(result.EMAIL?.recipient),
-        });
-
-        console.log("[LogService] GW SMS 결과:", {
-            success: result.SMS?.success,
-            skipped: result.SMS?.skipped,
-            recipientExists: Boolean(result.SMS?.recipient),
-            testMode: result.SMS?.result?.testMode,
-        });
-
         records = buildGwRecords(target, result, options);
 
     } else if (type === "DS") {
-
-        console.log("[LogService] DS 역할별 안내:", Object.keys(result.역할별안내 || {}));
-        console.log("[LogService] DS 대여 교구 확인:", Object.keys(result.대여교구확인 || {}));
-
         records = buildDsRecords(target, result, options);
 
     } else {
@@ -81,22 +60,7 @@ function BuildRecords({
     }
 
     // 생성 결과 확인
-    console.log(`[LogService] ${type} 생성된 로그: ${records.length}건`);
-
-    if (records.length > 0) {
-
-        console.table(
-            records.map(record => ({
-                ID: record["ID"]?.slice(0, 8),
-                역할: record["역할"],
-                구분: record["문자/이메일구분"],
-                상태: record["문자발송상태"],
-                제목: record["제목"],
-            }))
-        );
-    }
-    console.log(`[LogService] ${type} 로그 데이터 생성 완료`);
-    console.log("========================================");
+    console.log(`[LogService] ${type} 로그 생성: ${records.length}건`);
 
     return records;
 }
@@ -617,9 +581,6 @@ function getUniqueValues(values) {
 async function AppendLogs(records) {
 
     if (!Array.isArray(records) || records.length === 0) {
-
-        console.log("[LogService] 저장할 로그가 없습니다.");
-
         return {
             success: true,
             count: 0,
@@ -653,11 +614,8 @@ async function AppendLogs(records) {
     if (typeof fetch !== "function") {
         throw new Error("현재 Node.js 환경에서 fetch를 사용할 수 없습니다.");
     }
-
-    console.log("\n========================================");
     console.log("[LogService] Apps Script 로그 전송 시작");
     console.log(`전송 대상: ${records.length}건`);
-    console.log("========================================");
 
 
     // ---------------------------------------------------------
@@ -686,76 +644,47 @@ async function AppendLogs(records) {
             }),
             redirect: "follow",
             signal: controller.signal,
-
         });
-
     } catch (error) {
 
         const cause = error.cause || error;
-
-        console.error("[LogService] Apps Script 통신 실패");
-        console.error("오류 유형:", error.name);
-        console.error("오류 코드:", cause.code || "UNKNOWN");
-        console.error("오류 내용:", cause.message || error.message);
 
         if (error.name === "AbortError") {
             throw new Error("로그 API 요청 시간이 초과되었습니다.");
         }
 
-        throw new Error(`로그 API 통신 실패: ${cause.code || cause.message || error.message}`);
-
+        throw new Error(
+            `로그 API 통신 실패: ${cause.code || cause.message || error.message}`
+        );
     } finally {
-
         clearTimeout(timeoutId);
-
     }
 
 
     // ---------------------------------------------------------
-    // 12-3. 응답 확인
+    // 12-3. 응답 확인 및 JSON 파싱
     // ---------------------------------------------------------
     const responseText = await response.text();
 
-    console.log("[LogService] HTTP 상태:", response.status);
-    console.log("[LogService] 응답 길이:", responseText.length);
-
-
-    // ---------------------------------------------------------
-    // 12-4. JSON 파싱
-    // ---------------------------------------------------------
     let responseData;
 
     try {
-
         responseData = JSON.parse(responseText);
 
     } catch (error) {
-
-        console.error("[LogService] 응답 JSON 파싱 실패");
-        console.error("[LogService] 응답 앞부분:", responseText.slice(0, 500));
-
-        throw new Error(`로그 API 응답을 JSON으로 변환하지 못했습니다. HTTP ${response.status}`);
-
+        throw new Error(`로그 API 응답 JSON 파싱 실패: HTTP ${response.status}`);
     }
 
 
     // ---------------------------------------------------------
-    // 12-5. 저장 성공 여부 확인
+    // 12-4. 저장 성공 여부 확인
     // ---------------------------------------------------------
     if (!response.ok || !responseData.success) {
-
-        console.error("[LogService] Apps Script 저장 실패");
-        console.error("응답:", responseData);
-
-        throw new Error(responseData.message || `로그 저장 실패: HTTP ${response.status}`);
+        throw new Error(
+            responseData.message || `로그 저장 실패: HTTP ${response.status}`
+        );
     }
-
-    console.log("\n[LogService] Apps Script 응답 확인");
-    console.log("저장 건수:", responseData.count);
-    console.log("시작 행:", responseData.startRow);
-    console.log("마지막 행:", responseData.endRow);
-    console.log("[LogService] 로그 저장 완료");
-    console.log("========================================");
+    console.log(`[LogService] Google Sheets 로그 저장 완료: ${responseData.count}건`);
 
     return responseData;
 
