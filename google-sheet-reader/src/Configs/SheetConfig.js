@@ -2,7 +2,7 @@
  * @file SheetConfig.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-28
+ * @updated 2026-10-29
  * @description
  * Google Sheets와의 상호작용을 위한 설정 관리
  * 
