@@ -37,7 +37,6 @@ function BuildRecords({
 }) {
     const type = String(businessType || "").trim().toUpperCase();
 
-    console.log("\n========================================");
     console.log(`[LogService] ${type} 로그 데이터 생성 시작`);
 
     if (!target || !result) {
@@ -134,7 +133,6 @@ function buildGwRecords(target, result, options) {
 // =============================================================
 // 3. DS 로그 생성
 // 담당교사 / 주강사 / 보조강사
-// 대여 교구 확인 문자까지 각각 별도 행 생성
 // =============================================================
 function buildDsRecords(target, result, options) {
 
@@ -170,7 +168,7 @@ function buildDsRecords(target, result, options) {
 
     Object.entries(rentalResults).forEach(([role, detail]) => {
 
-        // 대여 교구 대상 과정이 아닌 경우 { skipped: true }로 반환되므로 제외
+        // 대여 교구 대상 과정이 아닌 경우 제외
         if (
             !detail ||
             typeof detail !== "object" ||
@@ -311,7 +309,6 @@ function createDispatchRecord({
 
     const isSms = channel === "SMS";
 
-
     // ---------------------------------------------------------
     // 6-1. 교육 정보
     // ---------------------------------------------------------
@@ -344,6 +341,8 @@ function createDispatchRecord({
     // ---------------------------------------------------------
     const now = getKoreaDateTime();
 
+    const dispatchDateTime = detail.recipient ? now : ""; // 20261030 추가
+
 
     // ---------------------------------------------------------
     // 6-5. 발송 본문 추출 20261030 추가
@@ -351,33 +350,42 @@ function createDispatchRecord({
     // ---------------------------------------------------------
     const messageBody = detail.bodyText || "";
 
+
     // ---------------------------------------------------------
-    // 6-6. 최종 로그 객체
-    // B열 No. / D열 차시 / H열 교육상세장소는 제외
+    // 6-6. 실제 수신 정보 20261030 추가
+    // ---------------------------------------------------------
+    const actualRecipientPhone = isSms ? detail.recipient || "" : "";
+    const actualRecipientEmail = !isSms ? detail.recipient || "" : "";
+
+
+    // ---------------------------------------------------------
+    // 6-7. 최종 로그 객체 20261030 수정
+    // B열 No. / 차시 제외
     // ---------------------------------------------------------
     return {
-        "ID": randomUUID(),                                     // A열: ID
-        "과정명": educationInfo.courseName,                     // C열: 과정명
-        "교육일": educationInfo.dates,                          // E열: 교육일
-        "요일": educationInfo.weekdays,                        // F열: 요일
-        "시간": educationInfo.times,                           // G열: 시간
-        "역할": role || "",                                    // I열: 역할
-        "성명": recipientName || "",                           // J열: 성명
-        "소속기관명": target.소속기관명 || 
-        (businessType === "DS" ? target.학교명 || "" : ""),    // K열: 소속기관명
-        "연락처": recipientPhone || "",                        // L열: 연락처
-        "이메일": recipientEmail || "",                       // M열: 이메일
-        "문자발송상태": messageStatus,                         // N열: 문자발송상태
-        "문자발송일": isSms && detail.recipient ? now : "",   // O열: 문자발송일
-        "발송인": senderName,                                // P열: 발송인
-        "발송된 연락처": senderPhone,                         // Q열: 발송된 연락처 20261030 수정
-        "발송이메일": senderEmail,                           // R열: 발송이메일
-        "수신인": recipientName || "",                      // S열: 수신인
-        "수신번호": isSms ? detail.recipient || "" : "",    // T열: 실제 수신번호
-        "수신이메일": !isSms ? detail.recipient || "" : "", // U열: 실제 수신이메일
-        "문자/이메일구분": isSms ? "문자" : "이메일",         // V열: 문자/이메일구분
-        "제목": subject || "",                            // W열: 제목
-        "본문": messageBody,                             // X열: 본문 20261030 추가
+        "ID": randomUUID(),                         // A열
+        "교육과정명": educationInfo.courseName,      // C열
+        "교육기관명": educationInfo.institutionName, // D열
+        "반명": educationInfo.className,            // E열
+        "교육일": educationInfo.dates,              // G열
+        "요일": educationInfo.weekdays,             // H열
+        "교육시간": educationInfo.times,            // I열        
+        "역할": role || "",                         // J열        
+        "성명": recipientName || "",                // K열
+        "소속기관명": educationInfo.affiliationName, // L열
+        "연락처": recipientPhone || "",             // M열
+        "이메일": recipientEmail || "",             // N열
+        "발송구분": isSms ? "문자" : "이메일",        // O열     
+        "발송상태": messageStatus,                  // P열
+        "발송일시": dispatchDateTime,               // Q열
+        "발송인": senderName,                       // R열
+        "발송연락처": senderPhone,                  // S열
+        "발송이메일": senderEmail,                  // T열        
+        "수신인": recipientName || "",              // U열        
+        "실제수신연락처": actualRecipientPhone,      // V열
+        "실제수신이메일": actualRecipientEmail,      // W열
+        "제목": subject || "",                     // X열
+        "본문": messageBody,                       // Y열
     };
 }
 
@@ -387,7 +395,7 @@ function createDispatchRecord({
 // =============================================================
 function getEducationInfo(businessType, target) {
 
-    const educationItems = Array.isArray(target.교육목록)  ? target.교육목록 : [];
+    const educationItems = Array.isArray(target.교육목록) ? target.교육목록 : [];
 
     // ---------------------------------------------------------
     // 7-1. 교육일
@@ -426,22 +434,62 @@ function getEducationInfo(businessType, target) {
 
 
     // ---------------------------------------------------------
-    // 7-4. 과정명
+    // 7-4. 과정명 20261030 수정
+    // GW: 공란
+    // DS: 과정명
+    // --------------------------------------------------------- 
+        const courseName = businessType === "GW"
+        ? ""
+        : target.과정명 || "";
+
+
     // ---------------------------------------------------------
-    // DS: target.과정명
-    // GW: 원본 대상에 과정명이 없으므로 근무유형 사용
-    const courseName = target.과정명 || (businessType === "GW" ? target.근무유형 : "") || "";
+    // 7-5. 교육기관명 20261030 추가
+    // GW: 수요처명
+    // DS: 학교명
+    // --------------------------------------------------------- 
+    const institutionName = businessType === "GW"
+        ? target.수요처명 || ""
+        : target.학교명 || "";
+    
+
+    // ---------------------------------------------------------
+    // 7-6. 반명 20261030 추가
+    // GW: 반명
+    // DS: LMS번호&반을 우선으로 하고, 반명이 있으면 반명 사용
+    // --------------------------------------------------------- 
+    const className = businessType === "GW"
+        ? target.반명 || ""
+        : target.반명 || target.LMS번호반 || "";
+
+
+    // ---------------------------------------------------------
+    // 7-7. 소속기관명 20261030 추가
+    // GW: 센터명 또는 기존 소속기관명
+    // DS: 기존 소속기관명 또는 학교명
+    // ---------------------------------------------------------
+    const affiliationName = target.소속기관명 ||
+        (
+            businessType === "GW"
+                ? target.센터명 || ""
+                : target.학교명 || ""
+        );
 
     return {
         courseName,
+        institutionName,
+        className,
+        affiliationName,
+
         dates: dates.join(", "),
+
         weekdays: weekdays
             .map(day => `${day}요일`)
             .join(", "),
+
         times: times.join("\n"),
     };
 }
-
 
 // =============================================================
 // 8. 발송 상태 구분
