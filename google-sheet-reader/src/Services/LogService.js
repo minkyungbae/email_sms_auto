@@ -53,9 +53,7 @@ function BuildRecords({
         records = buildDsRecords(target, result, options);
 
     } else {
-
         throw new Error(`지원하지 않는 로그 유형입니다: ${type}`);
-
     }
 
     // 생성 결과 확인
@@ -314,7 +312,8 @@ function createDispatchRecord({
     // ---------------------------------------------------------
     const educationInfo = getEducationInfo(
         businessType,
-        target
+        target,
+        role // 20261030 추가 : DS 역할별 소속기관명 구분
     );
 
 
@@ -393,9 +392,11 @@ function createDispatchRecord({
 // =============================================================
 // 7. 교육 정보 추출
 // =============================================================
-function getEducationInfo(businessType, target) {
+function getEducationInfo(businessType, target, role) { // 20261030 수정: 역할 인자 추가
 
-    const educationItems = Array.isArray(target.교육목록) ? target.교육목록 : [];
+    const educationItems = Array.isArray(target.교육목록)
+        ? target.교육목록
+        : [];
 
     // ---------------------------------------------------------
     // 7-1. 교육일
@@ -407,9 +408,7 @@ function getEducationInfo(businessType, target) {
     );
 
     // GW는 교육목록 안에 근무날짜가 없으므로 대상 날짜 사용
-    if (
-        dates.length === 0 && target.근무날짜
-    ) {
+    if (dates.length === 0 && target.근무날짜) {
         dates.push(target.근무날짜);
     }
 
@@ -435,8 +434,7 @@ function getEducationInfo(businessType, target) {
 
     // ---------------------------------------------------------
     // 7-4. 과정명 20261030 수정
-    // GW: 공란
-    // DS: 과정명
+    // GW: 공란 / DS: 과정명
     // --------------------------------------------------------- 
         const courseName = businessType === "GW"
         ? ""
@@ -445,8 +443,7 @@ function getEducationInfo(businessType, target) {
 
     // ---------------------------------------------------------
     // 7-5. 교육기관명 20261030 추가
-    // GW: 수요처명
-    // DS: 학교명
+    // GW: 수요처명 / DS: 학교명
     // --------------------------------------------------------- 
     const institutionName = businessType === "GW"
         ? target.수요처명 || ""
@@ -464,16 +461,36 @@ function getEducationInfo(businessType, target) {
 
 
     // ---------------------------------------------------------
-    // 7-7. 소속기관명 20261030 추가
-    // GW: 센터명 또는 기존 소속기관명
-    // DS: 기존 소속기관명 또는 학교명
+    // 7-7. 소속기관명 20261030 수정
+    // GW: 지역 + 센터
+    // DS 담당교사: 학교명
+    // DS 주강사/보조강사: 해당 강사의 학교급 정규화 
     // ---------------------------------------------------------
-    const affiliationName = target.소속기관명 ||
-        (
-            businessType === "GW"
-                ? target.센터명 || ""
-                : target.학교명 || ""
+    let affiliationName = "";
+
+    if (businessType === "GW") {
+        affiliationName = target.소속기관명 || `${target.지역 || ""}센터`;
+
+    } else if (role === "담당교사") {
+        affiliationName = target.학교명 || "";
+
+    } else if (role === "주강사") {
+        affiliationName = getInstructorSchoolLevel(
+            target.주강사표기,
+            target.주강사명,
+            target.주강사학교급
         );
+
+    } else if (role === "보조강사") {
+        affiliationName = getInstructorSchoolLevel(
+            target.보조강사표기,
+            target.보조강사명,
+            target.보조강사학교급
+        );
+
+    } else {
+        affiliationName = target.학교명 || "";
+    }
 
     return {
         courseName,
@@ -489,6 +506,41 @@ function getEducationInfo(businessType, target) {
 
         times: times.join("\n"),
     };
+}
+
+
+// =============================================================
+// DS 강사 학교급 정규화 20261030 추가
+// 강사 표기에서 이름 앞에 있는 초/중/고 구분을 확인
+// =============================================================
+function getInstructorSchoolLevel(instructorLabel, instructorName, schoolLevel) {
+
+    // 강사 표기에서 강사 이름 앞부분만 확인
+    const label = String(instructorLabel || "").trim();
+    const name = String(instructorName || "").trim();
+
+    let prefix = label;
+
+    if (name && label.includes(name)) {
+        prefix = label.slice(0, label.indexOf(name));
+    }
+
+    // 표기 앞부분을 우선 확인하고, 없으면 기존 학교급 필드 사용
+    const source = `${prefix} ${schoolLevel || ""}`;
+
+    if (/(초등학교|초등|초)/.test(source)) {
+        return "초등학교";
+    }
+
+    if (/(중학교|중등|중)/.test(source)) {
+        return "중학교";
+    }
+
+    if (/(고등학교|고등|고)/.test(source)) {
+        return "고등학교";
+    }
+
+    return "";
 }
 
 // =============================================================
@@ -669,13 +721,13 @@ async function AppendLogs(records) {
 
 
     // ---------------------------------------------------------
-    // 12-2. POST 요청
+    // 12-2. POST 요청 20261030 수정: 요청 제한 시간 60초 -> 120초
     // ---------------------------------------------------------
     const controller = new AbortController();
 
     const timeoutId = setTimeout(() => {
         controller.abort();
-    }, 60000);
+    }, 120000); // 20261030 수정: 60000 -> 120000
 
     let response;
 
