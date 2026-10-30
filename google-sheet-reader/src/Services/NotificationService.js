@@ -259,7 +259,7 @@ async function sendDsTarget(target, options = {}) {
             name: recipient.name,
             phone: recipient.phone,
             testPhone,
-            message: rentalMessage, // 20261029 수정
+            message: message, // 20261030 수정: 역할별 교육 안내 메시지 전달
         });
 
         result.역할별안내[recipient.role] = smsResult;
