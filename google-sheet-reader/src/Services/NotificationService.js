@@ -2,7 +2,7 @@
  * @file NotificationService.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-12
+ * @updated 2026-10-29
  * @description
  * 발송 대상의 채널 및 사업 유형에 따라 이메일과 문자(SMS/LMS)를 통합 발송
  *
@@ -99,6 +99,8 @@ async function sendGwTarget(target, options = {}) {
             result.EMAIL = {
                 success: true,
                 recipient: emailRecipient,
+                subject: message.subject, // 20261029 추가
+                bodyText: message.bodyText, // 20261029 추가
                 result: emailResult,
             };
 
@@ -108,6 +110,8 @@ async function sendGwTarget(target, options = {}) {
             result.EMAIL = {
                 success: false,
                 recipient: emailRecipient,
+                subject: message.subject, // 20261029 추가
+                bodyText: message.bodyText, // 20261029 추가
                 error: error.message,
             };
 
@@ -143,6 +147,8 @@ async function sendGwTarget(target, options = {}) {
             result.SMS = {
                 success: smsResult.success,
                 recipient: smsRecipient,
+                subject: message.subject, // 20261029 추가
+                bodyText: message.bodyText, // 20261029 추가
                 result: smsResult,
             };
 
@@ -155,6 +161,8 @@ async function sendGwTarget(target, options = {}) {
             result.SMS = {
                 success: false,
                 recipient: smsRecipient,
+                subject: message.subject, // 20261029 추가
+                bodyText: message.bodyText, // 20261029 추가
                 error: error.message,
             };
             console.error(`[NotificationService.js] GW SMS 실패 ${target.강사이름} → ${smsRecipient}: ${error.message}`);
@@ -251,7 +259,7 @@ async function sendDsTarget(target, options = {}) {
             name: recipient.name,
             phone: recipient.phone,
             testPhone,
-            message,
+            message: rentalMessage, // 20261029 수정
         });
 
         result.역할별안내[recipient.role] = smsResult;
@@ -281,7 +289,7 @@ async function sendDsTarget(target, options = {}) {
 
             const smsResult = await sendRoleSms({
                 target,
-                role: `${recipient.role} 대여 교구 확인`,
+                role: recipient.role, // 20261029 수정: 역할명과 발송유형 분리
                 name: recipient.name,
                 phone: recipient.phone,
                 testPhone,
@@ -326,6 +334,8 @@ async function sendRoleSms({
             reason: "해당 역할 연락처 없음",
             role,
             name: name || "",
+            subject: message.subject, // 20261029 추가
+            bodyText: message.bodyText, // 20261029 추가
         };
     }
 
@@ -344,6 +354,8 @@ async function sendRoleSms({
             recipient: recipientPhone,
             role,
             name: name || "",
+            subject: message.subject, // 20261029 추가
+            bodyText: message.bodyText, // 20261029 추가
             result: smsResult,
         };
 
@@ -371,6 +383,8 @@ async function sendRoleSms({
             recipient: recipientPhone,
             role,
             name: name || "",
+            subject: message.subject, // 20261029 추가
+            bodyText: message.bodyText, // 20261029 추가
             error: error.message,
         };
     }
