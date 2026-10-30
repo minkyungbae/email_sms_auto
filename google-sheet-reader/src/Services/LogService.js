@@ -82,8 +82,6 @@ function buildGwRecords(target, result, options) {
 
     if (email && !email.skipped) {
 
-        const emailSubject = TemplateService.createEmailSubject(target);
-
         records.push(
             createDispatchRecord({
                 businessType: "GW",
@@ -91,7 +89,7 @@ function buildGwRecords(target, result, options) {
                 channel: "EMAIL",
                 detail: email,
 
-                subject: emailSubject,
+                subject: email.subject || "", // 20261029 수정: 실제 발송 메시지 제목 사용
 
                 recipientName: target.강사이름,
                 recipientPhone: target.연락처,
@@ -111,8 +109,6 @@ function buildGwRecords(target, result, options) {
 
     if (sms && !sms.skipped) {
 
-        const smsSubject = TemplateService.createSmsSubject();
-
         records.push(
             createDispatchRecord({
                 businessType: "GW",
@@ -120,7 +116,7 @@ function buildGwRecords(target, result, options) {
                 channel: "SMS",
                 detail: sms,
 
-                subject: smsSubject,
+                subject: sms.subject || "", // 20261029 수정: 실제 발송 메시지 제목 사용
 
                 recipientName: target.강사이름,
                 recipientPhone: target.연락처,
@@ -209,7 +205,7 @@ function createDsSmsRecord({
 }) {
 
     const normalizedRole = String(role || "");
-    const isTeacher = normalizedRole.startsWith("담당교사");
+    const isTeacher = normalizedRole === "담당교사"; // 20261029 수정: 역할명 정확히 비교
 
     // ---------------------------------------------------------
     // 4-1. 발송 유형별 제목 결정
@@ -264,7 +260,7 @@ function getDsRecipientInfo(target, role) {
 
     const normalizedRole = String(role || "").trim();
 
-    if (normalizedRole.startsWith("담당교사")) {
+    if (normalizedRole === "담당교사") { // 20261029 수정
 
         return {
             name: target.담당교사명 || "",
@@ -273,7 +269,7 @@ function getDsRecipientInfo(target, role) {
         };
     }
 
-    if (normalizedRole.startsWith("주강사")) {
+    if (normalizedRole === "주강사") { // 20261029 수정
 
         return {
             name: target.주강사명 || "",
@@ -281,7 +277,7 @@ function getDsRecipientInfo(target, role) {
             email: "",
         };
     }
-    if (normalizedRole.startsWith("보조강사")) {
+    if (normalizedRole === "보조강사") { // 20261029 수정
 
         return {
             name: target.보조강사명 || "",
