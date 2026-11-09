@@ -786,9 +786,8 @@ async function AppendLogs(records) {
             responseData.message || `로그 저장 실패: HTTP ${response.status}`
         );
     }
-    console.log(`[LogService] Google Sheets 로그 저장 완료: ${responseData.count}건`);
 
-    return responseData;
+    return "success";
 
 }
 
