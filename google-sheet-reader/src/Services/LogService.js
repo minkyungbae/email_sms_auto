@@ -320,7 +320,7 @@ function createDispatchRecord({
     // ---------------------------------------------------------
     // 6-1. 교육 정보
     // ---------------------------------------------------------
-    
+
     // // 20261112 추가: DS 반명 값 확인
     // if (businessType === "DS") {
     //     console.log("[DS 반명 디버깅]");
@@ -496,16 +496,18 @@ function getEducationInfo(businessType, target, role) { // 20261030 수정: 역�
         affiliationName = target.학교명 || "";
 
     } else if (role === "주강사") {
-        affiliationName = getInstructorSchoolLevel(
+        affiliationName = getInstructorAffiliation(
             target.주강사표기,
             target.주강사명,
+            target.주강사학교명, // 20261112 추가: DS 주강사 학교명
             target.주강사학교급
         );
 
     } else if (role === "보조강사") {
-        affiliationName = getInstructorSchoolLevel(
+        affiliationName = getInstructorAffiliation(
             target.보조강사표기,
             target.보조강사명,
+            target.보조강사학교명, // 20261112 추가: DS 보조강사 학교명
             target.보조강사학교급
         );
 
@@ -531,38 +533,30 @@ function getEducationInfo(businessType, target, role) { // 20261030 수정: 역�
 
 
 // =============================================================
-// DS 강사 학교급 정규화 20261030 추가
-// 강사 표기에서 이름 앞에 있는 초/중/고 구분을 확인
+// DS 강사 소속기관명 추출 202611112 수정
+// 1. 강사 표기에서 강사 이름을 제거한 학교명을 우선 반환
+// 2. 표기에서 학교명을 추출할 수 없으면 학교명 + 학교급으로 구성
 // =============================================================
-function getInstructorSchoolLevel(instructorLabel, instructorName, schoolLevel) {
-
-    // 강사 표기에서 강사 이름 앞부분만 확인
+function getInstructorAffiliation(instructorLabel, instructorName, schoolName, schoolLevel) {
     const label = String(instructorLabel || "").trim();
     const name = String(instructorName || "").trim();
 
-    let prefix = label;
+    // 강사 표기에서 강사 이름을 제거하여 학교명 추출
+    if (label && name && label.includes(name)) {
+        const prefix = label.slice(0, label.indexOf(name)).trim();
 
-    if (name && label.includes(name)) {
-        prefix = label.slice(0, label.indexOf(name));
+        if (prefix) {
+            return prefix;
+        }
     }
 
-    // 표기 앞부분을 우선 확인하고, 없으면 기존 학교급 필드 사용
-    const source = `${prefix} ${schoolLevel || ""}`;
+    // 표기값에서 학교명을 추출할 수 없는 경우 대체값 사용
+    const fallbackSchoolName = String(schoolName || "").trim();
+    const fallbackSchoolLevel = String(schoolLevel || "").trim();
 
-    if (/(초등학교|초등|초)/.test(source)) {
-        return "초등학교";
-    }
-
-    if (/(중학교|중등|중)/.test(source)) {
-        return "중학교";
-    }
-
-    if (/(고등학교|고등|고)/.test(source)) {
-        return "고등학교";
-    }
-
-    return "";
+    return `${fallbackSchoolName}${fallbackSchoolLevel}`;
 }
+
 
 // =============================================================
 // 8. 발송 상태 구분
