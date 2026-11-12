@@ -65,35 +65,20 @@ function createGwTarget(group) {
 
 
     return {
-
         사업구분: "GW",
-
         강사이름: group.강사이름,
-
         연락처: group.연락처,
-
         이메일: primaryEmail,
-
         이메일목록: Array.isArray(group.이메일목록) ? group.이메일목록 : [],
-
         연락처매칭상태: group.연락처매칭상태,
-
         근무날짜: group.근무날짜,
-
         지역: group.지역,
-
         근무유형: group.근무유형,
-
         수요처명: group.수요처명,
-
         교육목록: group.교육목록,
-
         이메일발송가능,
-
         문자발송가능,
-
         발송채널,
-
         발송가능: 발송채널.length > 0,
     };
 }
@@ -138,6 +123,7 @@ function createDsTarget(group) {
         // 주강사
         주강사명: group.주강사명,
         주강사연락처: group.주강사연락처,
+        주강사학교명: group.주강사학교명, // 20261112 추가: DS 주강사 학교명
         주강사학교급: group.주강사학교급,
         주강사구분: group.주강사구분,
         주강사표기: group.주강사표기,
@@ -146,6 +132,7 @@ function createDsTarget(group) {
         // 보조강사
         보조강사명: group.보조강사명,
         보조강사연락처: group.보조강사연락처,
+        보조강사학교명: group.보조강사학교명, // 20261112 추가: DS 보조강사 학교명
         보조강사학교급: group.보조강사학교급,
         보조강사구분: group.보조강사구분,
         보조강사표기: group.보조강사표기,
