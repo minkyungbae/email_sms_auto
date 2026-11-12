@@ -159,7 +159,7 @@ const HEADERS = {
 // =============================================================
 const SHEET_CONFIG = {
     APPS_SCRIPT_URL,  // 사업별 Apps Script URL
-    LOG: LOG_CONFIG,  // 발송 로그 설정
+    LOG,  // 발송 로그 설정
     HEADERS,  // 사업별 시트 헤더
 };
 
