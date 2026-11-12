@@ -2,7 +2,7 @@
  * @file NotificationTargetService.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-12
+ * @updated 2026-11-12
  * @description
  * 사업별 그룹화된 교육 데이터를 기반으로 실제 알림 발송 대상 생성
  * 
@@ -119,6 +119,7 @@ function createDsTarget(group) {
         사업구분: "DS",
 
         // 교육 정보
+        LMS번호반: group.LMS번호반 || "", // 20261112 추가: DS 반명
         학교명: group.학교명,
         학생수: group.학생수,
         과정명: group.과정명,
