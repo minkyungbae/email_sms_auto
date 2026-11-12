@@ -462,14 +462,14 @@ function getEducationInfo(businessType, target, role) { // 20261030 수정: 역�
 
     // ---------------------------------------------------------
     // 7-6. 반명 20261112 수정
-    // GW: 교육목록 반명 / DS: LMS번호반
+    // GW: 교육목록 반명 / DS: LMS\n번호 &\n반
     // --------------------------------------------------------- 
     const className = businessType === "GW"
         ? target.반명 || (target.교육목록 || [])
             .map(classInfo => classInfo.반명 || "")
             .filter(Boolean)
             .join(", ")
-        : target.반명 || target.LMS번호반 || "";
+        : target.반명 || target["LMS\n번호 &\n반"] || "";
 
 
     // ---------------------------------------------------------
@@ -776,7 +776,7 @@ async function AppendLogs(records) {
 
 
     // ---------------------------------------------------------
-    // 12-3. 응답 확인 및 JSON 파싱
+    // 12-3. 응답 확인 및 JSON 파싱 20261112 수정
     // ---------------------------------------------------------
     const responseText = await response.text();
 
@@ -786,7 +786,16 @@ async function AppendLogs(records) {
         responseData = JSON.parse(responseText);
 
     } catch (error) {
-        throw new Error(`로그 API 응답 JSON 파싱 실패: HTTP ${response.status}`);
+
+        console.error("[LogService] JSON 파싱 실패");
+        console.error("HTTP 상태:", response.status);
+        console.error("Content-Type:", response.headers.get("content-type"));
+        console.error("최종 응답 URL:", response.url);
+        console.error("응답 본문:", responseText.slice(0, 1000));
+
+        throw new Error(
+            `로그 API 응답 JSON 파싱 실패: HTTP ${response.status}`
+        );
     }
 
 
