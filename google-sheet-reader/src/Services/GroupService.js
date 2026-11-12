@@ -2,7 +2,7 @@
  * @file GroupService.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-12
+ * @updated 2026-11-12
  * @description
  * 사업별 교육 데이터를 발송 기준에 맞게 그룹화하고 교육 시작 시간 순으로 정렬
  * 
@@ -199,6 +199,7 @@ function createDsGroup(row) {
         사업구분: "DS",
 
         // 교육 정보
+        LMS번호반: row["LMS번호반"] || "", // 20261112 추가: DS 반명 필드 우선순위 변경
         학교명: row["학교명"],
         학생수: row["학생수"],
         과정명: row["과정명"],
