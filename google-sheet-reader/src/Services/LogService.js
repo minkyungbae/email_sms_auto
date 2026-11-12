@@ -320,6 +320,15 @@ function createDispatchRecord({
     // ---------------------------------------------------------
     // 6-1. 교육 정보
     // ---------------------------------------------------------
+    
+    // // 20261112 추가: DS 반명 값 확인
+    // if (businessType === "DS") {
+    //     console.log("[DS 반명 디버깅]");
+    //     console.log("target 전체:", JSON.stringify(target));
+    //     console.log("LMS번호반:", target.LMS번호반);
+    //     console.log("반명:", target.반명);
+    // }
+    
     const educationInfo = getEducationInfo(
         businessType,
         target,
@@ -469,7 +478,7 @@ function getEducationInfo(businessType, target, role) { // 20261030 수정: 역�
             .map(classInfo => classInfo.반명 || "")
             .filter(Boolean)
             .join(", ")
-        : target.반명 || target["LMS\n번호 &\n반"] || "";
+        : target.LMS번호반 || target.반명 || target["LMS\n번호 &\n반"] || ""; // 20261112 수정: DS 반명 필드 우선순위 변경
 
 
     // ---------------------------------------------------------
