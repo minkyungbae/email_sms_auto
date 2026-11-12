@@ -2,7 +2,7 @@
  * @file NotificationService.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-29
+ * @updated 2026-11-12
  * @description
  * 발송 대상의 채널 및 사업 유형에 따라 이메일과 문자(SMS/LMS)를 통합 발송
  *
@@ -12,6 +12,7 @@
  * - DS : 담당교사 / 주강사 / 보조강사 역할별 SMS 발송
  * - DS : 지정된 교육 과정에 한해 대여 교구 확인 문자 추가 발송
  * - 테스트용 수신자 옵션 지원
+ * - 이메일 미리보기 모드 지원
  * - 발송 성공 / 실패 / 스킵 결과 관리
  */
 
@@ -19,6 +20,7 @@
 const TemplateService = require("./TemplateService");
 const GmailService = require("./GmailService");
 const SmsService = require("./SmsService");
+const CONFIG = require("../Configs/Config");
 
 
 // =============================================================
@@ -32,11 +34,7 @@ async function sendTarget(target, options = {}) {
         testPhone = null,
     } = options;
 
-
-    const businessType = String(target.사업구분 || "GW")
-        .trim()
-        .toUpperCase();
-
+    const businessType = String(target.사업구분 || "GW").trim().toUpperCase();
 
     // DS 발송
     if (businessType === "DS") {
@@ -54,11 +52,8 @@ async function sendTarget(target, options = {}) {
             testEmail,
             testPhone,
         });
-
     }
-
     throw new Error(`지원하지 않는 사업 유형입니다: ${businessType}`);
-
 }
 
 
@@ -81,7 +76,7 @@ async function sendGwTarget(target, options = {}) {
     };
 
 
-    // 1. EMAIL 발송
+    // 1. EMAIL 발송 / 미리보기
     if ((target.발송채널 || []).includes("EMAIL")) {
 
         const message = {
@@ -89,36 +84,64 @@ async function sendGwTarget(target, options = {}) {
             bodyText: TemplateService.createEmailBody(target),
         };
 
-        try {
-            const emailResult = await GmailService.sendEmail({
-                to: emailRecipient,
-                subject: message.subject,
-                text: message.bodyText,
-            });
+        // 이메일 미리보기 모드 20261112 추가
+        // true: 실제 발송 안 함, 터미널에 미리보기 출력
+        if (CONFIG.EMAIL_TEST_MODE) {
+            console.log("\n========================================");
+            console.log("[NotificationService.js] GW EMAIL 미리보기");
+            console.log(`강사 이름: ${target.강사이름}`);
+            console.log(`수신 예정 주소: ${emailRecipient}`);
 
-            result.EMAIL = {
-                success: true,
-                recipient: emailRecipient,
-                subject: message.subject, // 20261029 추가
-                bodyText: message.bodyText, // 20261029 추가
-                result: emailResult,
-            };
+            console.log("\n[이메일 제목]");
+            console.log(message.subject);
 
-            console.log(`[NotificationService.js] GW EMAIL 성공 ${target.강사이름} → ${emailRecipient}`);
+            console.log("\n[이메일 본문]");
+            console.log(message.bodyText);
+            console.log("========================================");
 
-        } catch (error) {
             result.EMAIL = {
                 success: false,
+                skipped: true,
+                previewOnly: true,
                 recipient: emailRecipient,
-                subject: message.subject, // 20261029 추가
-                bodyText: message.bodyText, // 20261029 추가
-                error: error.message,
+                subject: message.subject,
+                bodyText: message.bodyText,
+                reason: "이메일 미리보기 모드 - 실제 발송하지 않음",
             };
 
-            console.error(`[NotificationService.js] GW EMAIL 실패 ${target.강사이름} → ${emailRecipient}: ${error.message}`);
+        } else {
 
+            // -------------------------------------------------
+            // 실제 이메일 발송
+            // -------------------------------------------------
+            try {
+                const emailResult = await GmailService.sendEmail({
+                    to: emailRecipient,
+                    subject: message.subject,
+                    text: message.bodyText,
+                });
+
+                result.EMAIL = {
+                    success: true,
+                    recipient: emailRecipient,
+                    subject: message.subject,
+                    bodyText: message.bodyText,
+                    result: emailResult,
+                };
+
+                console.log(`[NotificationService.js] GW EMAIL 성공 ${target.강사이름} → ${emailRecipient}`);
+            
+            } catch (error) {
+                result.EMAIL = {
+                    success: false,
+                    recipient: emailRecipient,
+                    subject: message.subject,
+                    bodyText: message.bodyText,
+                    error: error.message,
+                };
+                console.error(`[NotificationService.js] GW EMAIL 실패 ${target.강사이름} → ${emailRecipient}: ${error.message}`);
+            }
         }
-
     } else {
         result.EMAIL = {
             success: false,
@@ -259,7 +282,7 @@ async function sendDsTarget(target, options = {}) {
             name: recipient.name,
             phone: recipient.phone,
             testPhone,
-            message: message, // 20261030 수정: 역할별 교육 안내 메시지 전달
+            message, // 20261112 수정: 역할별 메시지 전달
         });
 
         result.역할별안내[recipient.role] = smsResult;
@@ -293,7 +316,7 @@ async function sendDsTarget(target, options = {}) {
                 name: recipient.name,
                 phone: recipient.phone,
                 testPhone,
-                message: rentalMessage,
+                message: rentalMessage, // 20261112 수정: 대여 교구 확인 메시지 전달
             });
 
             result.대여교구확인[recipient.role] = smsResult;
