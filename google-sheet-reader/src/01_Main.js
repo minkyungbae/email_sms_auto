@@ -96,10 +96,12 @@ function getBusinessTypes() {
 function getTestOptions(selectedBusinessTypes) {
 
     const emailTestMode = CONFIG.EMAIL_TEST_MODE !== false;
+    const emailTestRecipientMode = CONFIG.EMAIL_TEST_RECIPIENT_MODE === true; // 20261113 추가
     const smsTestRecipientMode = CONFIG.SMS_TEST_RECIPIENT_MODE !== false;
     const smsApiTestMode = CONFIG.TEST_MODE;
 
-    const testEmail = emailTestMode
+    // 이메일 테스트 수신자 모드에 따라 테스트 주소 결정
+    const testEmail = emailTestRecipientMode  // 20261113 수정
         ? TEST_PERSONAL_INFO.TEST_EMAIL
         : null;
 
@@ -110,7 +112,8 @@ function getTestOptions(selectedBusinessTypes) {
     // 테스트 이메일 확인
     if (
         selectedBusinessTypes.includes("GW") &&
-        emailTestMode &&
+        !emailTestMode &&
+        emailTestRecipientMode &&  // 20261113 추가
         !testEmail
     ) {
         throw new Error("테스트용 이메일 주소가 설정되지 않았습니다.");
@@ -123,6 +126,7 @@ function getTestOptions(selectedBusinessTypes) {
 
     return {
         emailTestMode,
+        emailTestRecipientMode, // 20261113 추가
         smsTestRecipientMode,
         smsApiTestMode,
         testEmail,
@@ -331,6 +335,20 @@ async function processGwTargets({
         // 실제 발송
         console.log("\n[GW 통합 발송 시작]");
 
+        // 이메일 발송 대상 출력 20261113 추가
+        if (target.이메일발송가능) {
+
+            if (testOptions.emailTestMode) {
+                console.log("[이메일 발송] 미리보기 모드 - 실제 발송하지 않음");
+
+            } else if (testOptions.emailTestRecipientMode) {
+                console.log(`[이메일 발송] 테스트 수신주소: ${testOptions.testEmail}`);
+
+            } else {
+                console.log(`[이메일 발송] 실제 수신주소: ${target.이메일}`);
+            }
+        }
+
         const result = await NotificationService.sendTarget(
             target,
             {
@@ -349,6 +367,7 @@ async function processGwTargets({
             result,
             options: {
                 emailTestMode: testOptions.emailTestMode,
+                emailTestRecipientMode: testOptions.emailTestRecipientMode, // 20261113 추가
                 smsTestRecipientMode: testOptions.smsTestRecipientMode,
             },
             pendingLogRecords,
@@ -374,7 +393,6 @@ async function main() {
         // -----------------------------------------------------
         // 11-1. 실행 설정
         // -----------------------------------------------------
-
         const selectedBusinessTypes = getBusinessTypes();
         const daysBefore = CONFIG.DAYS_BEFORE;
         const targetDate = getTargetDate(daysBefore);
@@ -387,8 +405,9 @@ async function main() {
         console.log(`발송 기준: 수업일 ${daysBefore}일 전`);
         console.log(`조회 대상 교육일: ${targetDate}`);
 
-        console.log(
-            `이메일 테스트: ${testOptions.emailTestMode} / ` +
+        console.log( // 20261113 수정
+            `이메일 미리보기 모드: ${testOptions.emailTestMode} / ` +
+            `이메일 테스트 수신자 모드: ${testOptions.emailTestRecipientMode} / ` +
             `SMS 수신번호 테스트: ${testOptions.smsTestRecipientMode} / ` +
             `뿌리오 API 테스트: ${testOptions.smsApiTestMode}`
         );
@@ -413,11 +432,9 @@ async function main() {
                 continue;
             }
 
-
             // 교육 일정 그룹화
             const groups = GroupService.groupClasses(rows, businessType);
             console.log(`[${businessType}] 교육 일정 그룹: ${groups.length}건`);
-
 
             // 발송 대상 생성
             const targets = NotificationTargetService.createTargets(groups, businessType);
@@ -425,9 +442,9 @@ async function main() {
 
             if (targets.length === 0) {
                 console.log(`[${businessType}] 발송 가능한 대상이 없습니다.`);
+
                 continue;
             }
-
 
             // 사업별 발송 처리
             if (businessType === "DS") {
@@ -448,10 +465,8 @@ async function main() {
                     testOptions,
                     pendingLogRecords,
                 });
-
             }
         }
-
     } catch (error) {
 
         console.error("\n프로그램 실행 실패");
