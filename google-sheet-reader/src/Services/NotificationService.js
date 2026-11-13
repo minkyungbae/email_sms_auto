@@ -38,7 +38,7 @@ const LOG_PREFIX = "[NotificationService.js]";
 
 
 // =============================================================
-// 메인
+// 1. 메인
 // 사업 유형에 따라 발송 함수 분기
 // =============================================================
 async function sendTarget(target, options = {}) {
@@ -74,7 +74,7 @@ async function sendTarget(target, options = {}) {
 
 
 // =============================================================
-// 공통 실제 발송 함수 20261113 리팩터링
+// 2. 공통 실제 발송 함수 20261113 리팩터링
 //
 // 이메일 / SMS / LMS 실제 발송을 공통 처리
 //
@@ -138,7 +138,7 @@ async function executeDelivery({
 }
 
 // =============================================================
-// GW 발송
+// 3. GW 발송 20261113 수정
 // 이메일 및 SMS/LMS
 // =============================================================
 async function sendGwTarget(target, options = {}) {
@@ -148,9 +148,39 @@ async function sendGwTarget(target, options = {}) {
         testPhone = null,
     } = options;
 
-    const emailRecipient = testEmail || target.이메일;
-    const smsRecipient = testPhone || target.연락처;
+    // ---------------------------------------------------------
+    // 3-1. 이메일 발송 모드 확인
+    // ---------------------------------------------------------
+    // 이메일 미리보기 모드 (true: 실제 발송하지 않고 미리보기만 진행)
+    const emailPreviewMode = CONFIG.EMAIL_TEST_MODE !== false;
 
+    // 이메일 테스트 수신자 모드 (true: 테스트 이메일 주소로 발송 / false: 실제 수신자 이메일 주소로 발송)
+    const emailTestRecipientMode = CONFIG.EMAIL_TEST_RECIPIENT_MODE === true;
+
+
+    // ---------------------------------------------------------
+    // 3-2. 이메일 수신 주소 결정 20261113 수정
+    // ---------------------------------------------------------
+    let emailRecipient = "";
+
+    if (emailTestRecipientMode) {
+
+        // 테스트 수신자 모드
+        emailRecipient = testEmail || "";
+
+    } else {
+
+        // 실제 수신자 모드
+        emailRecipient = target.이메일 || "";
+    }
+
+    // SMS 수신 주소
+    const smsRecipient = testPhone || target.연락처
+
+
+    // ---------------------------------------------------------
+    // 3-3. 발송 결과 초기화
+    // ---------------------------------------------------------
     const result = {
         사업구분: BUSINESS_TYPES.GW,
         강사이름: target.강사이름,
@@ -158,8 +188,9 @@ async function sendGwTarget(target, options = {}) {
         SMS: null,
     };
 
+
     // ---------------------------------------------------------
-    // 1. EMAIL 발송
+    // 3-4. EMAIL 발송
     // ---------------------------------------------------------
     if ((target.발송채널 || []).includes(CHANNELS.EMAIL)) {
 
@@ -168,18 +199,41 @@ async function sendGwTarget(target, options = {}) {
             bodyText: TemplateService.createEmailBody(target),
         };
 
-        result.EMAIL = await sendGwEmail({
-            target,
-            recipient:emailRecipient,
-            message,
-        });
+        // 테스트 수신자 모드인데 테스트 이메일 주소가 없는 경우
+        // 실제 강사 이메일 주소로 잘못 발송되지 않도록 차단
+        if (!emailRecipient) {
+
+            result.EMAIL = {
+                success: false,
+                skipped: false,
+                recipient: "",
+                subject: message.subject,
+                bodyText: message.bodyText,
+                error: "테스트 이메일 주소가 설정되지 않았습니다.",
+                reason: "이메일 수신 주소 누락",
+                emailTestRecipientMode, // 20261113 추가
+            };
+
+            console.error(`${LOG_PREFIX} GW EMAIL 실패: 테스트 이메일 주소가 설정되지 않았습니다.`);
+
+        } else {
+
+            result.EMAIL = await sendGwEmail({
+                target,
+                recipient: emailRecipient,
+                message,
+                emailTestRecipientMode,  // 20261113 추가
+            });
+        }
+
     } else {
+
         result.EMAIL = createSkippedResult(`${LOG_PREFIX} 이메일 발송 불가`);
     }
 
 
     // ---------------------------------------------------------
-    // 2. SMS / LMS 발송
+    // 3-5. SMS / LMS 발송
     // ---------------------------------------------------------
     if ((target.발송채널 || []).includes(CHANNELS.SMS)) {
 
@@ -190,23 +244,34 @@ async function sendGwTarget(target, options = {}) {
 
         result.SMS = await sendGwSms({
             target,
-            recipient:smsRecipient,
+            recipient: smsRecipient,
             message,
         });
+
     } else {
-        result.SMS = createSkippedResult(`${LOG_PREFIX} SMS 발송 불가`);
+
+        result.SMS = createSkippedResult(
+            `${LOG_PREFIX} SMS 발송 불가`
+        );
     }
 
     return result;
 }
 
 // =============================================================
-// GW 이메일 발송 미리보기 모드 20261113 리팩터링
+// 4. GW 이메일 발송 미리보기 모드 20261113 리팩터링
 // =============================================================
-async function sendGwEmail({ target, recipient, message }) {
+async function sendGwEmail({
+    target,
+    recipient,
+    message,
+    emailTestRecipientMode = false,  // 20261113 추가
+}) {
 
-    // 실제 발송하지 않고 터미널에 출력
-    if (CONFIG.EMAIL_TEST_MODE) {
+    // ---------------------------------------------------------
+    // 4-1. 이메일 미리보기 모드
+    // ---------------------------------------------------------
+    if (CONFIG.EMAIL_TEST_MODE !== false) {
 
         console.log("\n========================================");
         console.log(`${LOG_PREFIX} GW EMAIL 미리보기`);
@@ -218,17 +283,20 @@ async function sendGwEmail({ target, recipient, message }) {
         console.log("========================================");
 
         return {
-            success: false,
-            skipped: true,
+            success: true,
+            skipped: false,
             previewOnly: true,
             recipient,
+            emailTestRecipientMode,  // 20261113 추가
             subject: message.subject,
             bodyText: message.bodyText,
             reason: "이메일 미리보기 모드 - 실제 발송하지 않음",
         };
     }
 
-    // 실제 이메일 발송
+    // ---------------------------------------------------------
+    // 4-2. 실제 이메일 발송
+    // ---------------------------------------------------------
     return await executeDelivery({
         sender: (to, emailMessage) => GmailService.sendEmail({
             to,
@@ -237,14 +305,17 @@ async function sendGwEmail({ target, recipient, message }) {
         }),
         recipient,
         message,
-        metadata: {},
+        metadata: {
+            emailTestRecipientMode,
+        },
         logLabel: `${LOG_PREFIX} GW EMAIL ${target.강사이름}`,
     });
 }
 
 
+
 // =============================================================
-// GW SMS / LMS 발송 20261113 리팩터링
+// 5. GW SMS / LMS 발송 20261113 리팩터링
 // =============================================================
 async function sendGwSms({ target, recipient, message }) {
     
@@ -259,12 +330,12 @@ async function sendGwSms({ target, recipient, message }) {
 
 
 // =============================================================
-// DS 발송
+// 6. DS 발송
 //
-// 1. 담당교사 → 담당교사 안내 템플릿
-// 2. 주강사 → 강사 안내 템플릿
-// 3. 보조강사 → 강사 안내 템플릿
-// 4. 지정 과정 → 세 역할 모두 대여 교구 확인 템플릿 추가 발송
+// - 담당교사 → 담당교사 안내 템플릿
+// - 주강사 → 강사 안내 템플릿
+// - 보조강사 → 강사 안내 템플릿
+// - 지정 과정 → 세 역할 모두 대여 교구 확인 템플릿 추가 발송
 //
 // 동일인이 여러 역할을 맡아도 역할별로 각각 발송
 // =============================================================
@@ -284,13 +355,13 @@ async function sendDsTarget(target, options = {}) {
     };
 
     // ---------------------------------------------------------
-    // 1. 역할별 수신자 및 템플릿 설정
+    // 6-1. 역할별 수신자 및 템플릿 설정
     // ---------------------------------------------------------
     const roleMessages = createDsRoleMessages(target);
 
 
     // ---------------------------------------------------------
-    // 2. 역할별 교육 안내 문자 발송
+    // 6-2. 역할별 교육 안내 문자 발송
     // ---------------------------------------------------------
     console.log("\n========================================");
     console.log(`${LOG_PREFIX} DS 역할별 교육 안내 문자 발송`);
@@ -320,7 +391,7 @@ async function sendDsTarget(target, options = {}) {
 
 
     // ---------------------------------------------------------
-    // 3. 대여 교구 확인 문자 발송 여부 확인 20261113 리팩터링
+    // 6-3. 대여 교구 확인 문자 발송 여부 확인 20261113 리팩터링
     // ---------------------------------------------------------
     const isRentalEquipmentCourse = TemplateService.isRentalEquipmentCourse(target);
 
@@ -331,6 +402,7 @@ async function sendDsTarget(target, options = {}) {
             roleMessages,
             testPhone,
         });
+
     } else {
         console.log(`${LOG_PREFIX} DS 대여 교구 문자 스킵: 대상 과정 아님 (${target.과정명})`);
 
@@ -339,11 +411,12 @@ async function sendDsTarget(target, options = {}) {
             reason: "대여 교구 확인 문자 대상 과정이 아님",
         };
     }
+
     return result;
 }
 
 // =============================================================
-// DS 역할별 메시지 설정
+// 7. DS 역할별 메시지 설정
 // =============================================================
 function createDsRoleMessages(target) {
 
@@ -377,10 +450,14 @@ function createDsRoleMessages(target) {
 
 
 // =============================================================
-// DS 대여 교구 확인 문자
+// 8. DS 대여 교구 확인 문자
 // 지정된 과정에 한해 담당교사 / 주강사 / 보조강사 발송
 // =============================================================
-async function sendRentalEquipmentMessages({ target, roleMessages, testPhone }) {
+async function sendRentalEquipmentMessages({
+    target,
+    roleMessages,
+    testPhone,
+}) {
 
     // 대여 교구 확인 메시지 생성
     const rentalMessage = {
@@ -410,14 +487,21 @@ async function sendRentalEquipmentMessages({ target, roleMessages, testPhone }) 
 
 
 // =============================================================
-// DS 역할별 SMS 발송
+// 9. DS 역할별 SMS 발송
 // 담당교사 / 주강사 / 보조강사
 // 역할별로 각각 호출하여 문자 발송 처리
 // =============================================================
-async function sendRoleSms({ target, role, name, phone, testPhone, message }) {
+async function sendRoleSms({
+    target,
+    role,
+    name,
+    phone,
+    testPhone,
+    message,
+}) {
 
     // ---------------------------------------------------------
-    // 1. 연락처 확인
+    // 9-1. 연락처 확인
     // ---------------------------------------------------------
     if (!phone) {
 
@@ -436,13 +520,13 @@ async function sendRoleSms({ target, role, name, phone, testPhone, message }) {
 
 
     // ---------------------------------------------------------
-    // 2. 테스트 번호 적용
+    // 9-2. 테스트 번호 적용
     // ---------------------------------------------------------
     const recipientPhone = testPhone || phone;
 
 
     // ---------------------------------------------------------
-    // 3. 실제 SMS / LMS 발송
+    // 9-3. 실제 SMS / LMS 발송
     // ---------------------------------------------------------
     return await executeDelivery({
         sender: (phoneNumber, smsMessage) => SmsService.send(phoneNumber, smsMessage),
@@ -457,7 +541,7 @@ async function sendRoleSms({ target, role, name, phone, testPhone, message }) {
 }
 
 // =============================================================
-// 공통 결과 생성
+// 10. 공통 결과 생성
 // =============================================================
 function createSkippedResult(reason) {
 
