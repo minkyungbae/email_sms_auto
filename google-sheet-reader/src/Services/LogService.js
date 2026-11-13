@@ -3,7 +3,7 @@
  * @file LogService.js
  * @author 배민경
  * @created 2026-10-28
- * @updated 2026-11-12
+ * @updated 2026-11-13
  * @description
  * 문자/이메일 발송 결과를 Google Sheets 로그 시트에 기록
  *
@@ -18,11 +18,6 @@
  * - 발송 대상 교육 정보 추출 및 정규화
  * - DS 강사 역할별 소속기관명 정규화
  * - 발송 상태 구분: 스킵, 실패, 테스트, 성공
- * - Google Sheets 로그 시트에 기록되는 컬럼:
- *   - ID, 교육과정명, 교육기관명, 반명, 교육일, 요일, 교육시간
- *   - 역할, 성명, 소속기관명, 연락처, 이메일
- *   - 발송구분, 발송상태, 발송일시, 발송인, 발송연락처, 발송이메일
- *   - 수신인, 실제수신연락처, 실제수신이메일, 제목, 본문
  */
 
 require("dotenv").config();
@@ -36,6 +31,19 @@ const MESSAGE_CONFIG = require("../Configs/MessageConfig");
 const TemplateService = require("./TemplateService");
 
 
+// 상수
+const BUSINESS_TYPES = {
+    GW: "GW",
+    DS: "DS",
+};
+
+const CHANNELS = {
+    EMAIL: "EMAIL",
+    SMS: "SMS",
+};
+
+const LOG_PREFIX = "[LogService.js]";
+
 // =============================================================
 // 1. 로그 데이터 생성
 // =============================================================
@@ -45,29 +53,30 @@ function BuildRecords({
     result,
     options = {},
 }) {
-    const type = String(businessType || "").trim().toUpperCase();
-
-    console.log(`[LogService] ${type} 로그 데이터 생성 시작`);
+    const type = String(businessType || "").trim().toUpperCase();;
 
     if (!target || !result) {
-        console.warn(`[LogService] ${type} 로그 생성 실패: target 또는 result가 없습니다.`);
+        console.warn(`${LOG_PREFIX} ${type} 로그 생성 실패: 대상 또는 결과 없음`);
         return [];
     }
 
     let records = [];
 
-    if (type === "GW") {
-        records = buildGwRecords(target, result, options);
+    switch (type) {
+        case BUSINESS_TYPES.GW:
+            records = buildGwRecords(target, result, options);
+            break;
 
-    } else if (type === "DS") {
-        records = buildDsRecords(target, result, options);
+        case BUSINESS_TYPES.DS:
+            records = buildDsRecords(target, result, options);
+            break;
 
-    } else {
-        throw new Error(`지원하지 않는 로그 유형입니다: ${type}`);
+        default:
+            throw new Error(`지원하지 않는 로그 유형입니다: ${type}`);
     }
 
     // 생성 결과 확인
-    console.log(`[LogService] ${type} 로그 생성: ${records.length}건`);
+    console.log(`${LOG_PREFIX} ${type} 로그 ${records.length}건 생성`);
 
     return records;
 }
@@ -81,54 +90,36 @@ function buildGwRecords(target, result, options) {
 
     const records = [];
 
+    const dispatchItems = [
+        {
+            channel: CHANNELS.EMAIL,
+            detail: result.EMAIL,
+        },
+        {
+            channel: CHANNELS.SMS,
+            detail: result.SMS,
+        },
+    ];
+    
+    for (const item of dispatchItems) {
 
-    // ---------------------------------------------------------
-    // 2-1. 이메일 로그
-    // ---------------------------------------------------------
-    const email = result.EMAIL;
+        const { channel, detail } = item;
 
-    if (email && !email.skipped) {
-
-        records.push(
-            createDispatchRecord({
-                businessType: "GW",
-                target,
-                channel: "EMAIL",
-                detail: email,
-
-                subject: email.subject || "", // 20261029 수정: 실제 발송 메시지 제목 사용
-
-                recipientName: target.강사이름,
-                recipientPhone: target.연락처,
-                recipientEmail: target.이메일,
-
-                role: "강사",
-                options,
-            })
-        );
-    }
-
-
-    // ---------------------------------------------------------
-    // 2-2. 문자 로그
-    // ---------------------------------------------------------
-    const sms = result.SMS;
-
-    if (sms && !sms.skipped) {
+        // 결과가 없거나 스킵된 경우 제외
+        if (!detail || detail.skipped) {
+            continue;
+        }
 
         records.push(
             createDispatchRecord({
-                businessType: "GW",
+                businessType: BUSINESS_TYPES.GW,
                 target,
-                channel: "SMS",
-                detail: sms,
-
-                subject: sms.subject || "", // 20261029 수정: 실제 발송 메시지 제목 사용
-
+                channel,
+                detail,
+                subject: detail.subject || "",
                 recipientName: target.강사이름,
                 recipientPhone: target.연락처,
                 recipientEmail: target.이메일,
-
                 role: "강사",
                 options,
             })
@@ -141,47 +132,57 @@ function buildGwRecords(target, result, options) {
 // =============================================================
 // 3. DS 로그 생성
 // 담당교사 / 주강사 / 보조강사
+// 교육 안내 및 대여 교구 확인 로그 공통 처리
 // =============================================================
 function buildDsRecords(target, result, options) {
 
     const records = [];
 
+    // 교육 안내 문자
+    appendDsRecords({
+        records,
+        target,
+        results: result.역할별안내,
+        isRental: false,
+        options,
+    });
 
-    // ---------------------------------------------------------
-    // 3-1. 역할별 교육 안내 문자
-    // ---------------------------------------------------------
-    const roleResults = result.역할별안내 || {};
+    // 대여 교구 확인 문자
+    appendDsRecords({
+        records,
+        target,
+        results: result.대여교구확인,
+        isRental: true,
+        options,
+    });
 
-    Object.entries(roleResults).forEach(([role, detail]) => {
+    return records;
+}
+
+
+// =============================================================
+// 3-1. DS 역할별 로그 공통 생성
+// 교육 안내 / 대여 교구 확인 공통 처리
+// =============================================================
+function appendDsRecords({
+    records,
+    target,
+    results,
+    isRental,
+    options,
+}) {
+    if (!results || typeof results !== "object") {
+        return;
+    }
+
+    Object.entries(results).forEach(([role, detail]) => {
 
         if (!detail || typeof detail !== "object") {
             return;
         }
-        records.push(
-            createDsSmsRecord({
-                target,
-                role,
-                detail,
-                isRental: false,
-                options,
-            })
-        );
-    });
 
-
-    // ---------------------------------------------------------
-    // 3-2. 대여 교구 확인 문자
-    // ---------------------------------------------------------
-    const rentalResults = result.대여교구확인 || {};
-
-    Object.entries(rentalResults).forEach(([role, detail]) => {
-
-        // 대여 교구 대상 과정이 아닌 경우 제외
-        if (
-            !detail ||
-            typeof detail !== "object" ||
-            !detail.role
-        ) {
+        // 대여 교구 확인 결과 중 역할 정보가 없는 항목 제외
+        if (isRental && !detail.role) {
             return;
         }
 
@@ -190,12 +191,11 @@ function buildDsRecords(target, result, options) {
                 target,
                 role: detail.role || role,
                 detail,
-                isRental: true,
+                isRental,
                 options,
             })
         );
     });
-    return records;
 }
 
 
@@ -209,13 +209,10 @@ function createDsSmsRecord({
     isRental,
     options,
 }) {
-
     const normalizedRole = String(role || "");
     const isTeacher = normalizedRole === "담당교사"; // 20261029 수정: 역할명 정확히 비교
 
-    // ---------------------------------------------------------
-    // 4-1. 발송 유형별 제목 결정
-    // ---------------------------------------------------------
+    // 발송 유형에 따른 제목 결정
     let subject;
 
     if (isRental) {
@@ -228,31 +225,21 @@ function createDsSmsRecord({
         subject = TemplateService.createDsInstructorSmsSubject();
     }
 
-
-    // ---------------------------------------------------------
-    // 4-2. 수신자 정보
-    // ---------------------------------------------------------
+    // 역할별 수신자 정보
     const recipientInfo = getDsRecipientInfo(
         target,
         normalizedRole
     );
 
-
-    // ---------------------------------------------------------
-    // 4-3. 로그 객체 생성
-    // ---------------------------------------------------------
     return createDispatchRecord({
-        businessType: "DS",
+        businessType: BUSINESS_TYPES.DS,
         target,
-        channel: "SMS",
+        channel: CHANNELS.SMS,
         detail,
-
         subject,
-
         recipientName: detail.name || recipientInfo.name,
         recipientPhone: recipientInfo.phone,
         recipientEmail: recipientInfo.email,
-
         role: normalizedRole,
         options,
     });
@@ -266,32 +253,27 @@ function getDsRecipientInfo(target, role) {
 
     const normalizedRole = String(role || "").trim();
 
-    if (normalizedRole === "담당교사") { // 20261029 수정
-
-        return {
+    const recipientMap = {
+        "담당교사": {
             name: target.담당교사명 || "",
             phone: target.담당교사연락처 || "",
             email: target.담당교사이메일 || "",
-        };
-    }
+        },
 
-    if (normalizedRole === "주강사") { // 20261029 수정
-
-        return {
+        "주강사": {
             name: target.주강사명 || "",
             phone: target.주강사연락처 || "",
             email: "",
-        };
-    }
-    if (normalizedRole === "보조강사") { // 20261029 수정
+        },
 
-        return {
+        "보조강사": {
             name: target.보조강사명 || "",
             phone: target.보조강사연락처 || "",
             email: "",
-        };
-    }
-    return {
+        },
+    };
+
+    return recipientMap[normalizedRole] || {
         name: "",
         phone: "",
         email: "",
@@ -301,6 +283,7 @@ function getDsRecipientInfo(target, role) {
 
 // =============================================================
 // 6. 공통 발송 로그 객체 생성
+// GW 이메일 / GW 문자 / DS 문자 공통 처리
 // =============================================================
 function createDispatchRecord({
     businessType,
@@ -315,20 +298,11 @@ function createDispatchRecord({
     options,
 }) {
 
-    const isSms = channel === "SMS";
+    const isSms = channel === CHANNELS.SMS;
 
     // ---------------------------------------------------------
     // 6-1. 교육 정보
     // ---------------------------------------------------------
-
-    // // 20261112 추가: DS 반명 값 확인
-    // if (businessType === "DS") {
-    //     console.log("[DS 반명 디버깅]");
-    //     console.log("target 전체:", JSON.stringify(target));
-    //     console.log("LMS번호반:", target.LMS번호반);
-    //     console.log("반명:", target.반명);
-    // }
-    
     const educationInfo = getEducationInfo(
         businessType,
         target,
@@ -349,9 +323,17 @@ function createDispatchRecord({
     // ---------------------------------------------------------
     // 6-3. 발송인 정보
     // ---------------------------------------------------------
-    const senderName = isSms ? MESSAGE_CONFIG[businessType].SENDER_NAME : EMAIL_CONFIG.SENDER_NAME;
-    const senderPhone = isSms ? CONFIG.PPURIO?.SENDER_NUMBER || "" : "";
-    const senderEmail = isSms ? "" : EMAIL_CONFIG.USER || "";
+    const senderName = isSms 
+        ? MESSAGE_CONFIG[businessType].SENDER_NAME 
+        : EMAIL_CONFIG.SENDER_NAME;
+
+    const senderPhone = isSms 
+        ? CONFIG.PPURIO?.SENDER_NUMBER || "" 
+        : "";
+
+    const senderEmail = isSms 
+        ? "" 
+        : EMAIL_CONFIG.USER || "";
 
 
     // ---------------------------------------------------------
@@ -372,8 +354,13 @@ function createDispatchRecord({
     // ---------------------------------------------------------
     // 6-6. 실제 수신 정보 20261030 추가
     // ---------------------------------------------------------
-    const actualRecipientPhone = isSms ? detail.recipient || "" : "";
-    const actualRecipientEmail = !isSms ? detail.recipient || "" : "";
+    const actualRecipientPhone = isSms
+        ? detail.recipient || "" 
+        : "";
+
+    const actualRecipientEmail = !isSms
+        ? detail.recipient || "" 
+        : "";
 
 
     // ---------------------------------------------------------
@@ -381,29 +368,29 @@ function createDispatchRecord({
     // B열 No. / 차시 제외
     // ---------------------------------------------------------
     return {
-        "ID": randomUUID(),                         // A열
-        "교육과정명": educationInfo.courseName,      // C열
-        "교육기관명": educationInfo.institutionName, // D열
-        "반명": educationInfo.className,            // E열
-        "교육일": educationInfo.dates,              // G열
-        "요일": educationInfo.weekdays,             // H열
-        "교육시간": educationInfo.times,            // I열        
-        "역할": role || "",                         // J열        
-        "성명": recipientName || "",                // K열
-        "소속기관명": educationInfo.affiliationName, // L열
-        "연락처": recipientPhone || "",             // M열
-        "이메일": recipientEmail || "",             // N열
-        "발송구분": isSms ? "문자" : "이메일",        // O열     
-        "발송상태": messageStatus,                  // P열
-        "발송일시": dispatchDateTime,               // Q열
-        "발송인": senderName,                       // R열
-        "발송연락처": senderPhone,                  // S열
-        "발송이메일": senderEmail,                  // T열        
-        "수신인": recipientName || "",              // U열        
-        "실제수신연락처": actualRecipientPhone,      // V열
-        "실제수신이메일": actualRecipientEmail,      // W열
-        "제목": subject || "",                     // X열
-        "본문": messageBody,                       // Y열
+        "ID": randomUUID(),
+        "교육과정명": educationInfo.courseName,
+        "교육기관명": educationInfo.institutionName,
+        "반명": educationInfo.className,
+        "교육일": educationInfo.dates,
+        "요일": educationInfo.weekdays,
+        "교육시간": educationInfo.times,
+        "역할": role || "",
+        "성명": recipientName || "",
+        "소속기관명": educationInfo.affiliationName,
+        "연락처": recipientPhone || "",
+        "이메일": recipientEmail || "",
+        "발송구분": isSms ? "문자" : "이메일",
+        "발송상태": messageStatus,
+        "발송일시": dispatchDateTime,
+        "발송인": senderName,
+        "발송연락처": senderPhone,
+        "발송이메일": senderEmail,
+        "수신인": recipientName || "",
+        "실제수신연락처": actualRecipientPhone,
+        "실제수신이메일": actualRecipientEmail,
+        "제목": subject || "",
+        "본문": messageBody,
     };
 }
 
@@ -455,7 +442,7 @@ function getEducationInfo(businessType, target, role) { // 20261030 수정: 역�
     // 7-4. 과정명 20261030 수정
     // GW: 공란 / DS: 과정명
     // --------------------------------------------------------- 
-        const courseName = businessType === "GW"
+        const courseName = businessType === BUSINESS_TYPES.GW
         ? ""
         : target.과정명 || "";
 
@@ -464,7 +451,7 @@ function getEducationInfo(businessType, target, role) { // 20261030 수정: 역�
     // 7-5. 교육기관명 20261030 추가
     // GW: 수요처명 / DS: 학교명
     // --------------------------------------------------------- 
-    const institutionName = businessType === "GW"
+    const institutionName = businessType === BUSINESS_TYPES.GW
         ? target.수요처명 || ""
         : target.학교명 || "";
     
@@ -473,7 +460,7 @@ function getEducationInfo(businessType, target, role) { // 20261030 수정: 역�
     // 7-6. 반명 20261112 수정
     // GW: 교육목록 반명 / DS: LMS\n번호 &\n반
     // --------------------------------------------------------- 
-    const className = businessType === "GW"
+    const className = businessType === BUSINESS_TYPES.GW
         ? target.반명 || (target.교육목록 || [])
             .map(classInfo => classInfo.반명 || "")
             .filter(Boolean)
@@ -489,7 +476,7 @@ function getEducationInfo(businessType, target, role) { // 20261030 수정: 역�
     // ---------------------------------------------------------
     let affiliationName = "";
 
-    if (businessType === "GW") {
+    if (businessType === BUSINESS_TYPES.GW) {
         affiliationName = target.소속기관명 || `${target.지역 || ""}센터`;
 
     } else if (role === "담당교사") {
@@ -520,9 +507,7 @@ function getEducationInfo(businessType, target, role) { // 20261030 수정: 역�
         institutionName,
         className,
         affiliationName,
-
         dates: dates.join(", "),
-
         weekdays: weekdays
             .map(day => `${day}요일`)
             .join(", "),
@@ -533,16 +518,22 @@ function getEducationInfo(businessType, target, role) { // 20261030 수정: 역�
 
 
 // =============================================================
-// DS 강사 소속기관명 추출 202611112 수정
-// 1. 강사 표기에서 강사 이름을 제거한 학교명을 우선 반환
-// 2. 표기에서 학교명을 추출할 수 없으면 학교명 + 학교급으로 구성
+// 8. DS 강사 소속기관명 추출 202611112 수정
+//    1. 강사 표기에서 강사 이름을 제거한 학교명을 우선 반환
+//    2. 표기에서 학교명을 추출할 수 없으면 학교명 + 학교급으로 구성
 // =============================================================
-function getInstructorAffiliation(instructorLabel, instructorName, schoolName, schoolLevel) {
+function getInstructorAffiliation(
+    instructorLabel,
+    instructorName,
+    schoolName,
+    schoolLevel
+) {
     const label = String(instructorLabel || "").trim();
     const name = String(instructorName || "").trim();
 
     // 강사 표기에서 강사 이름을 제거하여 학교명 추출
     if (label && name && label.includes(name)) {
+
         const prefix = label.slice(0, label.indexOf(name)).trim();
 
         if (prefix) {
@@ -559,14 +550,16 @@ function getInstructorAffiliation(instructorLabel, instructorName, schoolName, s
 
 
 // =============================================================
-// 8. 발송 상태 구분
+// 9. 발송 상태 구분
 // =============================================================
 function getDispatchStatus(channel, detail, options = {}) {
 
-    const label = channel === "SMS" ? "문자" : "이메일";
+    const label = channel === CHANNELS.SMS
+        ? "문자" 
+        : "이메일";
 
     // ---------------------------------------------------------
-    // 8-1. 발송 스킵
+    // 9-1. 발송 스킵
     // ---------------------------------------------------------
     if (detail.skipped) {
         return `${label} 스킵: ${detail.reason || "발송 대상 아님"}`;
@@ -574,44 +567,39 @@ function getDispatchStatus(channel, detail, options = {}) {
 
 
     // ---------------------------------------------------------
-    // 8-2. 발송 실패
+    // 9-2. 발송 실패
     // ---------------------------------------------------------
     if (!detail.success) {
 
         const errorMessage = detail.error || detail.result?.error || "";
 
-        return errorMessage ? `${label} 발송실패: ${errorMessage}` : `${label} 발송실패`;
+        return errorMessage
+            ? `${label} 발송실패: ${errorMessage}`
+            : `${label} 발송실패`;
     }
 
 
     // ---------------------------------------------------------
-    // 8-3. 뿌리오 TEST_MODE
+    // 9-3. 뿌리오 TEST_MODE
     // 실제 문자를 발송하지 않음
     // ---------------------------------------------------------
-    if (
-        channel === "SMS" && detail.result?.testMode
-    ) {
+    if (channel === CHANNELS.SMS && detail.result?.testMode) {
         return "테스트(실제 미발송)";
     }
 
 
     // ---------------------------------------------------------
-    // 8-4. 테스트 수신번호 발송
+    // 9-4. 테스트 수신번호 발송
     // ---------------------------------------------------------
-    if (
-        channel === "SMS" && options.smsTestRecipientMode
-    ) {
+    if (channel === CHANNELS.SMS && options.smsTestRecipientMode) {
         return "테스트 수신번호 발송완료";
     }
 
 
     // ---------------------------------------------------------
-    // 8-5. 테스트 이메일 발송
+    // 9-5. 테스트 이메일 발송
     // ---------------------------------------------------------
-    if (
-        channel === "EMAIL" &&
-        options.emailTestMode
-    ) {
+    if (channel === CHANNELS.EMAIL && options.emailTestMode) {
         return "테스트 수신주소 발송완료";
     }
     return `${label} 발송완료`;
@@ -619,7 +607,7 @@ function getDispatchStatus(channel, detail, options = {}) {
 
 
 // =============================================================
-// 9. 한국 시간
+// 10. 한국 시간
 // =============================================================
 function getKoreaDateTime() {
 
@@ -629,12 +617,12 @@ function getKoreaDateTime() {
 
 
 // =============================================================
-// 10. 날짜에서 요일 추출
+// 11. 날짜에서 요일 추출
 // 지원 형식:
-// YYYY-MM-DD
-// YYYY/MM/DD
-// M/D
-// M월 D일
+//  YYYY-MM-DD
+//  YYYY/MM/DD
+//  M/D
+//  M월 D일
 // =============================================================
 function getKoreanWeekday(dateValue) {
 
@@ -678,7 +666,7 @@ function getKoreanWeekday(dateValue) {
 
 
 // =============================================================
-// 11. 중복값 제거
+// 12. 중복값 제거
 // =============================================================
 function getUniqueValues(values) {
 
@@ -693,7 +681,7 @@ function getUniqueValues(values) {
 
 
 // =============================================================
-// 12. Google Sheets 로그 전송
+// 13. Google Sheets 로그 전송
 // =============================================================
 async function AppendLogs(records) {
 
@@ -703,12 +691,11 @@ async function AppendLogs(records) {
             count: 0,
             message: "저장할 로그가 없습니다.",
         };
-
     }
 
 
     // ---------------------------------------------------------
-    // 12-1. 설정 확인
+    // 13-1. 설정 확인
     // ---------------------------------------------------------
     const logConfig = SHEET_CONFIG.LOG;
 
@@ -731,12 +718,12 @@ async function AppendLogs(records) {
     if (typeof fetch !== "function") {
         throw new Error("현재 Node.js 환경에서 fetch를 사용할 수 없습니다.");
     }
-    console.log("[LogService] Apps Script 로그 전송 시작");
-    console.log(`전송 대상: ${records.length}건`);
+
+    console.log(`${LOG_PREFIX} 로그 전송 대상: ${records.length}건`);
 
 
     // ---------------------------------------------------------
-    // 12-2. POST 요청 20261030 수정: 요청 제한 시간 60초 -> 120초
+    // 13-2. POST 요청 20261030 수정: 요청 제한 시간 60초 -> 120초
     // ---------------------------------------------------------
     const controller = new AbortController();
 
@@ -770,16 +757,15 @@ async function AppendLogs(records) {
             throw new Error("로그 API 요청 시간이 초과되었습니다.");
         }
 
-        throw new Error(
-            `로그 API 통신 실패: ${cause.code || cause.message || error.message}`
-        );
+        throw new Error(`로그 API 통신 실패: ${cause.code || cause.message || error.message}`);
+
     } finally {
         clearTimeout(timeoutId);
     }
 
 
     // ---------------------------------------------------------
-    // 12-3. 응답 확인 및 JSON 파싱 20261112 수정
+    // 13-3. 응답 확인 및 JSON 파싱 20261112 수정
     // ---------------------------------------------------------
     const responseText = await response.text();
 
@@ -790,27 +776,26 @@ async function AppendLogs(records) {
 
     } catch (error) {
 
-        console.error("[LogService] JSON 파싱 실패");
-        console.error("HTTP 상태:", response.status);
-        console.error("Content-Type:", response.headers.get("content-type"));
-        console.error("최종 응답 URL:", response.url);
-        console.error("응답 본문:", responseText.slice(0, 1000));
+        console.error(`${LOG_PREFIX} 응답 파싱 실패 (HTTP ${response.status}, 
+            ${response.headers.get("content-type") || "Content-Type 없음"})`);
+        console.error(`${LOG_PREFIX} 응답 내용: ${responseText.slice(0, 500)}`);
 
-        throw new Error(
-            `로그 API 응답 JSON 파싱 실패: HTTP ${response.status}`
-        );
+        throw new Error(`로그 API 응답 JSON 파싱 실패: HTTP ${response.status}`);
     }
 
 
     // ---------------------------------------------------------
-    // 12-4. 저장 성공 여부 확인
+    // 13-4. 저장 성공 여부 확인
     // ---------------------------------------------------------
     if (!response.ok || !responseData.success) {
+
         throw new Error(
             responseData.message || `로그 저장 실패: HTTP ${response.status}`
         );
     }
 
+    console.log(`${LOG_PREFIX} 로그 ${records.length}건 저장 완료`);
+    
     return "success";
 
 }
