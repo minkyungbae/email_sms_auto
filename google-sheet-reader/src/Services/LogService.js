@@ -578,9 +578,16 @@ function getDispatchStatus(channel, detail, options = {}) {
             : `${label} 발송실패`;
     }
 
+    // ---------------------------------------------------------
+    // 9-3. 이메일 테스트 모드 20261113 추가
+    // 실제 이메일을 발송하지 않고 로그만 기록
+    // ---------------------------------------------------------
+    if (channel === CHANNELS.EMAIL && detail.previewOnly) {
+        return "테스트(실제 미발송)";
+    }
 
     // ---------------------------------------------------------
-    // 9-3. 뿌리오 TEST_MODE
+    // 9-4. 뿌리오 TEST_MODE
     // 실제 문자를 발송하지 않음
     // ---------------------------------------------------------
     if (channel === CHANNELS.SMS && detail.result?.testMode) {
@@ -589,7 +596,7 @@ function getDispatchStatus(channel, detail, options = {}) {
 
 
     // ---------------------------------------------------------
-    // 9-4. 테스트 수신번호 발송
+    // 9-5. 테스트 수신번호 발송
     // ---------------------------------------------------------
     if (channel === CHANNELS.SMS && options.smsTestRecipientMode) {
         return "테스트 수신번호 발송완료";
@@ -597,9 +604,9 @@ function getDispatchStatus(channel, detail, options = {}) {
 
 
     // ---------------------------------------------------------
-    // 9-5. 테스트 이메일 발송
+    // 9-6. 테스트 이메일 발송
     // ---------------------------------------------------------
-    if (channel === CHANNELS.EMAIL && options.emailTestMode) {
+    if (channel === CHANNELS.EMAIL && options.emailTestRecipientMode) { // 20261113 수정
         return "테스트 수신주소 발송완료";
     }
     return `${label} 발송완료`;
