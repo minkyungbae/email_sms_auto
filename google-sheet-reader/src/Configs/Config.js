@@ -22,12 +22,15 @@ const CONFIG = {
     BUSINESS_TYPE: ["GW", "DS"],
 
     // 발송 기준일 (0 : 수업 당일 / 7 : 수업 일주일 전)
-    DAYS_BEFORE: 2,
+    DAYS_BEFORE: 0,
 
-    // SMS 수신번호 테스트 모드 (true: 테스트 전화번호 / false: 실제 수신자 전화번호)
+    // 문자를 누구한테 보낼 것인가? (true: 테스트 전화번호 / false: 실제 수신자 전화번호)
     SMS_TEST_RECIPIENT_MODE: true,
 
-    // 이메일 테스트 모드 (true → 테스트 이메일 주소 / false → 실제 발송)
+    // 이메일을 누구한테 보낼 것인가? (true: 테스트 이메일 주소로 발송 / false: 실제 수신자 이메일 주소로 발송)
+    EMAIL_TEST_RECIPIENT_MODE: true,
+
+    // 실제로 보낼 것인가, 미리보기만 할 것인가? (true → 터미널 미리보기(실제 발송 안 함) / false → 실제 발송)
     EMAIL_TEST_MODE: true, // 261012 추가
 
     // 뿌리오 실제 발송 모드 (true → 실제 문자 발송 안 함 / false → 실제 발송)
