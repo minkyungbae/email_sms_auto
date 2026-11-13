@@ -2,7 +2,7 @@
  * @file TemplateService.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-12
+ * @updated 2026-11-13
  * @description
  * 발송 대상 데이터를 바탕으로 메시지 템플릿 내 치환 변수를 생성하고, 이메일 및 SMS 문구를 완성
  * 
@@ -18,10 +18,12 @@
 const MESSAGE_CONFIG = require("../Configs/MessageConfig");
 const { ACCOUNT_CONFIG } = require("../../../security_info")
 
-/**
- * 내부 날짜 YYYY-MM-DD → 화면 표시용 M월 D일
- * 예: 2026-10-06 → 10월 6일
- */
+
+// =============================================================
+// 1. 날짜 포맷팅
+// 내부 날짜 YYYY-MM-DD → 화면 표시용 M월 D일
+// 예: 2026-10-06 → 10월 6일
+// =============================================================
 function formatDisplayDate(date) {
     const match = String(date).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
 
@@ -32,32 +34,41 @@ function formatDisplayDate(date) {
     return `${Number(match[2])}월 ${Number(match[3])}일`;
 }
 
+// =============================================================
+// 2.템플릿 변수 치환
+// =============================================================
+function replaceTemplateVariables(template, variables) {
+    return String(template ?? "").replace(
+        /{([A-Z0-9_]+)}/g,
+        (match, key) => variables[key] ?? match
+    );
+}
 
+// =============================================================
+// 3. 템플릿 본문 생성
+// =============================================================
+function createMessage(template, variables) {
+    return replaceTemplateVariables(template, variables);
+}
+
+
+// =============================================================
+// 4. 템플릿 서비스 객체 정의
+// =============================================================
 const TemplateService = {
 
-    /**
-     * GW 교육 일정 목록을 문자열로 변환
-     *
-     * 예:
-     * 09:10~10:40 / 6학년3반
-     * 10:50~12:20 / 6학년5반
-     */
+    // ---------------------------------------------------------
+    // 4-1-1. GW 교육 일정 목록 생성
+    // 09:10~10:40 / 6학년3반
+    // 10:50~12:20 / 6학년5반
+    // ---------------------------------------------------------
     createClassSchedule(target) {
         return (target.교육목록 || [])
             .map(classInfo => `${classInfo.근무시간 || ""} / ${classInfo.반명 || ""}`)
             .join("\n");
     },
 
-    /** 공통 템플릿 변수 치환 */
-    replaceVariables(template, variables) {
-
-        return String(template ?? "").replace(/{([A-Z0-9_]+)}/g, (match, key) => {
-                return variables[key] ?? match;
-            });
-    },
-
-
-    /**  GW 템플릿 변수 생성 */
+    // 4-1-2. GW 템플릿 변수 생성
     createVariables(target) {
         return {
             INSTRUCTOR: target.강사이름 || "",
@@ -71,42 +82,45 @@ const TemplateService = {
     },
 
 
-    /** GW 이메일 제목 생성 */
+    // 4-1-3. GW 이메일 제목 생성
     createEmailSubject(target) {
-        const template = MESSAGE_CONFIG.GW.EMAIL_SUBJECT;
-        const variables = this.createVariables(target);
-
-        return this.replaceVariables(template, variables);
+        return createMessage(
+            MESSAGE_CONFIG.GW.EMAIL_SUBJECT,
+            this.createVariables(target)
+        );
     },
 
 
-    /** GW 이메일 본문 생성 */
+    // 4-1-4. GW 이메일 본문 생성
     createEmailBody(target) {
-        const template = MESSAGE_CONFIG.GW.EMAIL_BODY;
-        const variables = this.createVariables(target);
-
-        return this.replaceVariables(template, variables);
+        return createMessage(
+            MESSAGE_CONFIG.GW.EMAIL_BODY,
+            this.createVariables(target)
+        );
     },
 
 
-    /** GW SMS 제목 생성 */
+    // 4-1-5. GW SMS 제목 생성
     createSmsSubject() {
         return MESSAGE_CONFIG.GW.SMS_SUBJECT;
     },
 
 
-    /** GW SMS 본문 생성 */
+    // 4-1-6. GW SMS 본문 생성
     createSmsBody(target) {
-        const template = MESSAGE_CONFIG.GW.SMS_BODY;
-        const variables = this.createVariables(target);
-
-        return this.replaceVariables(template, variables);
+        return createMessage(
+            MESSAGE_CONFIG.GW.SMS_BODY,
+            this.createVariables(target)
+        );
     },
 
-    // =============================================================
-    
-    /** DS 공통 변수 */
+    // ---------------------------------------------------------
+    // 4-2. DS
+    // ---------------------------------------------------------
+
+    // 4-2-1. DS 공통 변수 생성
     createDsVariables(target) {
+
     return {
         // 담당교사 정보
         TEACHER: target.담당교사명 || "",
@@ -144,55 +158,48 @@ const TemplateService = {
     },
 
 
-    // =============================================================
-    // DS 담당교사 안내 문자 261012 추가
-    // =============================================================
+    // ---------------------------------------------------------
+    // 4-3. DS 담당교사 안내 문자 261012 추가
+    // ---------------------------------------------------------
 
-    // 담당교사 SMS 제목
+    // 4-3-1. 담당교사 SMS 제목
     createDsTeacherSmsSubject() {
         return MESSAGE_CONFIG.DS.TEACHER_SMS_SUBJECT;
     },
-    // 담당교사 SMS 본문
+
+    // 4-3-2. 담당교사 SMS 본문
     createDsTeacherSmsBody(target) {
-        const template = MESSAGE_CONFIG.DS.TEACHER_SMS_BODY;
-        const variables = this.createDsVariables(target);
-
-        return this.replaceVariables(template, variables);
-    },
-
-    createDsSmsSubject() {
-        return this.createDsTeacherSmsSubject();
-    },
-
-    createDsSmsBody(target) {
-        return this.createDsTeacherSmsBody(target);
+        return createMessage(
+            MESSAGE_CONFIG.DS.TEACHER_SMS_BODY,
+            this.createDsVariables(target)
+        );
     },
 
 
-    // =============================================================
-    // DS 주강사 / 보조강사 안내 문자 261012 추가
-    // =============================================================
+    // ---------------------------------------------------------
+    // 4-4. DS 주강사 / 보조강사 안내 문자 261012 추가
+    // ---------------------------------------------------------
 
-    // 강사용 SMS 제목
+    // 4-4-1. 강사용 SMS 제목
     createDsInstructorSmsSubject() {
         return MESSAGE_CONFIG.DS.INSTRUCTOR_SMS_SUBJECT;
     },
 
 
-    // 강사용 SMS 본문
+    // 4-4-2. 강사용 SMS 본문
     createDsInstructorSmsBody(target) {
-        const template = MESSAGE_CONFIG.DS.INSTRUCTOR_SMS_BODY;
-        const variables = this.createDsVariables(target);
-
-        return this.replaceVariables(template, variables);
+        return createMessage(
+            MESSAGE_CONFIG.DS.INSTRUCTOR_SMS_BODY,
+            this.createDsVariables(target)
+        );
     },
 
 
-    // =============================================================
-    // DS 대여 교구 수량 확인 문자 261012 추가
-    // =============================================================
+    // ---------------------------------------------------------
+    // 4-5. DS 대여 교구 수량 확인 문자 261012 추가
+    // ---------------------------------------------------------
 
-    // 대여 교구 확인 문자 발송 대상 과정인지 확인
+    // 대여 교구 확인 대상 과정 여부 확인
     isRentalEquipmentCourse(target) {
         const courseName = String(target.과정명 || "").trim();
 
@@ -201,19 +208,18 @@ const TemplateService = {
     },
 
 
-    // 대여 교구 확인 SMS 제목
+    // 4-5-1. 대여 교구 확인 SMS 제목
     createRentalEquipmentSmsSubject() {
         return MESSAGE_CONFIG.DS.RENTAL_EQUIPMENT_SMS_SUBJECT;
     },
 
 
-    // 대여 교구 확인 SMS 본문
+    // 4-5-2. 대여 교구 확인 SMS 본문
     createRentalEquipmentSmsBody(target) {
-
-        const template =MESSAGE_CONFIG.DS.RENTAL_EQUIPMENT_SMS_BODY;
-        const variables  = this.createDsVariables(target);
-
-        return this.replaceVariables(template, variables);
+        return createMessage(
+            MESSAGE_CONFIG.DS.RENTAL_EQUIPMENT_SMS_BODY,
+            this.createDsVariables(target)
+        );
     },
 };
 
