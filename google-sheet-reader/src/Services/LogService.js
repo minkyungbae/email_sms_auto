@@ -3,7 +3,7 @@
  * @file LogService.js
  * @author 배민경
  * @created 2026-10-28
- * @updated 2026-11-13
+ * @updated 2026-11-16
  * @description
  * 문자/이메일 발송 결과를 Google Sheets 로그 시트에 기록
  *
@@ -53,7 +53,7 @@ function BuildRecords({
     result,
     options = {},
 }) {
-    const type = String(businessType || "").trim().toUpperCase();;
+    const type = String(businessType || "").trim().toUpperCase();
 
     if (!target || !result) {
         console.warn(`${LOG_PREFIX} ${type} 로그 생성 실패: 대상 또는 결과 없음`);
@@ -364,8 +364,10 @@ function createDispatchRecord({
 
 
     // ---------------------------------------------------------
-    // 6-7. 최종 로그 객체 20261030 수정
+    // 6-7. 최종 로그 객체
     // B열 No. / 차시 제외
+    // 20261030 수정
+    // 20261116 수정: O, P열에 채널별 발송 상태 기록
     // ---------------------------------------------------------
     return {
         "ID": randomUUID(),
@@ -380,8 +382,11 @@ function createDispatchRecord({
         "소속기관명": educationInfo.affiliationName,
         "연락처": recipientPhone || "",
         "이메일": recipientEmail || "",
-        "발송구분": isSms ? "문자" : "이메일",
-        "발송상태": messageStatus,
+
+        // 20261116 수정: 문자는 O, 이메일은 P열에 상태 기록
+        "문자발송상태": isSms ? messageStatus : "",
+        "이메일발송상태": !isSms ? messageStatus : "",
+
         "발송일시": dispatchDateTime,
         "발송인": senderName,
         "발송연락처": senderPhone,
