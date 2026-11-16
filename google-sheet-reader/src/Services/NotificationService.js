@@ -424,26 +424,26 @@ function createDsRoleMessages(target) {
         // 담당교사
         {
             role: "담당교사",
-            name: target.담당교사,
+            name: target.담당교사명, // 20261116 수정: 뒤에 "명" 붙임
             phone: target.담당교사연락처,
-            subject: () => TemplateService.createDsTeacherSubject(target),
-            body: () => TemplateService.createDsTeacherBody(target),
+            subject: () => TemplateService.createDsTeacherSmsSubject(target), // 20261116 수정: 함수명 변경
+            body: () => TemplateService.createDsTeacherSmsBody(target), // 20261116 수정: 함수명 변경
         },
         // 주강사
         {
             role: "주강사",
-            name: target.주강사,
+            name: target.주강사명, // 20261116 수정: 뒤에 "명" 붙임
             phone: target.주강사연락처,
-            subject: () => TemplateService.createDsInstructorSubject(target),
-            body: () => TemplateService.createDsInstructorBody(target),
+            subject: () => TemplateService.createDsInstructorSmsSubject(), // 20261116 수정: 함수명 변경
+            body: () => TemplateService.createDsInstructorSmsBody(target), // 20261116 수정: 함수명 변경
         },
         // 보조강사
         {
             role: "보조강사",
-            name: target.보조강사,
+            name: target.보조강사명, // 20261116 수정: 뒤에 "명" 붙임
             phone: target.보조강사연락처,
-            subject: () => TemplateService.createDsAssistantSubject(target),
-            body: () => TemplateService.createDsAssistantBody(target),
+            subject: () => TemplateService.createDsInstructorSmsSubject(), // 20261116 수정: 함수명 변경
+            body: () => TemplateService.createDsInstructorSmsBody(target), // 20261116 수정: 함수명 변경
         }
     ];
 }
@@ -461,8 +461,8 @@ async function sendRentalEquipmentMessages({
 
     // 대여 교구 확인 메시지 생성
     const rentalMessage = {
-        subject: TemplateService.createDsRentalEquipmentSubject(target),
-        bodyText: TemplateService.createDsRentalEquipmentBody(target),
+        subject: TemplateService.createRentalEquipmentSmsSubject(), // 20261116 수정: 함수명 변경
+        bodyText: TemplateService.createRentalEquipmentSmsBody(target), // 20261116 수정: 함수명 변경
     };
 
     const result = {};
