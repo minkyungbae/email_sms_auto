@@ -304,9 +304,6 @@ async function processDsTargets({
         });
     }
 
-    logSection("DS 최종 처리 결과");
-    console.log(`처리한 교육 일정: ${sendResults.length}건`);
-
     return sendResults;
 }
 
@@ -373,9 +370,6 @@ async function processGwTargets({
             pendingLogRecords,
         });
     }
-
-    logSection("GW 최종 처리 결과");
-    console.log(`처리한 발송 대상: ${sendResults.length}건`);
 
     return sendResults;
 }
