@@ -3,13 +3,13 @@
  * @file LogService.js
  * @author 배민경
  * @created 2026-10-28
- * @updated 2026-11-16
+ * @updated 2026-11-17
  * @description
  * 문자/이메일 발송 결과를 Google Sheets 로그 시트에 기록
  *
  * 주요 기능:
  * - GW / DS 발송 결과 수집
- * - 문자 / 이메일 발송 이력 개별 생성
+ * - GW 문자 / 이메일 발송 결과를 한 행으로 통합 기록
  * - 테스트 발송과 실제 발송 구분
  * - 로그 데이터 검증 및 변환
  * - Apps Script 웹 앱을 통한 로그 일괄 저장
@@ -18,6 +18,8 @@
  * - 발송 대상 교육 정보 추출 및 정규화
  * - DS 강사 역할별 소속기관명 정규화
  * - 발송 상태 구분: 스킵, 실패, 테스트, 성공
+ * 
+ * 20261117 수정: 불필요한 로그 삭제 작업함
  */
 
 require("dotenv").config();
@@ -75,9 +77,6 @@ function BuildRecords({
             throw new Error(`지원하지 않는 로그 유형입니다: ${type}`);
     }
 
-    // 생성 결과 확인
-    console.log(`${LOG_PREFIX} ${type} 로그 ${records.length}건 생성`);
-
     return records;
 }
 
@@ -85,47 +84,65 @@ function BuildRecords({
 // =============================================================
 // 2. GW 로그 생성
 // 이메일과 문자를 각각 별도 행으로 생성
+// 20261117 함수 전체 수정
 // =============================================================
 function buildGwRecords(target, result, options) {
 
-    const records = [];
+    const smsDetail = result.SMS || null;
+    const emailDetail = result.EMAIL || null;
 
-    const dispatchItems = [
-        {
-            channel: CHANNELS.EMAIL,
-            detail: result.EMAIL,
-        },
-        {
-            channel: CHANNELS.SMS,
-            detail: result.SMS,
-        },
-    ];
-    
-    for (const item of dispatchItems) {
+    // 결과가 없거나 스킵된 채널은 기록 대상에서 제외
+    const hasSmsRecord = Boolean(smsDetail && !smsDetail.skipped);
+    const hasEmailRecord = Boolean(emailDetail && !emailDetail.skipped);
 
-        const { channel, detail } = item;
-
-        // 결과가 없거나 스킵된 경우 제외
-        if (!detail || detail.skipped) {
-            continue;
-        }
-
-        records.push(
-            createDispatchRecord({
-                businessType: BUSINESS_TYPES.GW,
-                target,
-                channel,
-                detail,
-                subject: detail.subject || "",
-                recipientName: target.강사이름,
-                recipientPhone: target.연락처,
-                recipientEmail: target.이메일,
-                role: "강사",
-                options,
-            })
-        );
+    // 문자와 이메일 모두 기록 대상이 아니면 로그를 생성하지 않음
+    if (!hasSmsRecord && !hasEmailRecord) {
+        return [];
     }
-    return records;
+
+    // 문자 발송 결과가 있으면 문자 정보를 공통 정보 기준으로 사용
+    // 문자 결과가 없으면 이메일 정보를 기준으로 사용
+    const baseChannel = hasSmsRecord
+        ? CHANNELS.SMS
+        : CHANNELS.EMAIL;
+
+    const baseDetail = hasSmsRecord
+        ? smsDetail
+        : emailDetail;
+
+    // 채널별 발송 상태를 각각 추출
+    const smsStatus = hasSmsRecord
+        ? getDispatchStatus(CHANNELS.SMS, smsDetail, options)
+        : "";
+
+    const emailStatus = hasEmailRecord
+        ? getDispatchStatus(CHANNELS.EMAIL, emailDetail, options)
+        : "";
+
+    // 제목은 이메일 제목을 우선 사용하고, 없으면 문자 제목 사용
+    const subject = (hasEmailRecord && emailDetail.subject) ||
+        (hasSmsRecord && smsDetail.subject) ||
+        "";
+
+    // 문자와 이메일 결과를 하나의 로그 객체로 생성
+    return [
+        createDispatchRecord({
+            businessType: BUSINESS_TYPES.GW,
+            target,
+            channel: baseChannel,
+            detail: baseDetail,
+            subject,
+            recipientName: target.강사이름,
+            recipientPhone: target.연락처,
+            recipientEmail: target.이메일,
+            role: "강사",
+            options,
+            smsStatus,
+            emailStatus,
+            smsDetail: hasSmsRecord ? smsDetail : null,
+            emailDetail: hasEmailRecord ? emailDetail : null,
+        }),
+    ];
 }
 
 
@@ -296,6 +313,10 @@ function createDispatchRecord({
     recipientEmail,
     role,
     options,
+    smsStatus = null, // 20261117 추가: GW 문자 발송 상태
+    emailStatus = null, // 20261117 추가: GW 이메일 발송 상태
+    smsDetail = null, // 20261117 추가: GW 문자 발송 상세
+    emailDetail = null, // 20261117 추가: GW 이메일 발송 상세
 }) {
 
     const isSms = channel === CHANNELS.SMS;
@@ -319,6 +340,14 @@ function createDispatchRecord({
         options
     );
 
+    const finalSmsStatus = smsStatus !== null // 20261117 추가
+        ? smsStatus
+        : (isSms ? messageStatus : "");
+
+    const finalEmailStatus = emailStatus !== null // 20261117 추가
+        ? emailStatus
+        : (!isSms ? messageStatus : "");
+
 
     // ---------------------------------------------------------
     // 6-3. 발송인 정보
@@ -327,13 +356,13 @@ function createDispatchRecord({
         ? MESSAGE_CONFIG[businessType].SENDER_NAME 
         : EMAIL_CONFIG.SENDER_NAME;
 
-    const senderPhone = isSms 
-        ? CONFIG.PPURIO?.SENDER_NUMBER || "" 
+    const senderPhone = (isSms || smsDetail) // 20261117 추가
+        ? CONFIG.PPURIO?.SENDER_NUMBER || ""
         : "";
 
-    const senderEmail = isSms 
-        ? "" 
-        : EMAIL_CONFIG.USER || "";
+    const senderEmail = (!isSms || emailDetail) // 20261117 추가
+        ? EMAIL_CONFIG.USER || ""
+        : "";
 
 
     // ---------------------------------------------------------
@@ -341,26 +370,40 @@ function createDispatchRecord({
     // ---------------------------------------------------------
     const now = getKoreaDateTime();
 
-    const dispatchDateTime = detail.recipient ? now : ""; // 20261030 추가
+    // GW는 문자 또는 이메일 중 실제 수신 대상이 확인되면 발송 시각 기록
+    // DS는 기존 단일 문자 수신 정보 사용
+    const hasRecipient = Boolean( // 20261117 추가
+        (smsDetail && smsDetail.recipient) ||
+        (emailDetail && emailDetail.recipient) ||
+        (!smsDetail && !emailDetail && detail.recipient)
+    );
+
+    const dispatchDateTime = hasRecipient ? now : ""; // 20261117 수정
 
 
     // ---------------------------------------------------------
     // 6-5. 발송 본문 추출 20261030 추가
     // GW 이메일 / 문자, DS 문자 공통 처리
     // ---------------------------------------------------------
-    const messageBody = detail.bodyText || "";
+    const smsBody = smsDetail // 20261117 추가
+        ? smsDetail.bodyText || ""
+        : (isSms ? detail.bodyText || "" : "");
+
+    const emailBody = emailDetail // 20261117 추가
+        ? emailDetail.bodyText || ""
+        : (!isSms ? detail.bodyText || "" : "");
 
 
     // ---------------------------------------------------------
     // 6-6. 실제 수신 정보 20261030 추가
     // ---------------------------------------------------------
-    const actualRecipientPhone = isSms
-        ? detail.recipient || "" 
-        : "";
+    const actualRecipientPhone = smsDetail // 20261117 수정
+        ? smsDetail.recipient || ""
+        : (isSms ? detail.recipient || "" : "");
 
-    const actualRecipientEmail = !isSms
-        ? detail.recipient || "" 
-        : "";
+    const actualRecipientEmail = emailDetail // 20261117 수정
+        ? emailDetail.recipient || ""
+        : (!isSms ? detail.recipient || "" : "");
 
 
     // ---------------------------------------------------------
@@ -384,8 +427,9 @@ function createDispatchRecord({
         "이메일": recipientEmail || "",
 
         // 20261116 수정: 문자는 O, 이메일은 P열에 상태 기록
-        "문자발송상태": isSms ? messageStatus : "",
-        "이메일발송상태": !isSms ? messageStatus : "",
+        // 20261117 수정: 통합 로그의 채널별 상태값 사용
+        "문자발송상태": finalSmsStatus, // 20261117 수정
+        "이메일발송상태": finalEmailStatus, // 20261117 수정
 
         "발송일시": dispatchDateTime,
         "발송인": senderName,
@@ -395,7 +439,8 @@ function createDispatchRecord({
         "실제수신연락처": actualRecipientPhone,
         "실제수신이메일": actualRecipientEmail,
         "제목": subject || "",
-        "본문": messageBody,
+        "문자본문내용": smsBody, // 20261117 수정
+        "이메일본문내용": emailBody, // 20261117 추가
     };
 }
 
@@ -731,8 +776,6 @@ async function AppendLogs(records) {
         throw new Error("현재 Node.js 환경에서 fetch를 사용할 수 없습니다.");
     }
 
-    console.log(`${LOG_PREFIX} 로그 전송 대상: ${records.length}건`);
-
 
     // ---------------------------------------------------------
     // 13-2. POST 요청 20261030 수정: 요청 제한 시간 60초 -> 120초
@@ -805,8 +848,6 @@ async function AppendLogs(records) {
             responseData.message || `로그 저장 실패: HTTP ${response.status}`
         );
     }
-
-    console.log(`${LOG_PREFIX} 로그 ${records.length}건 저장 완료`);
     
     return "success";
 
