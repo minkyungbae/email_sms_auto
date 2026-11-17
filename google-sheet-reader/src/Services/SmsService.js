@@ -2,7 +2,7 @@
  * @file SmsService.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-11-12
+ * @updated 2026-11-17
  * @description
  * 뿌리오 API를 연동하여 문자 바이트 수 계산, 인증 토큰 캐싱 및 SMS/LMS 발송을 처리
  *
@@ -12,6 +12,8 @@
  * - 수신자 전화번호 정제 및 API 표준 Payload 생성
  * - 테스트 모드에서 mock 발송 결과 반환
  * - 뿌리오 API를 통한 실제 메시지 발송 및 응답 결과 변환
+
+ * 20261117 수정: 불필요한 로그 삭제 작업함
  */
 
 const CONFIG = require("../Configs/Config.js");
@@ -392,8 +394,6 @@ const SmsService = {
         // -----------------------------------------------------
         const {byteSize, isLms, messageType,} = SmsService.getMessageType(messageText);
 
-        console.log(`[뿌리오] ${messageType} (${byteSize}byte)`);
-
 
         // -----------------------------------------------------
         // 7-4. 참조 키 생성
@@ -416,8 +416,6 @@ const SmsService = {
         // 7-6. 테스트 모드
         // -----------------------------------------------------
         if (CONFIG.TEST_MODE) {
-
-            console.log("[뿌리오] TEST_MODE - 실제 발송하지 않음");
 
             return SmsService.createTestResult({
                 phone,
