@@ -14,6 +14,8 @@
  * - NotificationTargetService를 통한 발송 대상 추출
  * - NotificationService를 통한 문자 및 이메일 발송
  * - LogService를 통한 발송 로그 자동 저장
+ * 
+ * 20261117 수정: 불필요한 로그 삭제 및 수정 작업함
  */
 
 
@@ -247,7 +249,7 @@ function collectLogRecords({
 
         pendingLogRecords.push(...records);
 
-        console.log(`[${businessType}] 로그 ${records.length}건 생성 / 누적 ${pendingLogRecords.length}건`);
+        console.log(`[${businessType}] 로그 누적: ${pendingLogRecords.length}건`); // 20261117 수정
 
     } catch (error) {
         // 로그 생성 오류가 기존 발송 흐름을 중단시키지 않도록 처리
@@ -272,16 +274,11 @@ async function processDsTargets({
     for (const target of targets) {
 
         console.log(`\n[DS] ${target.학교명} / ${target.과정명} / ${target.근무날짜}`);
-        console.log(`[담당교사] ${target.담당교사명} / ${target.담당교사연락처}`);
-        console.log(`[주강사] ${target.주강사표기} / ${target.주강사연락처}`);
-        console.log(`[보조강사] ${target.보조강사표기} / ${target.보조강사연락처}`);
 
         // 메시지 미리보기
         previewDsMessages(target);
 
         // 실제 발송
-        console.log(`\n[DS 문자 발송] 수신번호: ${testOptions.testPhone || "각 역할의 실제 연락처"}`);
-
         const result = await NotificationService.sendTarget(
             target,
             {
@@ -291,6 +288,21 @@ async function processDsTargets({
 
         // 기존 발송 결과 유지
         sendResults.push(result);
+
+        // 20261117 추가: DS 역할별 발송 결과 출력
+        console.log("\n[DS 발송 결과]");
+
+        for (const [role, delivery] of Object.entries(result.역할별안내 || {})) {
+            const name = delivery.name || "이름 없음";
+            const phone = delivery.recipient || "번호 없음";
+            const status = delivery.skipped
+                ? `스킵 (${delivery.reason})`
+                : delivery.success
+                    ? delivery.result?.testMode ? "테스트 성공" : "성공"
+                    : `실패 (${delivery.error || delivery.result?.error || "발송 실패"})`;
+
+            console.log(`${role}: ${name} | ${phone} | ${status}`);
+        }
 
         // 발송 결과 로그 생성
         collectLogRecords({
@@ -412,8 +424,6 @@ async function main() {
         // -----------------------------------------------------
         for (const businessType of selectedBusinessTypes) {
 
-            logSection(`${businessType} 사업 처리 시작`);
-
             // 교육 데이터 조회
             console.log(`[${businessType}] ${targetDate} 교육 데이터 조회`);
 
@@ -472,28 +482,16 @@ async function main() {
         // -----------------------------------------------------
         // 11-3. 발송 로그 일괄 저장
         // -----------------------------------------------------
-        logSection("LogService 최종 로그 저장");
-        console.log(`누적 로그: ${pendingLogRecords.length}건`);
-
         if (pendingLogRecords.length > 0) {
 
             try {
                 await LogService.AppendLogs(pendingLogRecords);
-
-                // AppendLogs의 반환값은 성공 시 "success" 문자열이므로 실제 누적한 로그 건수를 기준으로 출력
-                console.log(`[LogService] 최종 저장 완료: ${pendingLogRecords.length}건`);
-
             } catch (logError) {
-
                 console.error(`[01_Main.js] 로그 저장 실패: ${logError.message}`);
                 console.error(logError.stack);
-
             }
-
         } else {
-
             console.warn("[LogService] 저장할 로그 데이터가 없습니다.");
-
         }
     }
 }
