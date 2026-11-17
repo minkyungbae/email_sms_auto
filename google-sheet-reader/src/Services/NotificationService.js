@@ -14,6 +14,8 @@
  * - 테스트용 수신자 옵션 지원
  * - 이메일 미리보기 모드 지원
  * - 발송 성공 / 실패 / 스킵 결과 관리
+ * 
+ * 20261117 수정: 불필요한 로그 삭제 및 수정 작업함
  */
 
 
@@ -113,18 +115,18 @@ async function executeDelivery({
         // 발송 성공 / 실패 로그
         if (success) {
 
-            console.log(`${logLabel} 성공 ${recipient}`);
+            if (logLabel) console.log(`${logLabel} 성공 ${recipient}`); // 20261117 수정
 
         } else {
 
-            console.error(`${logLabel} 실패 ${recipient}: ${sendResult.error || "발송 실패"}`);
+            if (logLabel) console.error(`${logLabel} 실패 ${recipient}: ${sendResult.error || "발송 실패"}`); // 20261117 수정
         }
 
         return result;
 
     } catch (error) {
 
-        console.error(`${logLabel} 실패 ${recipient}: ${error.message}`);
+        if (logLabel) console.error(`${logLabel} 실패 ${recipient}: ${error.message}`); // 20261117 수정
 
         return {
             success: false,
@@ -363,12 +365,6 @@ async function sendDsTarget(target, options = {}) {
     // ---------------------------------------------------------
     // 6-2. 역할별 교육 안내 문자 발송
     // ---------------------------------------------------------
-    console.log("\n========================================");
-    console.log(`${LOG_PREFIX} DS 역할별 교육 안내 문자 발송`);
-    console.log(`학교명: ${target.학교명}`);
-    console.log(`과정명: ${target.과정명}`);
-    console.log("========================================");
-
     for (const recipient of roleMessages) {
 
         const message = {
@@ -404,8 +400,6 @@ async function sendDsTarget(target, options = {}) {
         });
 
     } else {
-        console.log(`${LOG_PREFIX} DS 대여 교구 문자 스킵: 대상 과정 아님 (${target.과정명})`);
-
         result.대여교구확인 = {
             skipped: true,
             reason: "대여 교구 확인 문자 대상 과정이 아님",
@@ -505,8 +499,6 @@ async function sendRoleSms({
     // ---------------------------------------------------------
     if (!phone) {
 
-        console.log(`${LOG_PREFIX} DS SMS 스킵 ${target.학교명} / ${role}: 연락처 없음`);
-
         return {
             success: false,
             skipped: true,
@@ -536,7 +528,7 @@ async function sendRoleSms({
             role,
             name: name || "",
         },
-        logLabel: `${LOG_PREFIX} DS SMS ${target.학교명} / ${role} ${name || ""}`,
+        logLabel: null, // 20261117 수정: DS 역할별 발송 결과는 01_Main.js에서 통합 출력
     });
 }
 
