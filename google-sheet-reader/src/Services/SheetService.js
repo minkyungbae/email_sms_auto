@@ -2,7 +2,7 @@
  * @file SheetService.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-11-12
+ * @updated 2026-11-18
  * @description
  * Google Apps Script API를 연동하여 특정 날짜의 Google Sheet 데이터를 조회하고
  * 객체 배열 구조로 매핑
@@ -15,6 +15,7 @@
  * - DataMapper를 통한 객체 배열 변환
  * 
  * 20261117 수정: 불필요한 로그 삭제 작업함
+ * 20261118 추가: 날짜 범위 조회 기능
  */
 
 const SHEET_CONFIG = require("../Configs/SheetConfig.js");
@@ -71,6 +72,41 @@ function validateDate(date) {
 
 
 // =============================================================
+// 3-1. 날짜 범위 검증
+// 20261118 추가
+// =============================================================
+function validateDateRange(startDate, endDate) {
+
+    const targetStartDate = validateDate(startDate);
+    const targetEndDate = validateDate(endDate);
+
+    // YYYY-MM-DD 형식 및 실제 날짜 유효성 검사
+    [targetStartDate, targetEndDate].forEach(date => {
+
+        const parsedDate = new Date(`${date}T00:00:00.000Z`);
+
+        if (
+            !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+            isNaN(parsedDate.getTime()) ||
+            parsedDate.toISOString().slice(0, 10) !== date
+        ) {
+            throw new Error(`[SheetService] 날짜 형식이 올바르지 않습니다: ${date}`);
+        }
+    });
+
+    // 시작일과 종료일 비교
+    if (targetStartDate > targetEndDate) {
+        throw new Error("[SheetService] 시작 날짜가 종료 날짜보다 늦을 수 없습니다.");
+    }
+
+    return {
+        startDate: targetStartDate,
+        endDate: targetEndDate,
+    };
+}
+
+
+// =============================================================
 // 4. Apps Script URL 생성 및 검증
 // =============================================================
 function createRequestUrl(type, targetDate) {
@@ -87,15 +123,21 @@ function createRequestUrl(type, targetDate) {
         );
 
         // HTTP / HTTPS만 허용
-        if (
-            url.protocol !== "https:" &&
-            url.protocol !== "http:"
-        ) {
+        if (url.protocol !== "https:" && url.protocol !== "http:") {
             throw new Error("지원하지 않는 URL 프로토콜입니다.");
         }
 
-        // 조회 날짜 추가
-        url.searchParams.set("date", targetDate);
+        // 조회 파라미터 추가 // 20261118 수정
+        Object.entries(queryParams).forEach(([key, value]) => {
+
+            if (
+                value !== undefined &&
+                value !== null &&
+                String(value).trim() !== ""
+            ) {
+                url.searchParams.set(key, String(value));
+            }
+        });
 
         return url;
 
@@ -293,6 +335,43 @@ async function processResponse(response, type) {
 
 
 // =============================================================
+// 11-1. 기간 조회 결과 매핑
+// 20261118 추가
+// =============================================================
+function mapRangeRows(rows, type) {
+
+    // ---------------------------------------------------------
+    // GW: 행마다 서로 다른 근무날짜 보존
+    // ---------------------------------------------------------
+    if (type === "GW") {
+
+        // SheetConfig의 GW 헤더에서 근무날짜 인덱스 확인
+        const dateIndex = SHEET_CONFIG.HEADERS.GW.indexOf("근무날짜");
+
+        if (dateIndex === -1) {
+            throw new Error("[SheetService] GW 헤더에서 근무날짜를 찾을 수 없습니다.");
+        }
+
+        // 각 행의 근무날짜를 DataMapper에 개별 전달
+        return rows.map((row, index) => {
+
+            if (!Array.isArray(row)) {
+                throw new Error(`[SheetService] GW 데이터 형식이 올바르지 않습니다. (행: ${index + 1})`);
+            }
+            const targetDate = row[dateIndex] ?? null;
+
+            return DataMapper.rowToObject(row, targetDate, type);
+        });
+    }
+
+    // ---------------------------------------------------------
+    // DS: GAS에서 날짜별 객체로 반환하므로 기존 매핑 방식 유지
+    // ---------------------------------------------------------
+    return DataMapper.rowToObjects(rows, null, type);
+}
+
+
+// =============================================================
 // 12. 특정 날짜의 Google Sheet 데이터 조회
 // businessType: GW, DS
 // 기존 코드와의 호환을 위해 기본값은 GW
@@ -311,7 +390,8 @@ async function getRowsByDate(
     // ---------------------------------------------------------
     // 12-2. Apps Script URL 생성
     // ---------------------------------------------------------
-    const url = createRequestUrl(type, targetDate);
+    const url = createRequestUrl(type, { date: targetDate, }); // 20261118 수정: 전체 날짜 조회
+
 
     // ---------------------------------------------------------
     // 12-3. Apps Script API 요청
@@ -340,10 +420,66 @@ async function getRowsByDate(
         targetDate,
         type
     );
+}
 
+// =============================================================
+// 13. 날짜 범위의 Google Sheet 데이터 조회
+// businessType: GW, DS
+// 20261118 추가
+// =============================================================
+async function getRowsByDateRange(
+    startDate,
+    endDate,
+    businessType = "GW"
+) {
+    // ---------------------------------------------------------
+    // 13-1. 사업 유형 및 날짜 범위 검증
+    // ---------------------------------------------------------
+    const type = normalizeBusinessType(businessType);
+    const dateRange = validateDateRange(startDate, endDate);
+
+
+    // ---------------------------------------------------------
+    // 13-2. Apps Script URL 생성
+    // ---------------------------------------------------------
+    const url = createRequestUrl(type, {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+    });
+
+
+    // ---------------------------------------------------------
+    // 13-3. Apps Script API 요청
+    // ---------------------------------------------------------
+    const response = await requestAppsScript(url, type);
+
+
+    // ---------------------------------------------------------
+    // 13-4. 응답 처리 및 데이터 검증
+    // ---------------------------------------------------------
+    const rows = await processResponse(response, type);
+
+
+    // ---------------------------------------------------------
+    // 13-5. 조회 결과 출력
+    // ---------------------------------------------------------
+    console.log("");
+    console.log(
+        `[SheetService] ${type} 기간 조회 결과: ` +
+        `${dateRange.startDate} ~ ${dateRange.endDate}`
+    );
+
+    console.log(`[SheetService] 조회 데이터: ${rows.length}건`);
+
+
+    // ---------------------------------------------------------
+    // 13-6. 날짜별 데이터 매핑
+    // ---------------------------------------------------------
+    return mapRangeRows( rows, type);
 }
 
 
 module.exports = {
     getRowsByDate,
+    getRowsByDateRange, // 20261118 추가
 };
