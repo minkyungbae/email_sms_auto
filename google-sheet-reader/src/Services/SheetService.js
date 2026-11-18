@@ -109,7 +109,7 @@ function validateDateRange(startDate, endDate) {
 // =============================================================
 // 4. Apps Script URL 생성 및 검증
 // =============================================================
-function createRequestUrl(type, targetDate) {
+function createRequestUrl(type, queryParams = {}) { // 20261118 수정: targetDate) -> queryParams = {}
 
     const configuredUrl = SHEET_CONFIG.APPS_SCRIPT_URL?.[type];
 
