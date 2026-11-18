@@ -1595,6 +1595,7 @@ button.nav-item {
   text-align: left;
   font: inherit;
   cursor: pointer;
+  background: transparent; /* 20261118 추가: 클릭 시, 배경 투명*/
 }
 
 button.business-card-footer {
