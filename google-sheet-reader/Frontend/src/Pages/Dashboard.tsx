@@ -25,6 +25,8 @@ import EducationTrendChart from '../Components/EducationTrendChart' // 20261118 
 import EducationDataPage from './EducationDataPage' // 20261118 추가: 교육 데이터 조회 화면
 import type { BusinessType } from '../Types/education' // 20261118 추가: 사업 구분 타입
 
+import BusinessStatusPage from './BusinessStatusPage' // 20261118 추가: 사업 현황 페이지
+
 import type {
   EducationRecord,
 } from '../Types/education'
@@ -239,8 +241,8 @@ function Dashboard() {
   const [dsError, setDsError] = useState('')
   const [lastUpdated, setLastUpdated] = useState('')
 
-  // 20261118 추가: 현재 화면 상태
-  const [currentView, setCurrentView] = useState<'dashboard' | 'education'>('dashboard')
+  // 20261118 추가: 현재 화면 상태(사업 현황 화면 추가)
+  const [currentView, setCurrentView] = useState<'dashboard' | 'education' | 'business'>('dashboard')
 
   // 20261118 추가: 선택한 사업 구분
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessType | null>(null)
@@ -402,11 +404,15 @@ function Dashboard() {
             <span>교육 데이터</span>
           </button>
 
-          <div className="nav-item nav-item-disabled" aria-disabled="true">
+          {/* 20261118 수정: 사업 현황 메뉴 연결 */}
+          <button
+            type="button"
+            className={`nav-item ${currentView === 'business' ? 'nav-item-active' : ''}`}
+            onClick={() => setCurrentView('business')}
+          >
             <Icon name="chart" size={18} />
-            <span>운영 통계</span>
-            <span className="nav-soon">준비 중</span>
-          </div>
+            <span>사업 현황</span>
+          </button>
 
           <div className="nav-item nav-item-disabled" aria-disabled="true">
             <Icon name="file" size={18} />
@@ -483,14 +489,16 @@ function Dashboard() {
           </div>
         </header>
 
-        {/* 20261118 수정: 대시보드와 교육 데이터 화면 전환 */}
-        {currentView === 'education' ? (
-          <EducationDataPage
-            key={selectedBusiness ?? 'ALL'}
-            initialBusiness={selectedBusiness}
-            onBack={() => setCurrentView('dashboard')}
-          />
-        ) : (
+      {/* 20261118 수정: 대시보드와 교육 데이터 화면 전환 */}
+      {currentView === 'education' ? (
+        <EducationDataPage
+          key={selectedBusiness ?? 'ALL'}
+          initialBusiness={selectedBusiness}
+          onBack={() => setCurrentView('dashboard')}
+        />
+      ) : currentView === 'business' ? (
+        <BusinessStatusPage /> /* 20261118 추가: 사업 현황 화면 전환 */
+      ) : (
         <div className="page-content">
           {/* 페이지 제목 */}
           <section className="page-heading">
