@@ -1230,7 +1230,6 @@
 /* ========================================
    20261118 추가: 교육 운영 추이 차트
 ======================================== */
-
 .trend-period-selector {
   display: flex;
   align-items: center;
@@ -1356,5 +1355,286 @@
     min-width: 29px;
     padding: 5px;
     font-size: 8px;
+  }
+}
+
+
+/* ========================================
+   20261118 추가: 교육 데이터 조회 화면
+======================================== */
+.education-data-page {
+  width: 100%;
+}
+
+.education-filter-card,
+.education-table-card {
+  padding: 22px;
+  border: 1px solid #e7ebf2;
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 3px 12px rgba(30, 48, 76, 0.025);
+}
+
+.education-filter-card {
+  margin-top: 25px;
+}
+
+.education-filter-heading h2,
+.education-table-heading h2 {
+  margin: 0;
+  color: #344259;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.education-filter-heading p,
+.education-table-heading p {
+  margin: 6px 0 0;
+  color: #929eae;
+  font-size: 10px;
+}
+
+.education-filter-controls {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.education-filter-controls label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.education-filter-controls label span {
+  color: #77869a;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.education-filter-controls input,
+.education-filter-controls select {
+  width: 100%;
+  height: 39px;
+  padding: 0 10px;
+  border: 1px solid #e4e9f0;
+  border-radius: 7px;
+  outline: none;
+  color: #45556d;
+  background: #ffffff;
+  font: inherit;
+  font-size: 10px;
+}
+
+.education-filter-controls input:focus,
+.education-filter-controls select:focus {
+  border-color: #8eacd6;
+  box-shadow: 0 0 0 3px rgba(110, 158, 220, 0.1);
+}
+
+.education-search-button {
+  height: 39px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 7px;
+  color: #ffffff;
+  background: #466b9d;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.education-search-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.education-result-summary {
+  display: flex;
+  align-items: center;
+  gap: 27px;
+  margin: 20px 0 13px;
+}
+
+.education-result-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.education-result-summary > div span {
+  color: #929eae;
+  font-size: 9px;
+}
+
+.education-result-summary > div strong {
+  color: #344259;
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.education-result-period {
+  margin-left: auto;
+  color: #929eae;
+  font-size: 9px;
+}
+
+.education-table-card {
+  min-width: 0;
+}
+
+.education-table-heading {
+  margin-bottom: 17px;
+}
+
+.education-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.education-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.education-table th {
+  padding: 12px 13px;
+  border-top: 1px solid #edf0f5;
+  border-bottom: 1px solid #e8edf3;
+  color: #77869a;
+  background: #f8f9fc;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.education-table td {
+  padding: 13px;
+  border-bottom: 1px solid #f0f2f6;
+  color: #536278;
+  font-size: 10px;
+}
+
+.education-table tbody tr:hover {
+  background: #fafbfd;
+}
+
+.education-business-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 7px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.badge-gw {
+  color: #527db7;
+  background: #edf4ff;
+}
+
+.badge-ds {
+  color: #7b70c7;
+  background: #f1efff;
+}
+
+.education-table-message {
+  display: flex;
+  min-height: 190px;
+  align-items: center;
+  justify-content: center;
+  color: #929eae;
+  font-size: 11px;
+  text-align: center;
+}
+
+.education-table-error {
+  color: #bd7777;
+}
+
+.education-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 17px;
+  color: #929eae;
+  font-size: 10px;
+}
+
+.education-pagination > div {
+  display: flex;
+  gap: 7px;
+}
+
+.education-pagination button {
+  padding: 7px 12px;
+  border: 1px solid #e4e9f0;
+  border-radius: 6px;
+  color: #64758d;
+  background: #ffffff;
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.education-pagination button:disabled {
+  color: #b8c0cc;
+  background: #f7f8fa;
+  cursor: not-allowed;
+}
+
+/* 20261118 추가: 화면 전환 메뉴 버튼 */
+button.nav-item {
+  width: 100%;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.business-card-footer {
+  width: calc(100% + 36px);
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+button.business-card-footer:hover {
+  color: #527db7;
+}
+
+@media (max-width: 900px) {
+  .education-filter-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .education-filter-card,
+  .education-table-card {
+    padding: 15px;
+  }
+
+  .education-filter-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .education-result-summary {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .education-result-period {
+    width: 100%;
+    margin-left: 0;
   }
 }
