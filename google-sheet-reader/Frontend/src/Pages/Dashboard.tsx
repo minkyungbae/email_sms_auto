@@ -382,14 +382,15 @@ function Dashboard() {
         <nav className="side-navigation" aria-label="주 메뉴">
           <p className="nav-caption">MENU</p>
 
-          <a
-            className="nav-item nav-item-active"
-            href="#dashboard"
-            aria-current="page"
+          {/* 20261118 수정: 대시보드 화면 전환 연결 */}
+          <button
+            type="button"
+            className={`nav-item ${currentView === 'dashboard' ? 'nav-item-active' : ''}`}
+            onClick={() => setCurrentView('dashboard')}
           >
             <Icon name="dashboard" size={18} />
             <span>대시보드</span>
-          </a>
+          </button>
 
           {/* 20261118 수정: 교육 데이터 메뉴 연결 */}
           <button
@@ -441,7 +442,6 @@ function Dashboard() {
               실시간 상태가 표시됩니다.
             </p>
           </div>
-
           <div className="sidebar-profile">
             <div className="profile-avatar">관리</div>
             <div className="profile-copy">
