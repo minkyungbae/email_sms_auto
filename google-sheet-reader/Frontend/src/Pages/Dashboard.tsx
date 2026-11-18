@@ -22,6 +22,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { getEducationByDateRange } from '../Services/EducationService' 
 import EducationTrendChart from '../Components/EducationTrendChart' // 20261118 추가: 교육 운영 추이 차트
 
+import EducationDataPage from './EducationDataPage' // 20261118 추가: 교육 데이터 조회 화면
+import type { BusinessType } from '../Types/education' // 20261118 추가: 사업 구분 타입
+
 import type {
   EducationRecord,
 } from '../Types/education'
@@ -236,6 +239,18 @@ function Dashboard() {
   const [dsError, setDsError] = useState('')
   const [lastUpdated, setLastUpdated] = useState('')
 
+  // 20261118 추가: 현재 화면 상태
+  const [currentView, setCurrentView] = useState<'dashboard' | 'education'>('dashboard')
+
+  // 20261118 추가: 선택한 사업 구분
+  const [selectedBusiness, setSelectedBusiness] = useState<BusinessType | null>(null)
+
+  // 20261118 추가: 교육 데이터 화면 열기
+  const openEducationPage = (business: BusinessType | null = null) => {
+    setSelectedBusiness(business)
+    setCurrentView('education')
+  }
+
   // 20261118 추가: GW·DS 교육 데이터 조회
   const loadEducationData = useCallback(async () => {
     setIsLoading(true)
@@ -376,11 +391,15 @@ function Dashboard() {
             <span>대시보드</span>
           </a>
 
-          <div className="nav-item nav-item-disabled" aria-disabled="true">
+          {/* 20261118 수정: 교육 데이터 메뉴 연결 */}
+          <button
+            type="button"
+            className={`nav-item ${currentView === 'education' ? 'nav-item-active' : ''}`}
+            onClick={() => openEducationPage()}
+          >
             <Icon name="book" size={18} />
             <span>교육 데이터</span>
-            <span className="nav-soon">준비 중</span>
-          </div>
+          </button>
 
           <div className="nav-item nav-item-disabled" aria-disabled="true">
             <Icon name="chart" size={18} />
@@ -464,6 +483,14 @@ function Dashboard() {
           </div>
         </header>
 
+        {/* 20261118 수정: 대시보드와 교육 데이터 화면 전환 */}
+        {currentView === 'education' ? (
+          <EducationDataPage
+            key={selectedBusiness ?? 'ALL'}
+            initialBusiness={selectedBusiness}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        ) : (
         <div className="page-content">
           {/* 페이지 제목 */}
           <section className="page-heading">
@@ -735,10 +762,15 @@ function Dashboard() {
                   </p>
                 </div>
 
-                <div className="business-card-footer">
+                {/* 20261118 수정: GW 상세 조회 연결 */}
+                <button
+                  type="button"
+                  className="business-card-footer"
+                  onClick={() => openEducationPage('GW')}
+                >
                   <span>교육 데이터 조회</span>
                   <Icon name="chevron" size={16} />
-                </div>
+                </button>
               </article>
 
               <article className="business-card business-card-ds">
@@ -755,10 +787,15 @@ function Dashboard() {
                   </p>
                 </div>
 
-                <div className="business-card-footer">
+                {/* 20261118 수정: DS 상세 조회 연결 */}
+                <button
+                  type="button"
+                  className="business-card-footer"
+                  onClick={() => openEducationPage('DS')}
+                >
                   <span>교육 데이터 조회</span>
                   <Icon name="chevron" size={16} />
-                </div>
+                </button>
               </article>
             </div>
           </section>
@@ -769,6 +806,7 @@ function Dashboard() {
             <span>Education Operations Dashboard</span>
           </footer>
         </div>
+        )}
       </main>
     </div>
   )
