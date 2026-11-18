@@ -19,7 +19,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
-import { getEducationByDateRange } from '../Services/EducationService'
+import { getEducationByDateRange } from '../Services/EducationService' 
+import EducationTrendChart from '../Components/EducationTrendChart' // 20261118 추가: 교육 운영 추이 차트
 
 import type {
   EducationRecord,
@@ -641,49 +642,7 @@ function Dashboard() {
 
           {/* 운영 추이 및 연결 상태 */}
           <section className="dashboard-grid">
-            <article className="surface-card trend-card">
-              <div className="card-heading">
-                <div>
-                  <h2>교육 운영 추이</h2>
-                  <p>기간별 교육 운영 현황</p>
-                </div>
-
-                <span className="card-period">
-                  최근 30일
-                  <Icon name="chevron" size={13} />
-                </span>
-              </div>
-
-              <div className="chart-empty-state">
-                <div className="empty-illustration">
-                  <Icon name="chart" size={25} />
-                </div>
-
-                <strong>아직 표시할 데이터가 없어요.</strong>
-
-                <p>
-                  Node.js 조회 API를 연결하면
-                  <br />
-                  교육 운영 추이를 확인할 수 있습니다.
-                </p>
-              </div>
-
-              <div className="chart-legend">
-                <span>
-                  <i className="legend-dot legend-gw" />
-                  GW
-                </span>
-
-                <span>
-                  <i className="legend-dot legend-ds" />
-                  DS
-                </span>
-
-                <span className="legend-hint">
-                  실제 데이터 연동 후 표시
-                </span>
-              </div>
-            </article>
+            <EducationTrendChart />
 
             <article className="surface-card connection-card">
               <div className="card-heading">
