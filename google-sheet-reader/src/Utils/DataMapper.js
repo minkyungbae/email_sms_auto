@@ -2,7 +2,7 @@
  * @file DataMapper.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-14
+ * @updated 2026-11-17
  * @description
  * Google Sheet / Apps Script의 데이터를 Node.js 애플리케이션에서 사용하는 객체 배열 구조로 변환
  * 
@@ -23,7 +23,6 @@
  * - 별도의 헤더 매핑 없이 그대로 사용
  * - 학교명 뒤에 붙은 구분 번호 제거
  */
-
 
 
 const SHEET_CONFIG = require("../Configs/SheetConfig.js");
@@ -90,7 +89,7 @@ function rowToObject(
                 (header, index) => [header, row[index] ?? null,]
             )
         );
-        data["근무날짜"] = targetDate;
+        data["근무날짜"] = targetDate || data["근무날짜"] || null; // 20261117 수정
         
         return data;
     }
