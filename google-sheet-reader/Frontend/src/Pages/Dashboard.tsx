@@ -16,6 +16,16 @@
  * - 반응형 레이아웃
  */
 
+
+import { useCallback, useEffect, useState } from 'react'
+
+import { getEducationByDateRange } from '../Services/EducationService'
+
+import type {
+  EducationRecord,
+} from '../Types/education'
+
+
 type IconName =
   | 'dashboard'
   | 'book'
@@ -196,7 +206,129 @@ function ConnectionRow({
   )
 }
 
+// 20261118 추가: API 조회 상태
+type ApiStatus = 'loading' | 'connected' | 'error'
+
+// 20261118 추가: 날짜를 YYYY-MM-DD 형식으로 변환
+function formatIsoDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+
+// 대시보드 메인 컴포넌트
 function Dashboard() {
+  // 20261118 추가: 교육 데이터 상태
+  const [gwData, setGwData] = useState<EducationRecord[]>([])
+  const [dsData, setDsData] = useState<EducationRecord[]>([])
+
+  // 20261118 추가: API 연결 상태
+  const [gwStatus, setGwStatus] = useState<ApiStatus>('loading')
+  const [dsStatus, setDsStatus] = useState<ApiStatus>('loading')
+
+  // 20261118 추가: 로딩 및 오류 상태
+  const [isLoading, setIsLoading] = useState(false)
+  const [gwError, setGwError] = useState('')
+  const [dsError, setDsError] = useState('')
+  const [lastUpdated, setLastUpdated] = useState('')
+
+  // 20261118 추가: GW·DS 교육 데이터 조회
+  const loadEducationData = useCallback(async () => {
+    setIsLoading(true)
+
+    setGwStatus('loading')
+    setDsStatus('loading')
+
+    setGwError('')
+    setDsError('')
+
+    const endDate = new Date()
+    const startDate = new Date(endDate)
+
+    // 오늘 포함 최근 30일
+    startDate.setDate(startDate.getDate() - 29)
+
+    const params = {
+      startDate: formatIsoDate(startDate),
+      endDate: formatIsoDate(endDate),
+    }
+
+    try {
+      const results = await Promise.allSettled([
+        getEducationByDateRange({
+          businessType: 'GW',
+          ...params,
+        }),
+        getEducationByDateRange({
+          businessType: 'DS',
+          ...params,
+        }),
+      ])
+
+      // GW 조회 결과
+      if (results[0].status === 'fulfilled') {
+        setGwData(results[0].value)
+        setGwStatus('connected')
+      } else {
+        setGwData([])
+        setGwStatus('error')
+        setGwError(
+          results[0].reason instanceof Error
+            ? results[0].reason.message
+            : 'GW 데이터 조회 실패',
+        )
+      }
+
+      // DS 조회 결과
+      if (results[1].status === 'fulfilled') {
+        setDsData(results[1].value)
+        setDsStatus('connected')
+      } else {
+        setDsData([])
+        setDsStatus('error')
+        setDsError(
+          results[1].reason instanceof Error
+            ? results[1].reason.message
+            : 'DS 데이터 조회 실패',
+        )
+      }
+
+      setLastUpdated(
+        new Intl.DateTimeFormat('ko-KR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }).format(new Date()),
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // 20261118 추가: 대시보드 최초 진입 시 조회
+  useEffect(() => {
+  const timerId = window.setTimeout(() => {
+    void loadEducationData()
+  }, 0)
+
+  return () => {
+    window.clearTimeout(timerId)
+  }
+}, [loadEducationData])
+
+  // 20261118 추가: 전체 데이터 건수
+  const totalCount = gwData.length + dsData.length
+
+  // 20261118 추가: 통합 API 연결 상태
+  const isConnected =
+    gwStatus === 'connected' && dsStatus === 'connected'
+
+  const hasPartialConnection =
+    gwStatus === 'connected' || dsStatus === 'connected'
+
   const today = new Intl.DateTimeFormat('ko-KR', {
     year: 'numeric',
     month: 'long',
@@ -345,11 +477,12 @@ function Dashboard() {
             <button
               className="refresh-button"
               type="button"
-              disabled
-              title="조회 API 연결 후 사용할 수 있습니다."
+              onClick={() => void loadEducationData()}
+              disabled={isLoading}
+              title="교육 데이터를 다시 조회합니다."
             >
               <Icon name="refresh" size={16} />
-              데이터 새로고침
+              {isLoading ? '조회 중...' : '데이터 새로고침'}
             </button>
           </section>
 
@@ -441,39 +574,65 @@ function Dashboard() {
 
               <span className="waiting-label">
                 <span />
-                데이터 연동 대기
+                {isLoading
+                  ? '데이터 조회 중'
+                  : isConnected
+                    ? '데이터 연결 완료'
+                    : hasPartialConnection
+                      ? '일부 데이터 연결 실패'
+                      : '데이터 연결 실패'}
               </span>
             </div>
 
             <div className="metric-grid">
               <MetricCard
                 label="전체 교육 건수"
-                value="—"
-                detail="API 연결 후 자동 집계"
+                value={isLoading ? '조회 중' : totalCount.toLocaleString()}
+                detail="GW + DS 최근 30일"
                 icon="layers"
                 tone="blue"
               />
 
               <MetricCard
                 label="GW 교육 건수"
-                value="—"
-                detail="강원SW미래채움"
+                value={isLoading ? '조회 중' : gwData.length.toLocaleString()}
+                detail={
+                  gwStatus === 'error'
+                    ? '조회 실패'
+                    : '강원SW미래채움'
+                }
                 icon="book"
                 tone="violet"
               />
 
               <MetricCard
                 label="DS 교육 건수"
-                value="—"
-                detail="디지털새싹"
+                value={isLoading ? '조회 중' : dsData.length.toLocaleString()}
+                detail={
+                  dsStatus === 'error'
+                    ? '조회 실패'
+                    : '디지털새싹'
+                }
                 icon="grid"
                 tone="mint"
               />
 
               <MetricCard
                 label="데이터 연결 상태"
-                value="연동 대기"
-                detail="Node.js 조회 API 연결 전"
+                value={
+                  isLoading
+                    ? '조회 중'
+                    : isConnected
+                      ? '연결 완료'
+                      : hasPartialConnection
+                        ? '부분 연결'
+                        : '연결 실패'
+                }
+                detail={
+                  lastUpdated
+                    ? `마지막 조회 ${lastUpdated}`
+                    : '조회 결과 대기 중'
+                }
                 icon="database"
                 tone="amber"
               />
@@ -549,17 +708,33 @@ function Dashboard() {
 
                 <ConnectionRow
                   name="Node.js 조회 API"
-                  description="교육 데이터 조회 연결 전"
-                  status="연결 대기"
-                  statusType="waiting"
+                  description="GW·DS 데이터 조회"
+                  status={
+                    isLoading
+                      ? '조회 중'
+                      : isConnected
+                        ? '연결 완료'
+                        : hasPartialConnection
+                          ? '일부 연결'
+                          : '연결 실패'
+                  }
+                  statusType={hasPartialConnection ? 'ready' : 'waiting'}
                   icon="database"
                 />
 
                 <ConnectionRow
                   name="Google Sheets"
-                  description="원본 교육 데이터 연동 전"
-                  status="연결 대기"
-                  statusType="waiting"
+                  description="원본 교육 데이터 조회"
+                  status={
+                    isLoading
+                      ? '조회 중'
+                      : isConnected
+                        ? '연결 완료'
+                        : hasPartialConnection
+                          ? '일부 연결'
+                          : '연결 실패'
+                  }
+                  statusType={hasPartialConnection ? 'ready' : 'waiting'}
                   icon="file"
                 />
               </div>
@@ -567,7 +742,9 @@ function Dashboard() {
               <div className="connection-note">
                 <Icon name="info" size={15} />
                 <span>
-                  API 연결 후 데이터 상태를 확인할 수 있습니다.
+                  {isLoading
+                    ? '교육 데이터를 조회하고 있습니다.'
+                    : gwError || dsError || '교육 데이터 조회가 완료되었습니다.'}
                 </span>
               </div>
             </article>
