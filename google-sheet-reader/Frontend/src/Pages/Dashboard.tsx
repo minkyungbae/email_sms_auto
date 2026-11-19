@@ -29,6 +29,12 @@ import BusinessStatusPage from './BusinessStatusPage' // 20261118 추가: 사업
 
 import LogDataPage from './LogDataPage' // 20261119 추가: 발송 로그 조회 화면
 
+import {
+  getDispatchSettings,
+  startDispatch,
+  getDispatchStatus,
+} from '../Services/DispatchService' // 20261119 추가
+
 import type { EducationRecord, } from '../Types/education'
 
 
@@ -241,6 +247,11 @@ function Dashboard() {
   const [dsError, setDsError] = useState('')
   const [lastUpdated, setLastUpdated] = useState('')
 
+  // 20261119 추가: 발송 자동화 실행 상태
+  const [isDispatching, setIsDispatching] = useState(false)
+  const [dispatchMessage, setDispatchMessage] = useState('')
+  const [dispatchError, setDispatchError] = useState('')
+
   // 20261119 수정: 발송 로그 화면 추가
   const [currentView, setCurrentView] = useState<'dashboard' | 'education' | 'business' | 'logs'>('dashboard')
 
@@ -325,6 +336,107 @@ function Dashboard() {
       setIsLoading(false)
     }
   }, [])
+
+  // =============================================================
+  // 발송 자동화 실행
+  // 20261119 추가
+  // =============================================================
+  const handleStartDispatch = async () => {
+
+    if (isDispatching) {
+      return
+    }
+
+    setIsDispatching(true)
+    setDispatchMessage('발송 설정을 확인하고 있습니다...')
+    setDispatchError('')
+
+    try {
+
+      // 1. 최신 발송 설정 조회
+      const settings = await getDispatchSettings()
+
+      // 2. 테스트 설정 확인 문구 생성
+      const modeSummary = [
+        `이메일 미리보기: ${settings.modes.emailPreviewMode ? 'ON' : 'OFF'}`,
+        `이메일 테스트 수신자: ${settings.modes.emailTestRecipientMode ? 'ON' : 'OFF'}`,
+        `SMS 테스트 수신번호: ${settings.modes.smsTestRecipientMode ? 'ON' : 'OFF'}`,
+        `뿌리오 API 테스트: ${settings.modes.smsApiTestMode ? 'ON' : 'OFF'}`,
+      ].join('\n')
+
+      // 3. 최종 발송 확인
+      const confirmed = window.confirm(
+        [
+          '아래 설정으로 발송 자동화를 실행할까요?',
+          '',
+          `실행 사업: ${settings.businessTypes.join(', ')}`,
+          `발송 기준: 수업일 ${settings.daysBefore}일 전`,
+          `조회 대상 교육일: ${settings.targetDate}`,
+          '',
+          '[발송 설정]',
+          modeSummary,
+          '',
+          '주의: 설정에 따라 실제 이메일 및 문자가 발송될 수 있습니다.',
+        ].join('\n'),
+      )
+
+      if (!confirmed) {
+        setDispatchMessage('발송 실행이 취소되었습니다.')
+        return
+      }
+
+      // 4. 발송 실행 요청
+      const jobId = await startDispatch(settings.targetDate)
+
+      setDispatchMessage('발송 자동화가 시작되었습니다.')
+
+      // 5. 발송 작업 상태 조회
+      let job = await getDispatchStatus(jobId)
+
+      while (job.status === 'queued' || job.status === 'running') {
+
+        setDispatchMessage(
+          job.status === 'queued'
+            ? '발송 작업을 준비하고 있습니다.'
+            : '이메일 및 문자 발송을 진행하고 있습니다.',
+        )
+
+        // 20261119 추가: 1.5초 간격으로 상태 조회
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 1500)
+        })
+
+        job = await getDispatchStatus(jobId)
+      }
+
+      // 6. 발송 실패 처리
+      if (job.status === 'failed') {
+        throw new Error(job.error || '발송 자동화에 실패했습니다.')
+      }
+
+      // 7. 발송 완료 처리
+      setDispatchMessage(
+        `발송 자동화 완료 · 로그 ${job.result?.logCount ?? 0}건 기록`,
+      )
+
+      // 20261119 추가: 완료 후 발송 로그 화면 이동
+      setCurrentView('logs')
+
+    } catch (error) {
+
+      setDispatchError(
+        error instanceof Error
+          ? error.message
+          : '발송 자동화 중 알 수 없는 오류가 발생했습니다.',
+      )
+
+      setDispatchMessage('')
+
+    } finally {
+      setIsDispatching(false)
+    }
+  }
+
 
   // 20261118 추가: 대시보드 최초 진입 시 조회
   useEffect(() => {
@@ -516,17 +628,49 @@ function Dashboard() {
               </p>
             </div>
 
-            <button
-              className="refresh-button"
-              type="button"
-              onClick={() => void loadEducationData()}
-              disabled={isLoading}
-              title="교육 데이터를 다시 조회합니다."
-            >
-              <Icon name="refresh" size={16} />
-              {isLoading ? '조회 중...' : '데이터 새로고침'}
-            </button>
+            {/* 20261119 수정: 데이터 새로고침 및 발송 실행 버튼 */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+
+              <button
+                className="refresh-button"
+                type="button"
+                onClick={() => void loadEducationData()}
+                disabled={isLoading}
+                title="교육 데이터를 다시 조회합니다."
+              >
+                <Icon name="refresh" size={16} />
+                {isLoading ? '조회 중...' : '데이터 새로고침'}
+              </button>
+
+              {/* 20261119 추가: 발송 자동화 실행 */}
+              <button
+                className="refresh-button"
+                type="button"
+                onClick={() => void handleStartDispatch()}
+                disabled={isDispatching || isLoading}
+                title="설정된 사업의 이메일 및 문자 발송 자동화를 실행합니다."
+              >
+                <Icon name="bell" size={16} />
+                {isDispatching ? '발송 진행 중...' : '발송 실행'}
+              </button>
+
+            </div>
           </section>
+
+          {/* 20261119 추가: 발송 자동화 상태 표시 */}
+          {dispatchMessage && (
+            <div className="connection-note" role="status">
+              <Icon name="info" size={15} />
+              <span>{dispatchMessage}</span>
+            </div>
+          )}
+
+          {dispatchError && (
+            <div className="connection-note" role="alert">
+              <Icon name="info" size={15} />
+              <span>{dispatchError}</span>
+            </div>
+          )}
 
           {/* 웰컴 배너 */}
           <section className="welcome-panel">

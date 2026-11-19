@@ -1,9 +1,8 @@
-
 /**
  * @file 01_Main.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-11-13
+ * @updated 2026-11-19
  * @description
  * 설정된 발송 기준일의 교육 데이터를 조회하여 사업별 그룹화, 발송 대상 선정 및 통합 알림 발송 수행
  *
@@ -16,6 +15,7 @@
  * - LogService를 통한 발송 로그 자동 저장
  * 
  * 20261117 수정: 불필요한 로그 삭제 및 수정 작업함
+ * 20261119 수정: Express 서버가 기존 발송 자동화 프로그램을 호출하도록 수정
  */
 
 
@@ -133,6 +133,32 @@ function getTestOptions(selectedBusinessTypes) {
         smsApiTestMode,
         testEmail,
         testPhone,
+    };
+}
+
+
+// =============================================================
+// 4-1. 웹 화면용 발송 설정 조회
+// 20261119 추가
+// =============================================================
+function getDispatchSettings() {
+
+    const businessTypes = getBusinessTypes();
+    const daysBefore = CONFIG.DAYS_BEFORE;
+    const testOptions = getTestOptions(businessTypes);
+
+    return {
+        businessTypes,
+        daysBefore,
+        targetDate: getTargetDate(daysBefore),
+
+        // 20261119 추가: 수신자 정보는 제외하고 테스트 설정만 반환
+        modes: {
+            emailPreviewMode: testOptions.emailTestMode,
+            emailTestRecipientMode: testOptions.emailTestRecipientMode,
+            smsTestRecipientMode: testOptions.smsTestRecipientMode,
+            smsApiTestMode: Boolean(testOptions.smsApiTestMode),
+        },
     };
 }
 
@@ -388,11 +414,22 @@ async function processGwTargets({
 
 // =============================================================
 // 11. 메인 함수
+// 20261119 수정: 웹 API에서도 호출할 수 있도록 함수명 변경
 // =============================================================
-async function main() {
+async function runDispatch() {
 
     // 사업별 발송 로그 누적 배열
     const pendingLogRecords = [];
+
+    // 20261119 추가: 실행 결과 요약
+    const runSummary = {
+        businessTypes: [],
+        targetDate: "",
+        logCount: 0,
+    };
+
+    // 20261119 추가: 실행 및 로그 저장 오류 관리
+    let executionError = null;
 
     try {
 
@@ -402,6 +439,10 @@ async function main() {
         const selectedBusinessTypes = getBusinessTypes();
         const daysBefore = CONFIG.DAYS_BEFORE;
         const targetDate = getTargetDate(daysBefore);
+
+        // 20261119 추가: 웹 API에 전달할 실행 정보
+        runSummary.businessTypes = selectedBusinessTypes;
+        runSummary.targetDate = targetDate;
 
         const testOptions = getTestOptions(selectedBusinessTypes);
 
@@ -477,6 +518,8 @@ async function main() {
         console.error(error.message);
         console.error(error.stack);
 
+        executionError = error; // 20261119 수정
+
     } finally {
 
         // -----------------------------------------------------
@@ -486,15 +529,48 @@ async function main() {
 
             try {
                 await LogService.AppendLogs(pendingLogRecords);
+
+                // 20261119 추가: 로그 저장 건수 반환
+                runSummary.logCount = pendingLogRecords.length;
+
             } catch (logError) {
                 console.error(`[01_Main.js] 로그 저장 실패: ${logError.message}`);
                 console.error(logError.stack);
+
+                // 20261119 추가: 로그 저장 오류도 API에 전달
+                executionError = executionError || logError;
             }
         } else {
             console.warn("[LogService] 저장할 로그 데이터가 없습니다.");
         }
     }
+
+    // 20261119 추가: 실행 실패를 호출한 API에 전달
+    if (executionError) {
+        throw executionError;
+    }
+
+    // 20261119 추가: 실행 결과 반환
+    return runSummary;
 }
 
-// 프로그램 실행
-main();
+
+// 20261119 추가: 메인 실행 함수 외부 공개
+module.exports = {
+    runDispatch,
+    getDispatchSettings,
+};
+
+// 20261119 수정: 직접 실행할 때만 프로그램 시작
+if (require.main === module) {
+
+    runDispatch()
+        .then((result) => {
+            console.log("\n프로그램 실행 완료");
+            console.log(result);
+        })
+        .catch((error) => {
+            console.error("\n프로그램 실행 실패:", error.message);
+            process.exitCode = 1;
+        });
+}

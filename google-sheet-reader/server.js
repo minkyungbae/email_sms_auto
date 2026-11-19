@@ -1,7 +1,8 @@
 /**
  * @file server.js
  * @author 배민경
- * @created 2026-11-19
+ * @created 2026-11-18
+ * @updated 2026-11-19
  * @description
  * Node.js Express 서버 실행 및 관리
  *
@@ -20,6 +21,7 @@ const cors = require("cors");
 
 const educationRoutes = require("./Routes/educationRoutes.js");
 const logRoutes = require("./Routes/logRoutes.js"); // 20261119 추가: 발송 로그 API
+const dispatchRoutes = require("./Routes/dispatchRoutes.js"); // 20261119 추가: 발송 자동화 API
 
 const app = express();
 
@@ -76,6 +78,8 @@ app.use("/api/education", educationRoutes);
 // =============================================================
 app.use("/api/logs", logRoutes);
 
+// 20261119 추가: 발송 자동화 API 라우터 연결
+app.use("/api/dispatch", dispatchRoutes);
 
 // =============================================================
 // 6. 존재하지 않는 API 경로 처리
