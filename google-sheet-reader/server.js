@@ -1,7 +1,7 @@
 /**
  * @file server.js
  * @author 배민경
- * @created 2026-11-18
+ * @created 2026-11-19
  * @description
  * Node.js Express 서버 실행 및 관리
  *
@@ -18,7 +18,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
-const educationRoutes = require("./routes/educationRoutes.js");
+const educationRoutes = require("./Routes/educationRoutes.js");
+const logRoutes = require("./Routes/logRoutes.js"); // 20261119 추가: 발송 로그 API
 
 const app = express();
 
@@ -71,7 +72,13 @@ app.use("/api/education", educationRoutes);
 
 
 // =============================================================
-// 5. 존재하지 않는 API 경로 처리
+// 5. 20261119 추가: 발송 로그 API 라우터 연결
+// =============================================================
+app.use("/api/logs", logRoutes);
+
+
+// =============================================================
+// 6. 존재하지 않는 API 경로 처리
 // =============================================================
 app.use((req, res) => {
 
@@ -84,7 +91,7 @@ app.use((req, res) => {
 
 
 // =============================================================
-// 6. 공통 서버 오류 처리
+// 7. 공통 서버 오류 처리
 // =============================================================
 app.use((error, req, res, next) => {
 
@@ -99,7 +106,7 @@ app.use((error, req, res, next) => {
 
 
 // =============================================================
-// 7. 서버 실행
+// 8. 서버 실행
 // =============================================================
 if (require.main === module) {
 
