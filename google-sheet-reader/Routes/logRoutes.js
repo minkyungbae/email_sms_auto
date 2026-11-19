@@ -12,6 +12,8 @@
  * - 요청 시간 초과 및 오류 처리
  */
 
+const { randomUUID } = require("crypto"); // 20261119 추가: POST 기능 개발을 위해 추가
+
 const express = require("express");
 const router = express.Router();
 
@@ -165,6 +167,138 @@ router.get("/", async (req, res) => {
                 false,
                 null,
                 error.message || "발송 로그 조회 중 오류가 발생했습니다."
+            )
+        );
+    } finally {
+        clearTimeout(timeoutId);
+    }
+});
+
+// =============================================================
+// 5. // 20261119 추가: 발송 로그 등록 POST
+//
+// POST /api/logs
+// =============================================================
+router.post("/", async (req, res) => {
+
+    // 1. 서버 설정 확인
+    const url = LOG_CONFIG?.APPS_SCRIPT_URL;
+    const token = LOG_CONFIG?.TOKEN;
+    const spreadsheetId = LOG_CONFIG?.SPREADSHEET?.ID;
+
+    if (!url || !token || !spreadsheetId) {
+        return res.status(500).json(
+            createResponse(false, null, "로그 API 설정을 확인해 주세요.")
+        );
+    }
+
+    // 2. 요청 데이터 확인
+    const inputRecord = req.body?.record;
+
+    if (
+        !inputRecord ||
+        typeof inputRecord !== "object" ||
+        Array.isArray(inputRecord)
+    ) {
+        return res.status(400).json(
+            createResponse(false, null, "등록할 로그 데이터가 올바르지 않습니다.")
+        );
+    }
+
+    // 3. 필수 컬럼 확인
+    const requiredFields = [
+        "문자발송상태",
+        "이메일발송상태",
+        "문자본문내용",
+        "이메일본문내용",
+    ];
+
+    const hasAllFields = requiredFields.every((field) =>
+        Object.prototype.hasOwnProperty.call(inputRecord, field)
+    );
+
+    if (!hasAllFields) {
+        return res.status(400).json(
+            createResponse(false, null, "필수 로그 컬럼이 누락되었습니다.")
+        );
+    }
+
+    // 적어도 하나의 발송 상태는 입력해야 함
+    if (
+        !String(inputRecord["문자발송상태"] || "").trim() &&
+        !String(inputRecord["이메일발송상태"] || "").trim()
+    ) {
+        return res.status(400).json(
+            createResponse(false, null, "문자 또는 이메일 발송 상태를 입력해 주세요.")
+        );
+    }
+
+    // 4. 서버에서 고유 ID 생성
+    const record = {
+        ...inputRecord,
+        ID: randomUUID(),
+    };
+
+    // 5. Apps Script 요청
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+        () => controller.abort(),
+        REQUEST_TIMEOUT_MS
+    );
+
+    try {
+        console.log("[logRoutes.js] 발송 로그 등록 시작");
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            body: JSON.stringify({
+                action: "create",
+                token,
+                spreadsheetId,
+                records: [record],
+            }),
+            redirect: "follow",
+            signal: controller.signal,
+        });
+
+        const responseData = await parseAppsScriptResponse(response);
+
+        if (!response.ok || !responseData.success) {
+            throw new Error(responseData.message || "Google Sheets 로그 등록에 실패했습니다.");
+        }
+
+        console.log(`[logRoutes.js] 발송 로그 등록 완료: ${record.ID}`);
+
+        return res.status(201).json(
+            createResponse(
+                true,
+                {
+                    ID: record.ID,
+                    startRow: responseData.startRow,
+                    endRow: responseData.endRow,
+                },
+                responseData.message || "발송 로그 등록이 완료되었습니다.",
+                responseData.count || 1
+            )
+        );
+    } catch (error) {
+
+        console.error("[logRoutes.js] 발송 로그 등록 실패:", error.message);
+
+        if (error.name === "AbortError") {
+            return res.status(504).json(
+                createResponse(false, null, "발송 로그 등록 시간이 초과되었습니다.")
+            );
+        }
+        return res.status(502).json(
+            createResponse(
+                false,
+                null,
+                error.message || "발송 로그 등록 중 오류가 발생했습니다."
             )
         );
     } finally {
