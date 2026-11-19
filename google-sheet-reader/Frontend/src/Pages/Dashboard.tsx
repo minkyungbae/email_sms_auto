@@ -2,7 +2,7 @@
  * @file Dashboard.tsx
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-18
+ * @updated 2026-11-19
  * @description
  * 메인 화면 구성.
  * 
@@ -27,9 +27,9 @@ import type { BusinessType } from '../Types/education' // 20261118 추가: 사�
 
 import BusinessStatusPage from './BusinessStatusPage' // 20261118 추가: 사업 현황 페이지
 
-import type {
-  EducationRecord,
-} from '../Types/education'
+import LogDataPage from './LogDataPage' // 20261119 추가: 발송 로그 조회 화면
+
+import type { EducationRecord, } from '../Types/education'
 
 
 type IconName =
@@ -241,8 +241,8 @@ function Dashboard() {
   const [dsError, setDsError] = useState('')
   const [lastUpdated, setLastUpdated] = useState('')
 
-  // 20261118 추가: 현재 화면 상태(사업 현황 화면 추가)
-  const [currentView, setCurrentView] = useState<'dashboard' | 'education' | 'business'>('dashboard')
+  // 20261119 수정: 발송 로그 화면 추가
+  const [currentView, setCurrentView] = useState<'dashboard' | 'education' | 'business' | 'logs'>('dashboard')
 
   // 20261118 추가: 선택한 사업 구분
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessType | null>(null)
@@ -414,11 +414,15 @@ function Dashboard() {
             <span>사업 현황</span>
           </button>
 
-          <div className="nav-item nav-item-disabled" aria-disabled="true">
+          {/* 20261119 수정: 발송 로그 메뉴 연결 */}
+          <button
+            type="button"
+            className={`nav-item ${currentView === 'logs' ? 'nav-item-active' : ''}`}
+            onClick={() => setCurrentView('logs')}
+          >
             <Icon name="file" size={18} />
             <span>발송 로그</span>
-            <span className="nav-soon">준비 중</span>
-          </div>
+          </button>
 
           <p className="nav-caption nav-caption-spaced">BUSINESS</p>
 
@@ -496,8 +500,10 @@ function Dashboard() {
           initialBusiness={selectedBusiness}
           onBack={() => setCurrentView('dashboard')}
         />
-      ) : currentView === 'business' ? (
-        <BusinessStatusPage /> /* 20261118 추가: 사업 현황 화면 전환 */
+      ) : currentView === 'business' ? ( // 20261118 추가: 사업 현황 화면 전환
+        <BusinessStatusPage />
+      ) : currentView === 'logs' ? ( // 20261119 추가: 발송 로그 화면 전환
+        <LogDataPage />
       ) : (
         <div className="page-content">
           {/* 페이지 제목 */}
