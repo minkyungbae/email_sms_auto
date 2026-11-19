@@ -40,7 +40,7 @@ app.disable("x-powered-by");
 // =============================================================
 app.use(cors({
     origin: FRONTEND_URL,
-    methods: ["GET", "OPTIONS"],
+    methods: ["GET", "POST", "OPTIONS"], // 20261119 수정: POST 추가
     allowedHeaders: ["Content-Type", "Accept"],
 }));
 
