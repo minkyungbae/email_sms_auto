@@ -2,6 +2,7 @@
  * @file LogDataPage.tsx
  * @author 배민경
  * @created 2026-11-19
+ * @updated 2026-11-20
  * @description
  * 문자 및 이메일 발송 로그 조회 화면
  *
@@ -10,30 +11,46 @@
  * - 발송 기간 / 상태 / 키워드 필터
  * - 조회 결과 페이지네이션
  * - 발송 로그 상세 내용 확인
+ * - 발송 결과 통계 확인
+ *
+ * 20261120 수정:
+ * - API 요청과 상태 업데이트 로직 분리
+ * - useEffect 내부 setState ESLint 오류 개선
+ * - 중복 API 요청 및 오래된 응답 처리 방지
+ * - 조회 오류와 검색 조건 오류 상태 분리
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getLogs } from '../Services/LogService'
 import type { LogRecord } from '../Services/LogService'
-import '../LogDataPage.css'
+import '../CSS/LogDataPage.css'
 
+// =======================================
+// 1. 발송 로그 화면 기본 설정 및 타입
+// =======================================
 const PAGE_SIZE = 10
 
 type StatusFilter = 'ALL' | 'SUCCESS' | 'FAILURE' | 'TEST' | 'SKIPPED'
 type StatusCategory = Exclude<StatusFilter, 'ALL'> | 'UNKNOWN'
 
+// =======================================
+// 2. 발송 로그 데이터 처리 함수
+// =======================================
+/** 발송 상태를 기준으로 전체 상태 분류 */
 function getStatusCategory(record: LogRecord): StatusCategory {
   const statuses = [record.문자발송상태, record.이메일발송상태]
-    .map((value) => value.trim())
+    .map((value) => (value ?? '').trim())
     .filter(Boolean)
 
   if (statuses.length === 0) return 'UNKNOWN'
   if (statuses.some((value) => value.includes('실패'))) return 'FAILURE'
   if (statuses.some((value) => value.includes('스킵'))) return 'SKIPPED'
   if (statuses.some((value) => value.includes('테스트'))) return 'TEST'
+
   return 'SUCCESS'
 }
 
+/** 발송 채널 표시 */
 function getChannelLabel(record: LogRecord): string {
   const hasSms = Boolean(record.문자발송상태)
   const hasEmail = Boolean(record.이메일발송상태)
@@ -41,34 +58,70 @@ function getChannelLabel(record: LogRecord): string {
   if (hasSms && hasEmail) return '문자 + 이메일'
   if (hasSms) return '문자'
   if (hasEmail) return '이메일'
+
   return '-'
 }
 
+/** 개별 문자 및 이메일 상태에 따른 CSS 클래스 반환 */
 function getIndividualStatusClass(value: string): string {
   if (value.includes('실패')) return 'failure'
   if (value.includes('스킵')) return 'skipped'
   if (value.includes('테스트')) return 'test'
+
   return 'success'
 }
 
+/** 발송일시에서 YYYY-MM-DD 형식의 날짜 추출 */
 function getLogDate(value: string): string {
-  const match = String(value || '').match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/)
+  const match = String(value || '').match(
+    /^(\d{4})[-./]\s*(\d{1,2})[-./]\s*(\d{1,2})/,
+  )
+
   if (!match) return ''
 
-  return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`
+  const [, year, month, day] = match
+
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 }
 
+/** 발송일시 표시 형식 정리 */
 function formatDateTime(value: string): string {
   if (!value) return '-'
+
   return value.replace('T', ' ')
 }
 
+/** 숫자에 천 단위 콤마 적용 */
 function formatCount(value: number): string {
   return new Intl.NumberFormat('ko-KR').format(value)
 }
 
+/**  현재 조회 시간 반환 */
+function getCurrentTime(): string {
+  return new Intl.DateTimeFormat('ko-KR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(new Date())
+}
 
-function DetailField({ label, value }: { label: string; value?: string }) {
+/**  API 조회 오류 메시지 반환 */
+function getErrorMessage(loadError: unknown): string {
+  return loadError instanceof Error
+    ? loadError.message
+    : '발송 로그 조회에 실패했습니다.'
+}
+
+// =======================================
+// 3. 발송 로그 상세 정보 필드 컴포넌트
+// =======================================
+function DetailField({
+  label,
+  value,
+}: {
+  label: string
+  value?: string
+}) {
   return (
     <div className="log-detail-field">
       <dt>{label}</dt>
@@ -77,6 +130,9 @@ function DetailField({ label, value }: { label: string; value?: string }) {
   )
 }
 
+// =======================================
+// 4. 발송 로그 상세 모달 컴포넌트
+// =======================================
 function LogDetailModal({
   record,
   onClose,
@@ -104,6 +160,7 @@ function LogDetailModal({
             <h2 id="log-detail-title">발송 로그 상세 정보</h2>
             <p>{record.ID}</p>
           </div>
+
           <button
             type="button"
             className="log-modal-close"
@@ -117,6 +174,7 @@ function LogDetailModal({
         <div className="log-detail-modal-body">
           <section className="log-detail-section">
             <h3>발송 정보</h3>
+
             <dl className="log-detail-grid">
               <DetailField label="발송일시" value={record.발송일시} />
               <DetailField label="발송 채널" value={getChannelLabel(record)} />
@@ -131,6 +189,7 @@ function LogDetailModal({
 
           <section className="log-detail-section">
             <h3>수신 대상</h3>
+
             <dl className="log-detail-grid">
               <DetailField label="성명" value={record.성명 || record.수신인} />
               <DetailField label="역할" value={record.역할} />
@@ -144,6 +203,7 @@ function LogDetailModal({
 
           <section className="log-detail-section">
             <h3>교육 정보</h3>
+
             <dl className="log-detail-grid">
               <DetailField label="교육과정명" value={record.교육과정명} />
               <DetailField label="교육기관명" value={record.교육기관명} />
@@ -158,6 +218,7 @@ function LogDetailModal({
 
           <section className="log-detail-section">
             <h3>문자 본문</h3>
+
             <pre className="log-message-body">
               {record.문자본문내용 || '문자 본문이 없습니다.'}
             </pre>
@@ -165,6 +226,7 @@ function LogDetailModal({
 
           <section className="log-detail-section">
             <h3>이메일 본문</h3>
+
             <pre className="log-message-body">
               {record.이메일본문내용 || '이메일 본문이 없습니다.'}
             </pre>
@@ -172,7 +234,11 @@ function LogDetailModal({
         </div>
 
         <footer className="log-detail-modal-footer">
-          <button type="button" className="log-modal-confirm" onClick={onClose}>
+          <button
+            type="button"
+            className="log-modal-confirm"
+            onClick={onClose}
+          >
             닫기
           </button>
         </footer>
@@ -181,98 +247,156 @@ function LogDetailModal({
   )
 }
 
+// =======================================
+// 5. 발송 로그 페이지 컴포넌트
+// =======================================
 function LogDataPage() {
+  // ---------------------------------------
+  // 5-1. 발송 로그 데이터 및 화면 상태
+  // ---------------------------------------
   const [logs, setLogs] = useState<LogRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
   const [error, setError] = useState('')
+  const [validationError, setValidationError] = useState('')
   const [lastUpdated, setLastUpdated] = useState('')
 
+  // ---------------------------------------
+  // 5-2. 검색 및 페이지네이션 상태
+  // ---------------------------------------
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
+
   const [keyword, setKeyword] = useState('')
   const [appliedKeyword, setAppliedKeyword] = useState('')
+
   const [currentPage, setCurrentPage] = useState(1)
+
   const [selectedLog, setSelectedLog] = useState<LogRecord | null>(null)
 
-  // API 응답 이후 상태 업데이트
-  const loadLogs = useCallback(async () => {
-    try {
-      const result = await getLogs()
-      setLogs(result)
-      setLastUpdated(
-        new Intl.DateTimeFormat('ko-KR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }).format(new Date()),
-      )
-      setCurrentPage(1)
-    } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : '발송 로그 조회에 실패했습니다.',
-      )
-    } finally {
-      setIsLoading(false)
-    }
+  // ---------------------------------------
+  // 5-3. API 요청 중복 및 응답 순서 관리
+  // ---------------------------------------
+  const requestSequenceRef = useRef(0)
+
+  /**
+   * API 요청만 수행하는 함수
+   *
+   * 중요:
+   * - 내부에서 setState를 실행하지 않음
+   * - useEffect와 새로고침 이벤트에서 공통 사용
+   */
+  const fetchLogs = useCallback((): Promise<LogRecord[]> => {
+    return getLogs()
   }, [])
 
+  // ---------------------------------------
+  // 5-4. 최초 발송 로그 조회
+  // ---------------------------------------
   useEffect(() => {
     let isActive = true
 
-    getLogs()
+    const requestId = requestSequenceRef.current + 1
+    requestSequenceRef.current = requestId
+
+    fetchLogs()
       .then((result) => {
-        if (!isActive) return
+        if (!isActive || requestId !== requestSequenceRef.current) return
 
         setLogs(result)
-        setLastUpdated(
-          new Intl.DateTimeFormat('ko-KR', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          }).format(new Date()),
-        )
+        setError('')
+        setLastUpdated(getCurrentTime())
       })
       .catch((loadError: unknown) => {
-        if (!isActive) return
+        if (!isActive || requestId !== requestSequenceRef.current) return
 
-        setError(
-          loadError instanceof Error
-            ? loadError.message
-            : '발송 로그 조회에 실패했습니다.',
-        )
+        setError(getErrorMessage(loadError))
       })
       .finally(() => {
-        if (isActive) setIsLoading(false)
+        if (!isActive || requestId !== requestSequenceRef.current) return
+
+        setIsLoading(false)
       })
 
     return () => {
       isActive = false
+      requestSequenceRef.current += 1
     }
-  }, [])
- 
+  }, [fetchLogs])
 
+  // ---------------------------------------
+  // 5-5. 발송 로그 새로고침
+  // ---------------------------------------
+  const handleRefresh = async () => {
+    const requestId = requestSequenceRef.current + 1
+    requestSequenceRef.current = requestId
+
+    setIsLoading(true)
+    setError('')
+    setValidationError('')
+
+    try {
+      const result = await fetchLogs()
+
+      if (requestId !== requestSequenceRef.current) return
+
+      setLogs(result)
+      setLastUpdated(getCurrentTime())
+      setCurrentPage(1)
+    } catch (loadError: unknown) {
+      if (requestId !== requestSequenceRef.current) return
+
+      setError(getErrorMessage(loadError))
+    } finally {
+      if (requestId === requestSequenceRef.current) {
+        setIsLoading(false)
+      }
+    }
+  }
+
+  // =======================================
+  // 6. 발송 로그 검색 및 필터링
+  // =======================================
   const filteredLogs = useMemo(() => {
     const normalizedKeyword = appliedKeyword.trim().toLocaleLowerCase()
 
     return logs.filter((record) => {
       const logDate = getLogDate(record.발송일시)
 
-      if (startDate && (!logDate || logDate < startDate)) return false
-      if (endDate && (!logDate || logDate > endDate)) return false
-
-      if (statusFilter !== 'ALL' && getStatusCategory(record) !== statusFilter) {
+      // -------------------------------------
+      // 6-1. 발송 기간 필터
+      // -------------------------------------
+      if (startDate && (!logDate || logDate < startDate)) {
         return false
       }
 
+      if (endDate && (!logDate || logDate > endDate)) {
+        return false
+      }
+
+      // -------------------------------------
+      // 6-2. 발송 상태 필터
+      // -------------------------------------
+      if (
+        statusFilter !== 'ALL' &&
+        getStatusCategory(record) !== statusFilter
+      ) {
+        return false
+      }
+
+      // -------------------------------------
+      // 6-3. 키워드 검색
+      // -------------------------------------
       if (normalizedKeyword) {
         const searchableText = [
           record.성명,
           record.수신인,
           record.연락처,
           record.이메일,
+          record.실제수신연락처,
+          record.실제수신이메일,
           record.역할,
           record.교육과정명,
           record.교육기관명,
@@ -280,58 +404,91 @@ function LogDataPage() {
           record.제목,
           record.문자발송상태,
           record.이메일발송상태,
-        ].join(' ').toLocaleLowerCase()
+        ]
+          .join(' ')
+          .toLocaleLowerCase()
 
-        if (!searchableText.includes(normalizedKeyword)) return false
+        if (!searchableText.includes(normalizedKeyword)) {
+          return false
+        }
       }
-
       return true
     })
   }, [logs, startDate, endDate, statusFilter, appliedKeyword])
 
-  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE))
+  // =======================================
+  // 7. 발송 로그 통계 계산
+  // =======================================
+  const { successCount, failureCount } = logs.reduce(
+    (counts, record) => {
+      const category = getStatusCategory(record)
+
+      return {
+        successCount:
+          counts.successCount + (category === 'SUCCESS' ? 1 : 0),
+
+        failureCount:
+          counts.failureCount +
+          (category === 'FAILURE' || category === 'SKIPPED' ? 1 : 0),
+      }
+    },
+    {
+      successCount: 0,
+      failureCount: 0,
+    },
+  )
+
+  // =======================================
+  // 8. 페이지네이션 데이터 계산
+  // =======================================
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredLogs.length / PAGE_SIZE),
+  )
   const pageLogs = filteredLogs.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   )
 
-  const failureCount = logs.filter((record) => {
-    const category = getStatusCategory(record)
-    return category === 'FAILURE' || category === 'SKIPPED'
-  }).length
-
-  // 정상 발송 건수
-    const successCount = logs.filter(
-(record) => getStatusCategory(record) === 'SUCCESS',
-    ).length
-
+  // =======================================
+  // 9. 검색 및 초기화 이벤트 처리
+  // =======================================
+  /** 검색 버튼 클릭 */
   const handleSearch = () => {
     if (startDate && endDate && startDate > endDate) {
-      setError('시작 날짜는 종료 날짜보다 늦을 수 없습니다.')
+      setValidationError('시작 날짜는 종료 날짜보다 늦을 수 없습니다.')
       return
     }
-
-    setError('')
+    setValidationError('')
     setAppliedKeyword(keyword)
     setCurrentPage(1)
   }
 
+  /** 검색 조건 초기화 */
   const resetFilters = () => {
     setStartDate('')
     setEndDate('')
     setStatusFilter('ALL')
+
     setKeyword('')
     setAppliedKeyword('')
-    setError('')
+
+    setValidationError('')
     setCurrentPage(1)
   }
 
+  // =======================================
+  // 10. 발송 로그 화면 렌더링
+  // =======================================
   return (
     <div className="page-content log-data-page">
+
+      {/* 10-1. 페이지 제목 및 새로고침 버튼 */}
       <section className="page-heading">
         <div>
           <p className="eyebrow">DISPATCH HISTORY</p>
           <h1>발송 로그</h1>
+
           <p className="page-subtitle">
             문자 및 이메일 발송 결과와 상세 내용을 조회합니다.
           </p>
@@ -340,32 +497,49 @@ function LogDataPage() {
         <button
           className="log-refresh-button"
           type="button"
-          onClick={() => void loadLogs()}
+          onClick={() => void handleRefresh()}
           disabled={isLoading}
         >
-          <span className={isLoading ? 'log-refresh-icon is-spinning' : 'log-refresh-icon'}>
+          <span
+            className={
+              isLoading
+                ? 'log-refresh-icon is-spinning'
+                : 'log-refresh-icon'
+            }
+          >
             ↻
           </span>
+
           {isLoading ? '조회 중...' : '새로고침'}
         </button>
       </section>
 
+      {/* 10-2. 발송 로그 통계 카드 */}
       <section className="log-metric-grid" aria-label="발송 로그 요약">
         <article className="log-metric-card">
           <span>전체 발송 로그</span>
-          <strong>{isLoading ? '-' : formatCount(logs.length)}</strong>
+          <strong>
+            {isLoading ? '-' : formatCount(logs.length)}
+          </strong>
           <small>누적 기록 건수</small>
         </article>
+
         <article className="log-metric-card">
           <span>정상 발송</span>
-          <strong>{isLoading ? '-' : formatCount(successCount)}</strong>
+          <strong>
+            {isLoading ? '-' : formatCount(successCount)}
+          </strong>
           <small>정상적으로 처리된 로그</small>
         </article>
+
         <article className="log-metric-card">
           <span>미발송 / 실패</span>
-          <strong>{isLoading ? '-' : formatCount(failureCount)}</strong>
+          <strong>
+            {isLoading ? '-' : formatCount(failureCount)}
+          </strong>
           <small>실패 또는 스킵 상태가 포함된 로그</small>
         </article>
+
         <article className="log-metric-card log-metric-update">
           <span>마지막 조회</span>
           <strong>{lastUpdated || '-'}</strong>
@@ -373,49 +547,68 @@ function LogDataPage() {
         </article>
       </section>
 
+      {/* 10-3. 발송 로그 검색 조건 */}
       <section className="log-filter-card">
+
         <div className="log-section-heading">
           <div>
             <h2>조회 조건</h2>
-            <p>발송 기간, 상태 또는 수신자 정보를 기준으로 검색할 수 있습니다.</p>
+
+            <p>
+              발송 기간, 상태 또는 수신자 정보를 기준으로 검색할 수 있습니다.
+            </p>
           </div>
-          <button type="button" className="log-reset-button" onClick={resetFilters}>
+
+          <button
+            type="button"
+            className="log-reset-button"
+            onClick={resetFilters}
+          >
             초기화
           </button>
         </div>
 
         <div className="log-filter-controls">
+
+          {/* 시작일 */}
           <label>
             <span>시작일</span>
+
             <input
               type="date"
               value={startDate}
               onChange={(event) => {
                 setStartDate(event.target.value)
                 setCurrentPage(1)
-                }}
+              }}
             />
           </label>
+
+          {/* 종료일 */}
           <label>
             <span>종료일</span>
+
             <input
               type="date"
               value={endDate}
               min={startDate || undefined}
               onChange={(event) => {
                 setEndDate(event.target.value)
-                setCurrentPage(1) // 20261119 추가
-                }}
+                setCurrentPage(1)
+              }}
             />
           </label>
+
+          {/* 발송 상태 */}
           <label>
             <span>발송 상태</span>
+
             <select
               value={statusFilter}
               onChange={(event) => {
                 setStatusFilter(event.target.value as StatusFilter)
                 setCurrentPage(1)
-                }}
+              }}
             >
               <option value="ALL">전체 상태</option>
               <option value="SUCCESS">성공</option>
@@ -424,8 +617,11 @@ function LogDataPage() {
               <option value="SKIPPED">스킵</option>
             </select>
           </label>
+
+          {/* 검색어 */}
           <label className="log-keyword-field">
             <span>검색어</span>
+
             <input
               type="search"
               placeholder="이름, 기관명, 연락처, 제목"
@@ -436,23 +632,46 @@ function LogDataPage() {
               }}
             />
           </label>
-          <button type="button" className="log-search-button" onClick={handleSearch}>
+
+          {/* 조회 버튼 */}
+          <button
+            type="button"
+            className="log-search-button"
+            onClick={handleSearch}
+          >
             조회
           </button>
         </div>
+
+        {/* 검색 조건 오류 */}
+        {validationError && (
+          <div className="log-error-message" role="alert">
+            {validationError}
+          </div>
+        )}
       </section>
 
+      {/* 10-4. 발송 로그 테이블 */}
       <section className="log-table-card">
+
         <div className="log-table-heading">
           <div>
             <h2>발송 이력</h2>
-            <p>조회 결과 {formatCount(filteredLogs.length)}건</p>
+
+            <p>
+              조회 결과 {formatCount(filteredLogs.length)}건
+            </p>
           </div>
+
           <span className="log-table-caption">최신 발송 순</span>
         </div>
 
-        {error && <div className="log-error-message" role="alert">{error}</div>}
-
+        {/* API 조회 오류 */}
+        {error && (
+          <div className="log-error-message" role="alert">
+            {error}
+          </div>
+        )}
         <div className="log-table-scroll">
           <table className="log-table">
             <thead>
@@ -468,62 +687,109 @@ function LogDataPage() {
               </tr>
             </thead>
             <tbody>
+              {/* 조회 중 */}
               {isLoading ? (
                 <tr>
                   <td colSpan={8} className="log-table-message">
                     발송 로그를 불러오고 있습니다.
                   </td>
                 </tr>
+
               ) : error && logs.length === 0 ? (
+
+                /* 조회 실패 */
                 <tr>
-                  <td colSpan={8} className="log-table-message log-table-error">
+                  <td
+                    colSpan={8}
+                    className="log-table-message log-table-error"
+                  >
                     로그 데이터를 불러오지 못했습니다.
                   </td>
                 </tr>
+
               ) : pageLogs.length === 0 ? (
+
+                /* 조회 결과 없음 */
                 <tr>
                   <td colSpan={8} className="log-table-message">
                     조회 조건에 해당하는 발송 로그가 없습니다.
                   </td>
                 </tr>
+
               ) : (
-                pageLogs.map((record) => (
-                  <tr key={record.ID}>
-                    <td className="log-date-cell">{formatDateTime(record.발송일시)}</td>
-                    <td>
-                      <span className="log-channel-pill">{getChannelLabel(record)}</span>
+
+                /* 발송 로그 목록 */
+                pageLogs.map((record, index) => (
+                  <tr key={record.ID || `${record.발송일시}-${index}`}>
+
+                    {/* 발송일시 */}
+                    <td className="log-date-cell">
+                      {formatDateTime(record.발송일시)}
                     </td>
+
+                    {/* 발송 채널 */}
+                    <td>
+                      <span className="log-channel-pill">
+                        {getChannelLabel(record)}
+                      </span>
+                    </td>
+
+                    {/* 수신인 */}
                     <td>
                       <strong className="log-recipient-name">
                         {record.성명 || record.수신인 || '-'}
                       </strong>
+
                       <small className="log-recipient-contact">
-                        {record.실제수신연락처 || record.실제수신이메일 || record.연락처 || record.이메일 || '-'}
+                        {record.실제수신연락처 ||
+                          record.실제수신이메일 ||
+                          record.연락처 ||
+                          record.이메일 ||
+                          '-'}
                       </small>
                     </td>
+
+                    {/* 교육기관 및 교육과정 */}
                     <td>
                       <strong className="log-institution-name">
                         {record.교육기관명 || '-'}
                       </strong>
+
                       <small className="log-course-name">
                         {record.교육과정명 || record.반명 || '-'}
                       </small>
                     </td>
+
+                    {/* 역할 */}
                     <td>{record.역할 || '-'}</td>
+
+                    {/* 문자 발송 상태 */}
                     <td>
                       {record.문자발송상태 ? (
-                        <span className={`log-inline-status log-inline-${getIndividualStatusClass(record.문자발송상태)}`}>
+                        <span
+                          className={`log-inline-status log-inline-${getIndividualStatusClass(record.문자발송상태)}`}
+                        >
                           {record.문자발송상태}
                         </span>
-                      ) : <span className="log-muted">-</span>}
+                      ) : (
+                        <span className="log-muted">-</span>
+                      )}
                     </td>
+
+                    {/* 이메일 발송 상태 */}
                     <td>
                       {record.이메일발송상태 ? (
-                        <span className={`log-inline-status log-inline-${getIndividualStatusClass(record.이메일발송상태)}`}>
+                        <span
+                          className={`log-inline-status log-inline-${getIndividualStatusClass(record.이메일발송상태)}`}
+                        >
                           {record.이메일발송상태}
                         </span>
-                      ) : <span className="log-muted">-</span>}
+                      ) : (
+                        <span className="log-muted">-</span>
+                      )}
                     </td>
+
+                    {/* 상세 보기 */}
                     <td>
                       <button
                         type="button"
@@ -533,39 +799,61 @@ function LogDataPage() {
                         상세 보기
                       </button>
                     </td>
+
                   </tr>
                 ))
               )}
+
             </tbody>
           </table>
+
         </div>
 
+        {/* 10-5. 페이지네이션 */}
         <footer className="log-pagination">
+
           <span>
             {filteredLogs.length === 0
               ? '0건'
-              : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filteredLogs.length)} / ${formatCount(filteredLogs.length)}건`}
+              : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(
+                  currentPage * PAGE_SIZE,
+                  filteredLogs.length,
+                )} / ${formatCount(filteredLogs.length)}건`}
           </span>
+
           <div>
+
             <button
               type="button"
-              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              onClick={() => {
+                setCurrentPage((page) => Math.max(1, page - 1))
+              }}
               disabled={currentPage <= 1}
             >
               이전
             </button>
-            <span>{currentPage} / {totalPages}</span>
+
+            <span>
+              {currentPage} / {totalPages}
+            </span>
+
             <button
               type="button"
-              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              onClick={() => {
+                setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }}
               disabled={currentPage >= totalPages}
             >
               다음
             </button>
+
           </div>
+
         </footer>
+
       </section>
 
+      {/* 10-6. 발송 로그 상세 모달 */}
       {selectedLog && (
         <LogDetailModal
           record={selectedLog}

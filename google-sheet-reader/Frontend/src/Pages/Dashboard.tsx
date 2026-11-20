@@ -2,7 +2,7 @@
  * @file Dashboard.tsx
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-19
+ * @updated 2026-11-20
  * @description
  * 메인 화면 구성.
  * 
@@ -827,7 +827,13 @@ function Dashboard() {
 
           {/* 운영 추이 및 연결 상태 */}
           <section className="dashboard-grid">
-            <EducationTrendChart />
+            <EducationTrendChart
+                gwData={gwData}
+                dsData={dsData}
+                gwStatus={gwStatus}
+                dsStatus={dsStatus}
+                isLoading={isLoading}
+            />
 
             <article className="surface-card connection-card">
               <div className="card-heading">

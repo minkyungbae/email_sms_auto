@@ -2,347 +2,298 @@
  * @file EducationTrendChart.tsx
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-18
- * @description
- * 교육 운영 추이 차트 화면 구성.
+ * @updated 2026-11-20
+ * @description 대시보드에서 조회한 GW·DS 교육 데이터를 이용해 운영 추이를 시각화.
  *
+ * 주요 기능:
+ * - 최근 7일 및 30일 교육 운영 추이 조회
+ * - GW·DS 일별 교육 건수 집계
+ * - SVG 차트 생성
+ * - 사업별 데이터 연결 상태 표시
+ *
+ * 20261120 수정: 날짜 처리 및 일별 데이터 집계 로직 공통화
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-
-import { getEducationByDateRange } from '../Services/EducationService'
+import { useMemo, useState } from 'react'
 import type { EducationRecord } from '../Types/education'
+import { formatIsoDate, normalizeDateValue } from '../Utils/date'
 
-type Period = 7 | 30 | 90
+// =======================================
+// 1. 차트 기본 크기 및 표시 영역
+// =======================================
+const CHART_WIDTH = 560
+const CHART_HEIGHT = 184
+const PLOT_LEFT = 42
+const PLOT_RIGHT = 548
+const PLOT_TOP = 14
+const PLOT_BOTTOM = 145
 
-type TrendData = {
+// =======================================
+// 2. 차트 조회 기간 및 API 상태 타입
+// =======================================
+type TrendPeriod = 7 | 30
+type ApiStatus = 'loading' | 'connected' | 'error'
+type CountKey = 'gw' | 'ds'
+
+// =======================================
+// 3. 차트 데이터 타입
+// =======================================
+type TrendPoint = {
   date: string
+  label: string
   gw: number
   ds: number
 }
 
-type ApiStatus = 'loading' | 'success' | 'error'
-
-const PERIOD_OPTIONS: Period[] = [7, 30, 90]
-
-const CHART_WIDTH = 640
-const CHART_HEIGHT = 190
-const CHART_PADDING = {
-  top: 15,
-  right: 15,
-  bottom: 30,
-  left: 35,
+// =======================================
+// 4. 교육 추이 차트 Props 타입
+// =======================================
+type EducationTrendChartProps = {
+  gwData: EducationRecord[]
+  dsData: EducationRecord[]
+  gwStatus: ApiStatus
+  dsStatus: ApiStatus
+  isLoading: boolean
 }
 
-const GW_COLOR = '#6e9edc'
-const DS_COLOR = '#61e66c'
-
-// 20261118 추가: 날짜를 YYYY-MM-DD 형식으로 변환
-function formatIsoDate(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-
-  return `${year}-${month}-${day}`
-}
-
-// 20261118 추가: 날짜 문자열에서 날짜 키 추출
-function getDateKey(value: string): string {
-  const trimmed = value.trim()
-
-  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
-    return trimmed.slice(0, 10)
-  }
-
-  const parsed = new Date(trimmed)
-
-  if (Number.isNaN(parsed.getTime())) {
-    return ''
-  }
-
-  return formatIsoDate(parsed)
-}
-
-// 20261118 추가: 날짜별 교육 건수 집계
-function createTrendData(
-  gwData: EducationRecord[],
-  dsData: EducationRecord[],
-  days: Period,
-): TrendData[] {
+// =======================================
+// 5. 조회 기간에 해당하는 날짜 목록 생성
+// =======================================
+function getChartDates(
+  days: TrendPeriod,
+): { date: string; label: string }[] {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const startDate = new Date(today)
-  startDate.setDate(startDate.getDate() - (days - 1))
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(today)
 
-  const countMap = new Map<string, { gw: number; ds: number }>()
+    date.setDate(today.getDate() - (days - index - 1))
 
-  // 20261118 추가: 조회 기간의 모든 날짜 초기화
-  for (let index = 0; index < days; index += 1) {
-    const date = new Date(startDate)
-    date.setDate(startDate.getDate() + index)
-
-    countMap.set(formatIsoDate(date), {
-      gw: 0,
-      ds: 0,
-    })
-  }
-
-  // 20261118 추가: GW 데이터 집계
-  gwData.forEach((record) => {
-    const dateKey = getDateKey(record.근무날짜)
-    const current = countMap.get(dateKey)
-
-    if (current) {
-      current.gw += 1
+    return {
+      date: formatIsoDate(date), // 20261120 수정: 공통 날짜 변환 함수 사용
+      label: `${date.getMonth() + 1}.${date.getDate()}`,
     }
   })
+}
 
-  // 20261118 추가: DS 데이터 집계
-  dsData.forEach((record) => {
-    const dateKey = getDateKey(record.근무날짜)
-    const current = countMap.get(dateKey)
+// =======================================
+// 6. 사업별 교육 데이터 일별 건수 집계
+// =======================================
+function addRecordsToDailyCounts(
+  records: EducationRecord[],
+  businessType: CountKey,
+  counts: Map<string, { gw: number; ds: number }>,
+): void {
+  records.forEach((record) => {
+    const date = normalizeDateValue(record.근무날짜)
+    const dailyCount = counts.get(date)
 
-    if (current) {
-      current.ds += 1
-    }
+    if (!dailyCount) return
+
+    dailyCount[businessType] += 1
+  })
+}
+
+// =======================================
+// 7. GW·DS 교육 추이 데이터 생성
+// =======================================
+function getTrendPoints(
+  gwData: EducationRecord[],
+  dsData: EducationRecord[],
+  days: TrendPeriod,
+): TrendPoint[] {
+  const dates = getChartDates(days)
+
+  const counts = new Map<string, { gw: number; ds: number }>()
+
+  // 조회 기간의 날짜별 초기 건수 설정
+  dates.forEach(({ date }) => {
+    counts.set(date, { gw: 0, ds: 0 })
   })
 
-  return Array.from(countMap.entries()).map(([date, count]) => ({
-    date,
-    gw: count.gw,
-    ds: count.ds,
-  }))
+  // GW·DS 데이터를 공통 함수로 집계
+  addRecordsToDailyCounts(gwData, 'gw', counts)
+  addRecordsToDailyCounts(dsData, 'ds', counts)
+
+  // 날짜 순서에 맞게 차트 데이터 반환
+  return dates.map(({ date, label }) => {
+    const count = counts.get(date)
+
+    return {
+      date,
+      label,
+      gw: count?.gw ?? 0,
+      ds: count?.ds ?? 0,
+    }
+  })
 }
 
-// 20261118 추가: 차트 날짜 라벨
-function formatDateLabel(date: string, days: Period): string {
-  const [, month, day] = date.split('-')
-
-  if (days === 7) {
-    return `${Number(month)}/${Number(day)}`
-  }
-
-  return `${Number(month)}/${Number(day)}`
-}
-
-// 20261118 추가: SVG 선 그래프 경로 생성
-function createLinePath(
-  values: number[],
+// =======================================
+// 8. SVG 차트에 표시할 선 좌표 생성
+// =======================================
+function buildPolyline(
+  points: TrendPoint[],
+  field: CountKey,
   maxValue: number,
 ): string {
-  const chartWidth =
-    CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right
+  const plotWidth = PLOT_RIGHT - PLOT_LEFT
+  const plotHeight = PLOT_BOTTOM - PLOT_TOP
 
-  const chartHeight =
-    CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom
-
-  return values
-    .map((value, index) => {
+  return points
+    .map((point, index) => {
       const x =
-        CHART_PADDING.left +
-        (index / Math.max(values.length - 1, 1)) * chartWidth
+        PLOT_LEFT +
+        (index / Math.max(points.length - 1, 1)) * plotWidth
 
       const y =
-        CHART_PADDING.top +
-        chartHeight -
-        (value / maxValue) * chartHeight
+        PLOT_BOTTOM - (point[field] / maxValue) * plotHeight
 
-      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`
+      return `${x},${y}`
     })
     .join(' ')
 }
 
-function EducationTrendChart() {
-  // 20261118 추가: 조회 기간 상태
-  const [period, setPeriod] = useState<Period>(30)
+// =======================================
+// 9. 교육 건수 숫자 형식 변환
+// =======================================
+function formatCount(value: number): string {
+  return new Intl.NumberFormat('ko-KR').format(value)
+}
 
-  // 20261118 추가: GW·DS 차트 데이터
-  const [gwData, setGwData] = useState<EducationRecord[]>([])
-  const [dsData, setDsData] = useState<EducationRecord[]>([])
+// =======================================
+// 10. 교육 운영 추이 차트 컴포넌트
+// =======================================
+function EducationTrendChart({
+  gwData,
+  dsData,
+  gwStatus,
+  dsStatus,
+  isLoading,
+}: EducationTrendChartProps) {
+  // 조회 기간 선택 상태
+  const [period, setPeriod] = useState<TrendPeriod>(30)
 
-  // 20261118 추가: 조회 상태
-  const [status, setStatus] = useState<ApiStatus>('loading')
-  const [errorMessage, setErrorMessage] = useState('')
-
-  // 20261118 추가: 기간별 데이터 조회
-  const loadTrendData = useCallback(async (days: Period) => {
-    setStatus('loading')
-    setErrorMessage('')
-
-    const endDate = new Date()
-    const startDate = new Date(endDate)
-
-    startDate.setDate(startDate.getDate() - (days - 1))
-
-    const params = {
-      startDate: formatIsoDate(startDate),
-      endDate: formatIsoDate(endDate),
-    }
-
-    try {
-      const results = await Promise.all([
-        getEducationByDateRange({
-          businessType: 'GW',
-          ...params,
-        }),
-        getEducationByDateRange({
-          businessType: 'DS',
-          ...params,
-        }),
-      ])
-
-      setGwData(results[0])
-      setDsData(results[1])
-      setStatus('success')
-    } catch (error) {
-      setGwData([])
-      setDsData([])
-      setStatus('error')
-
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : '교육 추이 데이터를 조회하지 못했습니다.',
-      )
-    }
-  }, [])
-
-  // 20261118 추가: 최초 진입 시 차트 데이터 조회
-  useEffect(() => {
-    const timerId = window.setTimeout(() => {
-      void loadTrendData(period)
-    }, 0)
-
-    return () => {
-      window.clearTimeout(timerId)
-    }
-  }, [loadTrendData, period])
-
-  // 20261118 추가: 날짜별 차트 데이터 생성
-  const trendData = useMemo(
-    () => createTrendData(gwData, dsData, period),
+  // 조회 기간에 따른 교육 추이 데이터 계산
+  const points = useMemo(
+    () => getTrendPoints(gwData, dsData, period),
     [gwData, dsData, period],
   )
 
-  // 20261118 추가: 차트 최대값 계산
-  const maxValue = useMemo(() => {
-    const maximum = Math.max(
-      1,
-      ...trendData.map((item) => Math.max(item.gw, item.ds)),
-    )
+  // 사업별 총 교육 건수 계산
+  const gwTotal = points.reduce((sum, point) => sum + point.gw, 0)
+  const dsTotal = points.reduce((sum, point) => sum + point.ds, 0)
 
-    return Math.ceil(maximum / 5) * 5 || 5
-  }, [trendData])
-
-  // 20261118 추가: GW·DS 선 그래프 경로
-  const gwPath = createLinePath(
-    trendData.map((item) => item.gw),
-    maxValue,
+  // 차트의 최대 표시값 계산
+  const highestValue = Math.max(
+    0,
+    ...points.flatMap((point) => [point.gw, point.ds]),
   )
 
-  const dsPath = createLinePath(
-    trendData.map((item) => item.ds),
-    maxValue,
-  )
+  // Y축 중간 눈금이 중복되지 않도록 짝수 단위로 설정
+  const maxValue = Math.max(2, Math.ceil(highestValue / 2) * 2) // 20261120 수정
 
-  // 20261118 추가: 차트 전체 건수
-  const totalCount = gwData.length + dsData.length
+  const axisValues = [maxValue, maxValue / 2, 0]
 
-  // 20261118 추가: 날짜 라벨 표시 간격
-  const labelInterval = period === 7 ? 1 : period === 30 ? 5 : 15
+  // 데이터 존재 및 API 연결 상태 확인
+  const hasAnyData = gwTotal + dsTotal > 0
 
-  const chartHeight =
-    CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom
+  const hasConnectionError =
+    gwStatus === 'error' || dsStatus === 'error'
+
+  // 조회 기간에 따른 날짜 라벨 표시 간격
+  const labelInterval = period === 7 ? 2 : 6
 
   return (
     <article className="surface-card trend-card">
+      {/* 차트 제목 및 조회 기간 선택 */}
       <div className="card-heading">
         <div>
           <h2>교육 운영 추이</h2>
-          <p>기간별 교육 운영 현황</p>
+          <p>GW·DS 교육일 기준 일별 운영 건수</p>
         </div>
 
-        <div className="trend-period-selector">
-          {PERIOD_OPTIONS.map((days) => (
-            <button
-              key={days}
-              type="button"
-              className={period === days ? 'period-button active' : 'period-button'}
-              onClick={() => setPeriod(days)}
-              disabled={status === 'loading'}
-            >
-              {days}일
-            </button>
-          ))}
+        {/* 조회 기간 선택 버튼 */}
+        <div className="trend-period-selector" aria-label="조회 기간">
+          <button
+            type="button"
+            className={`period-button ${period === 7 ? 'active' : ''}`}
+            aria-pressed={period === 7}
+            onClick={() => setPeriod(7)}
+          >
+            7일
+          </button>
+
+          <button
+            type="button"
+            className={`period-button ${period === 30 ? 'active' : ''}`}
+            aria-pressed={period === 30}
+            onClick={() => setPeriod(30)}
+          >
+            30일
+          </button>
         </div>
       </div>
 
+      {/* 선택 기간의 전체 교육 건수 */}
       <div className="trend-summary">
         <div>
-          <span>총 교육 건수</span>
-          <strong>
-            {status === 'success'
-              ? totalCount.toLocaleString()
-              : '-'}
-          </strong>
+          <span>선택 기간 교육 건수</span>
+          <strong>{formatCount(gwTotal + dsTotal)}건</strong>
         </div>
 
         <span className="trend-period-label">
-          최근 {period}일 기준
+          최근 {period}일
         </span>
       </div>
 
-      {status === 'loading' ? (
-        <div className="chart-message">
-          교육 운영 데이터를 불러오고 있습니다.
+      {/* 교육 데이터 로딩 및 조회 결과에 따른 화면 분기 */}
+      {isLoading ? (
+        <div className="chart-message" role="status">
+          교육 추이 데이터를 불러오고 있습니다.
         </div>
-      ) : status === 'error' ? (
-        <div className="chart-message chart-error">
-          <strong>차트 데이터를 불러오지 못했습니다.</strong>
-          <p>{errorMessage}</p>
-          <button
-            type="button"
-            className="chart-retry-button"
-            onClick={() => void loadTrendData(period)}
-          >
-            다시 조회
-          </button>
+      ) : !hasAnyData ? (
+        <div className="chart-message" role="status">
+          <strong>
+            {hasConnectionError
+              ? '교육 데이터를 확인할 수 없습니다.'
+              : '조회된 교육 데이터가 없습니다.'}
+          </strong>
+
+          <span>
+            대시보드의 데이터 새로고침 후 다시 확인해 주세요.
+          </span>
         </div>
       ) : (
+        /* SVG 교육 운영 추이 차트 */
         <div className="trend-chart-wrap">
           <svg
             className="trend-chart"
             viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
             role="img"
-            aria-label={`최근 ${period}일 GW와 DS 교육 운영 건수 추이`}
+            aria-label={`최근 ${period}일 교육 운영 추이. GW ${gwTotal}건, DS ${dsTotal}건`}
           >
-            {/* 20261118 추가: 차트 가로 기준선 */}
-            {[0, 1, 2, 3].map((index) => {
+            {/* Y축 눈금 및 배경 그리드 */}
+            {axisValues.map((value, index) => {
               const y =
-                CHART_PADDING.top +
-                (chartHeight / 3) * index
-
-              const value = Math.round(
-                maxValue - (maxValue / 3) * index,
-              )
+                PLOT_TOP +
+                index * ((PLOT_BOTTOM - PLOT_TOP) / 2)
 
               return (
-                <g key={index}>
+                <g key={`${value}-${index}`}>
                   <line
-                    x1={CHART_PADDING.left}
+                    className="trend-chart-grid-line"
+                    x1={PLOT_LEFT}
                     y1={y}
-                    x2={CHART_WIDTH - CHART_PADDING.right}
+                    x2={PLOT_RIGHT}
                     y2={y}
-                    stroke="#edf0f5"
-                    strokeDasharray="3 4"
                   />
+
                   <text
-                    x={CHART_PADDING.left - 9}
+                    className="trend-chart-axis-label"
+                    x={PLOT_LEFT - 9}
                     y={y + 3}
                     textAnchor="end"
-                    fill="#a0aaba"
-                    fontSize="9"
                   >
                     {value}
                   </text>
@@ -350,94 +301,41 @@ function EducationTrendChart() {
               )
             })}
 
-            {/* 20261118 추가: GW 그래프 */}
-            <path
-              d={gwPath}
-              fill="none"
-              stroke={GW_COLOR}
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+            {/* GW 교육 추이 선 */}
+            <polyline
+              className="trend-chart-line-gw"
+              points={buildPolyline(points, 'gw', maxValue)}
             />
 
-            {/* 20261118 추가: DS 그래프 */}
-            <path
-              d={dsPath}
-              fill="none"
-              stroke={DS_COLOR}
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+            {/* DS 교육 추이 선 */}
+            <polyline
+              className="trend-chart-line-ds"
+              points={buildPolyline(points, 'ds', maxValue)}
             />
 
-            {/* 20261118 추가: 날짜별 데이터 점 */}
-            {trendData.map((item, index) => {
-              const x =
-                CHART_PADDING.left +
-                (index / Math.max(trendData.length - 1, 1)) *
-                  (CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right)
-
-              const gwY =
-                CHART_PADDING.top +
-                chartHeight -
-                (item.gw / maxValue) * chartHeight
-
-              const dsY =
-                CHART_PADDING.top +
-                chartHeight -
-                (item.ds / maxValue) * chartHeight
-
-              return (
-                <g key={item.date}>
-                  <circle
-                    cx={x}
-                    cy={gwY}
-                    r="3"
-                    fill={GW_COLOR}
-                  >
-                    <title>
-                      {item.date} GW {item.gw}건
-                    </title>
-                  </circle>
-
-                  <circle
-                    cx={x}
-                    cy={dsY}
-                    r="3"
-                    fill={DS_COLOR}
-                  >
-                    <title>
-                      {item.date} DS {item.ds}건
-                    </title>
-                  </circle>
-                </g>
-              )
-            })}
-
-            {/* 20261118 추가: 날짜 라벨 */}
-            {trendData.map((item, index) => {
+            {/* X축 날짜 라벨 */}
+            {points.map((point, index) => {
               if (
                 index % labelInterval !== 0 &&
-                index !== trendData.length - 1
+                index !== points.length - 1
               ) {
                 return null
               }
 
               const x =
-                CHART_PADDING.left +
-                (index / Math.max(trendData.length - 1, 1)) *
-                  (CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right)
+                PLOT_LEFT +
+                (index / Math.max(points.length - 1, 1)) *
+                  (PLOT_RIGHT - PLOT_LEFT)
 
               return (
                 <text
-                  key={item.date}
+                  className="trend-chart-axis-label"
+                  key={point.date}
                   x={x}
-                  y={CHART_HEIGHT - 7}
+                  y={CHART_HEIGHT - 8}
                   textAnchor="middle"
-                  fill="#a0aaba"
-                  fontSize="9"
                 >
-                  {formatDateLabel(item.date, period)}
+                  {point.label}
                 </text>
               )
             })}
@@ -445,22 +343,23 @@ function EducationTrendChart() {
         </div>
       )}
 
+      {/* GW·DS 범례 및 사업별 교육 건수 */}
       <div className="chart-legend">
         <span>
           <i className="legend-dot legend-gw" />
-          GW
+          GW · {formatCount(gwTotal)}건
         </span>
 
         <span>
           <i className="legend-dot legend-ds" />
-          DS
+          DS · {formatCount(dsTotal)}건
         </span>
 
-        <span className="legend-hint">
-          {status === 'success'
-            ? `GW ${gwData.length.toLocaleString()}건 · DS ${dsData.length.toLocaleString()}건`
-            : '데이터 조회 대기'}
-        </span>
+        {hasConnectionError && (
+          <span className="legend-hint">
+            일부 사업 데이터 조회 실패
+          </span>
+        )}
       </div>
     </article>
   )

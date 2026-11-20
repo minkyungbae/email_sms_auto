@@ -2,41 +2,49 @@
  * @file api.ts
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-19
- * @description
- * API 주소 및 설정
+ * @updated 2026-11-20
+ * @description 프론트엔드 API 주소 및 요청 설정.
+ * 
+ * EducationService.ts / LogService.ts / DispatchService.ts에 API 주소 전달
  */
 
+// 교육 사업 유형 타입 가져오기
 import type { BusinessType } from '../Types/education'
 
+// Vite 환경변수에서 백엔드 서버 주소 가져오기
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '')
 
+// API 주소 및 요청 시간 설정
 export const API_CONFIG = {
-  BASE_URL: API_BASE_URL,
-  EDUCATION_ENDPOINT: '/api/education',
-
-  LOG_ENDPOINT: '/api/logs', // 20261119 추가: 발송 로그 조회 API
-  LOG_TIMEOUT_MS: 120000, // 20261119 추가: 로그 조회 요청 시간 제한
-
-  DISPATCH_ENDPOINT: '/api/dispatch', // 20261119 추가: 발송 자동화 API
-  DISPATCH_TIMEOUT_MS: 30000, // 20261119 추가: 발송 API 요청 시간 제한
-
-  TIMEOUT_MS: 30000,
+  BASE_URL: API_BASE_URL,           // 백엔드 서버 기본 주소
+  EDUCATION_ENDPOINT: '/api/education', // 교육 데이터 조회 API
+  LOG_ENDPOINT: '/api/logs',         // 발송 로그 조회 API
+  LOG_TIMEOUT_MS: 1200000,            // 로그 조회 제한 시간: 1200초
+  DISPATCH_ENDPOINT: '/api/dispatch', // 발송 자동화 API
+  DISPATCH_TIMEOUT_MS: 300000,        // 발송 API 제한 시간: 300초
+  TIMEOUT_MS: 300000,                 // 교육 데이터 조회 제한 시간: 300초
 } as const
 
-export function createEducationApiUrl(
-  businessType: BusinessType,
-  params: Record<string, string>,
-): URL {
+// 백엔드 서버 주소가 정상적으로 설정되었는지 검증
+function getApiBaseUrl(): string {
   if (!API_CONFIG.BASE_URL) {
     throw new Error('VITE_API_BASE_URL 환경변수가 설정되지 않았습니다.')
   }
 
+  return API_CONFIG.BASE_URL
+}
+
+// 교육 데이터 조회 API URL 생성
+export function createEducationApiUrl(
+  businessType: BusinessType,
+  params: Record<string, string>,
+): URL {
   const url = new URL(
     `${API_CONFIG.EDUCATION_ENDPOINT}/${businessType}`,
-    API_CONFIG.BASE_URL,
+    getApiBaseUrl(),
   )
 
+  // 조회 조건을 URL 쿼리 파라미터로 추가
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.set(key, value)
   })
@@ -44,24 +52,15 @@ export function createEducationApiUrl(
   return url
 }
 
-// 20261119 추가: 발송 로그 API URL 생성
+// 발송 로그 조회 API URL 생성
 export function createLogApiUrl(): URL {
-  if (!API_CONFIG.BASE_URL) {
-    throw new Error('VITE_API_BASE_URL 환경변수가 설정되지 않았습니다.')
-  }
-
-  return new URL(API_CONFIG.LOG_ENDPOINT, API_CONFIG.BASE_URL)
+  return new URL(API_CONFIG.LOG_ENDPOINT, getApiBaseUrl())
 }
 
-
-// 20261119 추가: 발송 자동화 API URL 생성
+// 발송 자동화 API URL 생성
 export function createDispatchApiUrl(path: string): URL {
-
-  if (!API_CONFIG.BASE_URL) {
-    throw new Error('VITE_API_BASE_URL 환경변수가 설정되지 않았습니다.')
-  }
-
   return new URL(
-    `${API_CONFIG.DISPATCH_ENDPOINT}${path}`, API_CONFIG.BASE_URL,
+    `${API_CONFIG.DISPATCH_ENDPOINT}${path}`,
+    getApiBaseUrl(),
   )
 }
