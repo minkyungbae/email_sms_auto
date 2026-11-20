@@ -8,7 +8,7 @@
  */
 
 import Dashboard from './Pages/Dashboard'
-import './App.css'
+import './CSS/App.css'
 
 function App() {
   return <Dashboard />
