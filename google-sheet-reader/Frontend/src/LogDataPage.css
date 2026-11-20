@@ -2,19 +2,20 @@
  * @file LogDataPage.css
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-19
+ * @updated 2026-11-20
  * @description
  * 발송 로그 조회 화면 디자인을 설정하는 CSS.
  */
 
+/* [발송 로그] [발송 로그 페이지 전체 및 페이지 전용 색상 변수] */
 .log-data-page {
   width: 100%;
+  --log-color-primary: #466b9d; 
+  --log-color-primary-hover: #375d90; 
 }
 
-
-/* =============================================================
-   1. 새로고침 버튼
-============================================================= */
+/* [발송 로그] [새로고침 버튼] */
+/* [발송 로그] [발송 로그 새로고침 버튼] */
 .log-refresh-button {
   display: inline-flex;
   height: 37px;
@@ -30,30 +31,32 @@
   cursor: pointer;
 }
 
+/* [발송 로그] [발송 로그 새로고침 버튼 (비활성화된 상태)] */
 .log-refresh-button:disabled {
   opacity: 0.55;
   cursor: wait;
 }
 
+/* [발송 로그] [새로고침 아이콘] */
 .log-refresh-icon {
   font-size: 19px;
   line-height: 1;
 }
 
+/* [발송 로그] [새로고침 아이콘] */
 .log-refresh-icon.is-spinning {
   animation: log-spin 1s linear infinite;
 }
 
 @keyframes log-spin {
+/* [발송 로그] [새로고침 회전 애니메이션의 종료 위치] */
   to {
     transform: rotate(360deg);
   }
 }
 
-
-/* =============================================================
-   2. 발송 로그 핵심 지표
-============================================================= */
+/* [발송 로그] [발송 로그 핵심 지표] */
+/* [발송 로그] [발송 로그 핵심 지표 카드 배치] */
 .log-metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -61,6 +64,7 @@
   margin-top: 26px;
 }
 
+/* [발송 로그] [발송 로그 핵심 지표 카드] */
 .log-metric-card {
   display: flex;
   min-width: 0;
@@ -68,17 +72,19 @@
   flex-direction: column;
   justify-content: center;
   padding: 19px;
-  border: 1px solid #e7ebf2;
+  border: 1px solid var(--color-border); 
   border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 3px 12px rgba(30, 48, 76, 0.025);
 }
 
+/* [발송 로그] [발송 로그 핵심 지표 카드] */
 .log-metric-card > span {
   color: #8995a7;
   font-size: 10px;
 }
 
+/* [발송 로그] [발송 로그 핵심 지표 카드] */
 .log-metric-card strong {
   margin-top: 9px;
   color: #27364d;
@@ -87,34 +93,36 @@
   letter-spacing: -0.04em;
 }
 
+/* [발송 로그] [발송 로그 핵심 지표 카드] */
 .log-metric-card small {
   margin-top: 6px;
   color: #a0aaba;
   font-size: 9px;
 }
 
+/* [발송 로그] [마지막 조회 시각 지표 카드] */
 .log-metric-update strong {
   font-size: 17px;
   letter-spacing: 0;
 }
 
-
-/* =============================================================
-   3. 조회 조건
-============================================================= */
+/* [발송 로그] [조회 조건] */
+/* [발송 로그] [발송 로그 조회 조건 카드와 발송 이력 카드 공통 외곽] */
 .log-filter-card,
 .log-table-card {
   padding: 22px;
-  border: 1px solid #e7ebf2;
+  border: 1px solid var(--color-border); 
   border-radius: 13px;
   background: #ffffff;
   box-shadow: 0 3px 12px rgba(30, 48, 76, 0.025);
 }
 
+/* [발송 로그] [발송 로그 조회 조건 카드] */
 .log-filter-card {
   margin-top: 23px;
 }
 
+/* [발송 로그] [발송 로그 조회 조건 및 발송 이력 제목 행] */
 .log-section-heading,
 .log-table-heading {
   display: flex;
@@ -123,6 +131,7 @@
   gap: 15px;
 }
 
+/* [발송 로그] [조회 조건·발송 이력 제목 텍스트] */
 .log-section-heading h2,
 .log-table-heading h2 {
   margin: 0;
@@ -131,6 +140,7 @@
   font-weight: 750;
 }
 
+/* [발송 로그] [조회 조건·발송 이력 보조 설명] */
 .log-section-heading p,
 .log-table-heading p {
   margin: 6px 0 0;
@@ -138,6 +148,7 @@
   font-size: 10px;
 }
 
+/* [발송 로그] [발송 로그 검색 조건 초기화 버튼] */
 .log-reset-button {
   padding: 7px 11px;
   border: 1px solid #e4e9f0;
@@ -149,6 +160,7 @@
   cursor: pointer;
 }
 
+/* [발송 로그] [발송 로그 검색 필터 입력 영역] */
 .log-filter-controls {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1.5fr auto;
@@ -157,6 +169,7 @@
   margin-top: 20px;
 }
 
+/* [발송 로그] [발송 로그 검색 필터 입력 영역] */
 .log-filter-controls label {
   display: flex;
   min-width: 0;
@@ -164,12 +177,14 @@
   gap: 7px;
 }
 
+/* [발송 로그] [발송 로그 검색 필터 입력 영역] */
 .log-filter-controls label > span {
   color: #77869a;
   font-size: 10px;
   font-weight: 650;
 }
 
+/* [발송 로그] [발송 로그 검색 필터 입력 영역] */
 .log-filter-controls input,
 .log-filter-controls select {
   width: 100%;
@@ -186,59 +201,62 @@
   box-sizing: border-box;
 }
 
+/* [발송 로그] [발송 로그 검색 필터 입력 영역 (입력 요소에 포커스된 상태)] */
 .log-filter-controls input:focus,
 .log-filter-controls select:focus {
   border-color: #8eacd6;
   box-shadow: 0 0 0 3px rgba(110, 158, 220, 0.1);
 }
 
+/* [발송 로그] [로그 조회 버튼] */
 .log-search-button {
   height: 39px;
   padding: 0 19px;
   border: 0;
   border-radius: 7px;
   color: #ffffff;
-  background: #466b9d;
+  background: var(--log-color-primary); 
   font: inherit;
   font-size: 10px;
   font-weight: 650;
   cursor: pointer;
 }
 
-.log-search-button:hover {
-  background: #375d90;
-}
-
-
-/* =============================================================
-   4. 발송 이력 테이블
-============================================================= */
+/* [발송 로그] [발송 이력 테이블] */
+/* [발송 로그] [발송 이력 테이블 카드] */
 .log-table-card {
   min-width: 0;
   margin-top: 23px;
 }
 
+/* [발송 로그] [발송 이력 테이블 제목] */
 .log-table-heading {
   margin-bottom: 17px;
 }
 
+/* [발송 로그] [발송 이력 테이블 우측 안내 문구] */
 .log-table-caption {
   color: #929eae;
   font-size: 9px;
 }
 
+/* [발송 로그] [발송 이력 테이블 가로 스크롤 영역] */
 .log-table-scroll {
   width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain; 
 }
 
+/* [발송 로그] [발송 이력 테이블 전체] */
 .log-table {
   width: 100%;
+  min-width: 920px; 
   border-collapse: collapse;
   white-space: nowrap;
   text-align: left;
 }
 
+/* [발송 로그] [발송 이력 테이블 전체] */
 .log-table th {
   padding: 12px 13px;
   border-top: 1px solid #edf0f5;
@@ -249,6 +267,7 @@
   font-weight: 700;
 }
 
+/* [발송 로그] [발송 이력 테이블 전체] */
 .log-table td {
   padding: 13px;
   border-bottom: 1px solid #f0f2f6;
@@ -257,15 +276,18 @@
   vertical-align: middle;
 }
 
+/* [발송 로그] [발송 이력 테이블 전체 (마우스를 올린 상태)] */
 .log-table tbody tr:hover {
   background: #fafbfd;
 }
 
+/* [발송 로그] [발송일시 셀] */
 .log-date-cell {
   color: #536278;
   font-variant-numeric: tabular-nums;
 }
 
+/* [발송 로그] [문자·이메일 발송 채널 배지] */
 .log-channel-pill {
   display: inline-flex;
   align-items: center;
@@ -277,6 +299,7 @@
   font-weight: 700;
 }
 
+/* [발송 로그] [수신인 이름 또는 교육기관명 텍스트] */
 .log-recipient-name,
 .log-institution-name {
   display: block;
@@ -285,6 +308,7 @@
   font-weight: 650;
 }
 
+/* [발송 로그] [수신인 연락처 또는 교육과정명 보조 텍스트] */
 .log-recipient-contact,
 .log-course-name {
   display: block;
@@ -297,6 +321,7 @@
   white-space: nowrap;
 }
 
+/* [발송 로그] [문자·이메일 개별 발송 상태 배지] */
 .log-inline-status {
   display: inline-block;
   max-width: 200px;
@@ -308,30 +333,36 @@
   white-space: nowrap;
 }
 
+/* [발송 로그] [정상 발송 상태 배지] */
 .log-inline-success {
   color: #3d9069;
   background: #edf8f2;
 }
 
+/* [발송 로그] [발송 실패 상태 배지] */
 .log-inline-failure {
   color: #bd6464;
   background: #fff0f0;
 }
 
+/* [발송 로그] [테스트 발송 상태 배지] */
 .log-inline-test {
   color: #9b7a39;
   background: #fff8e9;
 }
 
+/* [발송 로그] [발송 스킵 상태 배지] */
 .log-inline-skipped {
   color: #808b9c;
   background: #f1f3f6;
 }
 
+/* [발송 로그] [데이터가 없을 때 표시하는 대시(-)] */
 .log-muted {
   color: #b5bdc9;
 }
 
+/* [발송 로그] [발송 로그 상세 보기 버튼] */
 .log-detail-button {
   padding: 7px 10px;
   border: 1px solid #e4e9f0;
@@ -343,11 +374,13 @@
   cursor: pointer;
 }
 
+/* [발송 로그] [발송 로그 상세 보기 버튼 (마우스를 올린 상태)] */
 .log-detail-button:hover {
   border-color: #a9bed9;
   background: #f5f8fc;
 }
 
+/* [발송 로그] [발송 로그 조회 오류 메시지] */
 .log-error-message {
   margin-bottom: 12px;
   padding: 11px 13px;
@@ -358,20 +391,20 @@
   font-size: 10px;
 }
 
+/* [발송 로그] [발송 이력 테이블 안내 메시지] */
 .log-table-message {
   height: 180px;
   color: #929eae !important;
   text-align: center;
 }
 
+/* [발송 로그] [발송 이력 조회 실패 메시지] */
 .log-table-error {
   color: #bd7777 !important;
 }
 
-
-/* =============================================================
-   5. 페이지네이션
-============================================================= */
+/* [발송 로그] [페이지네이션] */
+/* [발송 로그] [발송 로그 페이지네이션 영역] */
 .log-pagination {
   display: flex;
   align-items: center;
@@ -381,12 +414,14 @@
   font-size: 10px;
 }
 
+/* [발송 로그] [발송 로그 페이지네이션 영역] */
 .log-pagination > div {
   display: flex;
   align-items: center;
   gap: 9px;
 }
 
+/* [발송 로그] [발송 로그 페이지네이션 영역] */
 .log-pagination button {
   padding: 7px 12px;
   border: 1px solid #e4e9f0;
@@ -398,16 +433,15 @@
   cursor: pointer;
 }
 
+/* [발송 로그] [발송 로그 페이지네이션 영역 (비활성화된 상태)] */
 .log-pagination button:disabled {
   color: #b8c0cc;
   background: #f7f8fa;
   cursor: not-allowed;
 }
 
-
-/* =============================================================
-   6. 발송 상세 모달
-============================================================= */
+/* [발송 로그] [발송 상세 모달] */
+/* [발송 로그] [발송 상세 모달 바깥 배경] */
 .log-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -421,24 +455,30 @@
   box-sizing: border-box;
 }
 
+/* [발송 로그] [발송 상세 모달 창] */
 .log-detail-modal {
+  display: flex; 
+  flex-direction: column; 
   width: min(780px, 100%);
   max-height: 90vh;
   overflow: hidden;
-  border: 1px solid #e7ebf2;
+  border: 1px solid var(--color-border); 
   border-radius: 14px;
   background: #ffffff;
   box-shadow: 0 20px 60px rgba(18, 31, 49, 0.2);
 }
 
+/* [발송 로그] [발송 상세 모달 상단 헤더] */
 .log-detail-modal-header {
   display: flex;
+  min-width: 0; 
   align-items: flex-start;
   justify-content: space-between;
   padding: 22px 25px;
   border-bottom: 1px solid #edf0f5;
 }
 
+/* [발송 로그] [발송 상세 모달 영문 소제목] */
 .log-detail-eyebrow {
   margin: 0 0 7px;
   color: #7391b8;
@@ -447,6 +487,7 @@
   letter-spacing: 0.13em;
 }
 
+/* [발송 로그] [발송 상세 모달 상단 헤더] */
 .log-detail-modal-header h2 {
   margin: 0;
   color: #27364d;
@@ -454,6 +495,7 @@
   font-weight: 750;
 }
 
+/* [발송 로그] [발송 상세 모달 상단 헤더 (마지막 항목)] */
 .log-detail-modal-header p:last-child {
   max-width: 500px;
   overflow-wrap: anywhere;
@@ -462,7 +504,9 @@
   font-size: 9px;
 }
 
+/* [발송 로그] [발송 상세 모달 닫기 버튼] */
 .log-modal-close {
+  flex: 0 0 auto; 
   width: 31px;
   height: 31px;
   border: 1px solid #e8edf3;
@@ -473,16 +517,22 @@
   cursor: pointer;
 }
 
+/* [발송 로그] [발송 상세 모달 본문 스크롤 영역] */
 .log-detail-modal-body {
+  flex: 1 1 auto; 
+  min-height: 0; 
   max-height: calc(90vh - 145px);
   overflow-y: auto;
+  overscroll-behavior: contain; 
   padding: 22px 25px;
 }
 
+/* [발송 로그] [발송 상세 모달 정보 섹션] */
 .log-detail-section + .log-detail-section {
   margin-top: 25px;
 }
 
+/* [발송 로그] [발송 상세 모달 정보 섹션] */
 .log-detail-section h3 {
   margin: 0 0 13px;
   color: #45546a;
@@ -490,6 +540,7 @@
   font-weight: 750;
 }
 
+/* [발송 로그] [발송 상세 정보 항목 배치] */
 .log-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -497,6 +548,7 @@
   margin: 0;
 }
 
+/* [발송 로그] [발송 상세 정보의 개별 항목] */
 .log-detail-field {
   min-width: 0;
   padding: 11px 12px;
@@ -505,11 +557,13 @@
   background: #fafbfd;
 }
 
+/* [발송 로그] [발송 상세 정보의 개별 항목] */
 .log-detail-field dt {
   color: #929eae;
   font-size: 9px;
 }
 
+/* [발송 로그] [발송 상세 정보의 개별 항목] */
 .log-detail-field dd {
   overflow-wrap: anywhere;
   margin: 6px 0 0;
@@ -519,6 +573,7 @@
   white-space: pre-wrap;
 }
 
+/* [발송 로그] [문자·이메일 본문 표시 영역] */
 .log-message-body {
   min-height: 60px;
   overflow-wrap: anywhere;
@@ -534,6 +589,7 @@
   white-space: pre-wrap;
 }
 
+/* [발송 로그] [발송 상세 모달 하단 버튼 영역] */
 .log-detail-modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -541,37 +597,39 @@
   border-top: 1px solid #edf0f5;
 }
 
+/* [발송 로그] [발송 상세 모달 닫기 확인 버튼] */
 .log-modal-confirm {
   min-width: 75px;
   height: 34px;
   border: 0;
   border-radius: 6px;
   color: #ffffff;
-  background: #466b9d;
+  background: var(--log-color-primary); 
   font: inherit;
   font-size: 10px;
   cursor: pointer;
 }
 
-
-/* =============================================================
-   7. 반응형
-============================================================= */
+/* [발송 로그] [반응형 레이아웃] */
 @media (max-width: 1100px) {
+/* [발송 로그] [반응형 발송 로그 검색 필터 입력 영역] */
   .log-filter-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+/* [발송 로그] [반응형 로그 조회 버튼] */
   .log-search-button {
     height: 39px;
   }
 }
 
 @media (max-width: 760px) {
+/* [발송 로그] [반응형 발송 로그 핵심 지표 카드 배치] */
   .log-metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+/* [발송 로그] [반응형 발송 로그 조회 조건 카드] */
   .log-filter-card,
   .log-table-card {
     padding: 16px;
@@ -579,38 +637,105 @@
 }
 
 @media (max-width: 560px) {
+/* [발송 로그] [반응형 조회 조건 영역 제목] */
+  .log-section-heading,
+  .log-table-heading {
+    align-items: flex-start; 
+  }
+
+/* [발송 로그] [반응형 조회 조건 영역 제목] */
+  .log-section-heading > div,
+  .log-table-heading > div {
+    min-width: 0; 
+  }
+
+/* [발송 로그] [반응형 발송 로그 검색 필터 입력 영역] */
   .log-filter-controls {
     grid-template-columns: minmax(0, 1fr);
   }
 
+/* [발송 로그] [반응형 로그 조회 버튼] */
   .log-search-button {
     width: 100%;
   }
 
+/* [발송 로그] [반응형 발송 상세 정보 항목 배치] */
   .log-detail-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
+/* [발송 로그] [반응형 발송 상세 모달 바깥 배경] */
   .log-modal-backdrop {
     align-items: flex-start;
     padding: 12px;
   }
 
+/* [발송 로그] [반응형 발송 상세 모달 창] */
   .log-detail-modal {
     margin: auto 0;
     max-height: 94vh;
   }
 
+/* [발송 로그] [반응형 발송 상세 모달 본문 스크롤 영역] */
   .log-detail-modal-body {
     max-height: calc(94vh - 145px);
     padding: 17px;
   }
 
+/* [발송 로그] [반응형 발송 상세 모달 상단 헤더] */
   .log-detail-modal-header {
     padding: 17px;
   }
 
+/* [발송 로그] [반응형 발송 상세 모달 닫기 버튼] */
+  .log-modal-close {
+    width: 34px; 
+    height: 34px; 
+  }
+
+/* [발송 로그] [반응형 발송 상세 모달 하단 버튼 영역] */
   .log-detail-modal-footer {
     padding: 12px 17px;
+  }
+}
+
+/* [발송 로그] [버튼 상호작용 및 키보드 접근성] */
+/* [발송 로그] [발송 로그 새로고침 버튼 (비활성 상태가 아닐 때 마우스를 올린 상태)] */
+.log-refresh-button:hover:not(:disabled),
+.log-reset-button:hover,
+.log-pagination button:hover:not(:disabled),
+.log-modal-close:hover {
+  border-color: #c8d5e6; 
+  background: #f5f8fc; 
+}
+
+/* [발송 로그] [로그 조회 버튼 (마우스를 올린 상태)] */
+.log-search-button:hover {
+  background: var(--log-color-primary-hover); 
+}
+
+/* [발송 로그] [발송 상세 모달 닫기 확인 버튼 (마우스를 올린 상태)] */
+.log-modal-confirm:hover {
+  background: var(--log-color-primary-hover); 
+}
+
+/* [발송 로그] [발송 로그 페이지 전체 및 페이지 전용 색상 변수 (키보드로 포커스된 상태)] */
+.log-data-page button:focus-visible {
+  outline: 3px solid rgba(110, 158, 220, 0.35); 
+  outline-offset: 2px; 
+}
+
+/* [발송 로그] [발송 로그 페이지 전체 및 페이지 전용 색상 변수 (키보드로 포커스된 상태)] */
+.log-data-page input:focus-visible,
+.log-data-page select:focus-visible {
+  outline: 2px solid rgba(110, 158, 220, 0.35); 
+  outline-offset: 1px; 
+}
+
+/* [발송 로그] [모션 최소화 설정] */
+@media (prefers-reduced-motion: reduce) {
+/* [발송 로그] [반응형 새로고침 아이콘] */
+  .log-refresh-icon.is-spinning {
+    animation: none; 
   }
 }
