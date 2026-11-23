@@ -13,7 +13,6 @@
  * - GW·DS 사업별 교육 건수 비교
  * - 지역별 교육 현황
  * - 수요처 및 학교별 현황
- * - 강사별 담당 교육 현황
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -441,41 +440,6 @@ function BusinessStatusPage() {
     )
   }, [filteredGwData, filteredDsData])
 
-  // ===================================================
-  // 강사 집계
-  // ===================================================
-
-  const instructorItems = useMemo(() => {
-    const instructors: string[] = []
-
-    filteredGwData.forEach((record) => {
-      const name = normalizeValue(
-        (record as GWEducationRecord).강사이름,
-      )
-
-      if (name) instructors.push(`GW · ${name}`)
-    })
-
-    filteredDsData.forEach((record) => {
-      const mainInstructor = normalizeValue(
-        (record as DSEducationRecord).주강사명,
-      )
-
-      const assistantInstructor = normalizeValue(
-        (record as DSEducationRecord).보조강사명,
-      )
-
-      if (mainInstructor) {
-        instructors.push(`DS · ${mainInstructor}`)
-      }
-
-      if (assistantInstructor) {
-        instructors.push(`DS · ${assistantInstructor}`)
-      }
-    })
-
-    return getTopItems(instructors, 10)
-  }, [filteredGwData, filteredDsData])
 
   // ===================================================
   // 학생 수 집계
@@ -736,15 +700,6 @@ function BusinessStatusPage() {
           items={destinationItems}
         />
 
-      </section>
-
-      {/* 강사별 현황 */}
-      <section className="section-block">
-        <RankingList
-          title="강사별 담당 교육 현황"
-          description="강사별 담당 교육 데이터 건수"
-          items={instructorItems}
-        />
       </section>
 
       {/* 하단 안내 */}

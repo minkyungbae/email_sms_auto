@@ -6,6 +6,8 @@
  * @updated 2026-11-18
  * @description
  * GW·DS 교육 데이터 조회 화면
+ * 
+ * 20261123 수정: GW, DS의 권역/지역과 수요처명/학교명으로 컬럼 통일 및 DS의 담당교사&보조강사명 추가
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -33,9 +35,9 @@ const PAGE_SIZE = 20
 
 const GW_COLUMNS: TableColumn[] = [
   { key: '근무날짜', label: '근무 날짜' },
-  { key: '지역', label: '지역' },
+  { key: '권역/지역', label: '권역/지역' },
   { key: '강사이름', label: '강사 이름' },
-  { key: '내용(수요처명)', label: '수요처명' },
+  { key: '내용(수요처명)', label: '수요처명/학교명' }, // 20261123 수정: 수요처명 -> 학교명
   { key: '반명', label: '반명' },
   { key: '근무시간', label: '근무시간' },
   { key: '근무유형', label: '근무유형' },
@@ -43,7 +45,8 @@ const GW_COLUMNS: TableColumn[] = [
 
 const DS_COLUMNS: TableColumn[] = [
   { key: '근무날짜', label: '수업 날짜' },
-  { key: '학교명', label: '학교명' },
+  { key: '권역/지역', label: '권역/지역' },
+  { key: '학교명', label: '수요처명/학교명' }, // 20261123 수정: 학교명 -> 수요처명
   { key: '과정명', label: '과정명' },
   { key: '학생수', label: '학생 수' },
   { key: '담당교사명', label: '담당교사' },
@@ -72,6 +75,33 @@ function getValue(
   key: string,
 ): EducationValue | undefined {
   return (record as Record<string, EducationValue | undefined>)[key]
+}
+
+// =======================================
+// 20261123 추가: 사업별 학교명 데이터 통합 조회
+// =======================================
+
+function getEducationPlaceName(
+  record: EducationRecord,
+): EducationValue | undefined {
+  const isDs = '사업구분' in record && record.사업구분 === 'DS'
+
+  return isDs
+    ? getValue(record, '학교명')
+    : getValue(record, '내용(수요처명)')
+}
+
+// =======================================
+// 20261123 추가: 사업별 권역·지역 데이터 통합 조회
+// =======================================
+function getEducationRegionName(
+  record: EducationRecord,
+): EducationValue | undefined {
+  const isDs = '사업구분' in record && record.사업구분 === 'DS'
+
+  return isDs
+    ? getValue(record, '권역')
+    : getValue(record, '지역')
 }
 
 function displayValue(value: EducationValue | undefined): string {
@@ -176,11 +206,12 @@ function EducationDataPage({
     return [
       { key: '근무날짜', label: '교육 날짜' },
       { key: '사업구분', label: '사업' },
-      { key: '지역', label: '지역' },
-      { key: '학교명', label: '학교명' },
+      { key: '권역/지역', label: '권역/지역' },
+      { key: '교육기관명', label: '수요처명/학교명' },
       { key: '강사이름', label: '강사 이름' },
+      { key: '담당교사명', label: '담당교사' }, // 20261123 추가
       { key: '주강사명', label: '주강사' },
-      { key: '내용(수요처명)', label: '수요처명' },
+      { key: '보조강사명', label: '보조강사' }, // 20261123 추가
       { key: '과정명', label: '과정명' },
     ]
   }, [businessFilter])
@@ -366,10 +397,17 @@ function EducationDataPage({
                         </td>
 
                         {columns.map((column) => {
+                          // 20261123 수정: 통합 수요처명/학교명 및 권역·지역 컬럼 데이터 처리
                           const value =
                             column.key === '사업구분'
-                              ? isDs ? 'DS' : 'GW'
-                              : getValue(record, column.key)
+                              ? isDs
+                                ? 'DS'
+                                : 'GW'
+                              : column.key === '교육기관명'
+                                ? getEducationPlaceName(record)
+                                : column.key === '권역/지역'
+                                  ? getEducationRegionName(record)
+                                  : getValue(record, column.key)
 
                           return (
                             <td key={column.key}>

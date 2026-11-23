@@ -20,13 +20,15 @@ import { formatIsoDate, normalizeDateValue } from '../Utils/date'
 
 // =======================================
 // 1. 차트 기본 크기 및 표시 영역
+// 20261123 수정: 전체 너비 확장에 따른 SVG 좌표계 조정
 // =======================================
-const CHART_WIDTH = 560
-const CHART_HEIGHT = 184
-const PLOT_LEFT = 42
-const PLOT_RIGHT = 548
-const PLOT_TOP = 14
-const PLOT_BOTTOM = 145
+const CHART_WIDTH = 1120
+const CHART_HEIGHT = 368
+
+const PLOT_LEFT = 84
+const PLOT_RIGHT = 1096
+const PLOT_TOP = 28
+const PLOT_BOTTOM = 290
 
 // =======================================
 // 2. 차트 조회 기간 및 API 상태 타입
@@ -265,11 +267,12 @@ function EducationTrendChart({
           </span>
         </div>
       ) : (
-        /* SVG 교육 운영 추이 차트 */
+        /* 20261123 수정: 전체 너비에 맞춘 SVG 차트 비율 조정 */
         <div className="trend-chart-wrap">
           <svg
             className="trend-chart"
             viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+            preserveAspectRatio="none"
             role="img"
             aria-label={`최근 ${period}일 교육 운영 추이. GW ${gwTotal}건, DS ${dsTotal}건`}
           >
@@ -291,8 +294,8 @@ function EducationTrendChart({
 
                   <text
                     className="trend-chart-axis-label"
-                    x={PLOT_LEFT - 9}
-                    y={y + 3}
+                    x={PLOT_LEFT - 18}
+                    y={y + 6}
                     textAnchor="end"
                   >
                     {value}
@@ -332,7 +335,7 @@ function EducationTrendChart({
                   className="trend-chart-axis-label"
                   key={point.date}
                   x={x}
-                  y={CHART_HEIGHT - 8}
+                  y={CHART_HEIGHT - 16}
                   textAnchor="middle"
                 >
                   {point.label}
