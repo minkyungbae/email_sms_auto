@@ -16,6 +16,7 @@
  * 
  * 20261117 수정: 불필요한 로그 삭제 및 수정 작업함
  * 20261119 수정: Express 서버가 기존 발송 자동화 프로그램을 호출하도록 수정
+ * 20261123 수정: 한국 시간 기준 날짜 계산 (트리거를 위해서)
  */
 
 
@@ -37,6 +38,7 @@ const LogService = require("./Services/LogService");
 // =============================================================
 // 2. 발송 기준일 계산
 // 반환 형식: YYYY-MM-DD
+// 20261123 수정: 한국 시간 기준 날짜 계산
 // =============================================================
 function getTargetDate(daysBefore) {
 
@@ -45,19 +47,35 @@ function getTargetDate(daysBefore) {
         throw new Error("DAYS_BEFORE는 0 이상의 정수로 설정해야 합니다.");
     }
 
-    // 현재 날짜 기준 계산
-    const today = new Date();
+    // 20261123 수정: 서버 시간대와 관계없이 한국 날짜 기준으로 계산
+    const todayParts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).formatToParts(new Date());
 
+    const today = {};
+
+    todayParts.forEach((part) => {
+        if (part.type !== "literal") {
+            today[part.type] = part.value;
+        }
+    });
+
+    // 기준일 + DAYS_BEFORE
     const targetDate = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() + daysBefore
+        Date.UTC(
+            Number(today.year),
+            Number(today.month) - 1,
+            Number(today.day) + daysBefore
+        )
     );
 
     // YYYY-MM-DD 형식 변환
-    const year = targetDate.getFullYear();
-    const month = String(targetDate.getMonth() + 1).padStart(2, "0");
-    const day = String(targetDate.getDate()).padStart(2, "0");
+    const year = targetDate.getUTCFullYear();
+    const month = String(targetDate.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(targetDate.getUTCDate()).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
 }
