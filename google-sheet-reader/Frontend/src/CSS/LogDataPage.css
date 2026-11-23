@@ -5,6 +5,8 @@
  * @updated 2026-11-20
  * @description
  * 발송 로그 조회 화면 디자인을 설정하는 CSS.
+
+ * 20261123 추가: 발송 이력 정렬 기준
  */
 
 /* [발송 로그 페이지 전체 및 페이지 전용 색상 변수] */
@@ -14,7 +16,6 @@
   --log-color-primary-hover: #375d90; 
 }
 
-/* [새로고침 버튼] */
 /* [발송 로그 새로고침 버튼] */
 .log-refresh-button {
   display: inline-flex;
@@ -737,5 +738,46 @@
 /* [반응형 새로고침 아이콘] */
   .log-refresh-icon.is-spinning {
     animation: none; 
+  }
+}
+
+/* [발송 이력 정렬 기준] */
+.log-sort-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.log-sort-select {
+  min-width: 185px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d9e1ea;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #1f2937;
+  font: inherit;
+  cursor: pointer;
+}
+
+.log-sort-select:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .log-sort-control {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .log-sort-select {
+    min-width: 0;
+    max-width: 220px;
+    flex: 1;
   }
 }
