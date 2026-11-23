@@ -1,5 +1,28 @@
-// 트리거 실행
-// Node.js 스케줄러는 Node 프로세스가 계속 실행되고 있어야 합니다.
-const { createDailySchedule } = require("./Services/02_Scheduler.js");
+/**
+ * @file app.js
+ * @description
+ * 매일 오전 10시 자동 발송 스케줄러 실행
+ */
 
+// =======================================
+// 1. 모듈 불러오기
+// =======================================
+const path = require("path");
+
+const {
+    createDailySchedule,
+} = require(
+    path.join(
+        __dirname,
+        "google-sheet-reader",
+        "src",
+        "Services",
+        "00_Scheduler.js"
+    )
+);
+
+
+// =======================================
+// 2. 트리거 실행
+// =======================================
 createDailySchedule();
