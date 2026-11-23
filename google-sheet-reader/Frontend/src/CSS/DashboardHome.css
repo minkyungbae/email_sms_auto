@@ -4,6 +4,7 @@
  * @created 2026-11-23
  * @updated 2026-11-23
  * @description 대시보드 홈: 환영 배너, 핵심 지표, 서비스 연결, 사업 카드, 푸터
+ * 20261123 수정: 블랙·화이트·그레이 단색 팔레트 통일
  */
 
 
@@ -20,7 +21,7 @@
 .section-heading h2,
 .card-heading h2 {
   margin: 0;
-  color: #29364b;
+  color: #2B2B2B;
   font-size: 20px;
   font-weight: 740;
   letter-spacing: -0.035em;
@@ -30,7 +31,7 @@
 .section-heading p,
 .card-heading p {
   margin: 5px 0 0;
-  color: #929eae;
+  color: #888888;
   font-size: 10px;
 }
 
@@ -39,13 +40,13 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #9a854f;
+  color: #888888;
   font-size: 9px;
   font-weight: 650;
 }
 
 /* [대기 상태 안내 문구] */
-.waiting-label > span { background: #dfb65e; }
+.waiting-label > span { background: #B5B5B5; }
 
 /* [대시보드 핵심 지표 카드 배치] */
 .metric-grid {
@@ -58,10 +59,10 @@
 .metric-card {
   min-height: 143px;
   padding: 17px 18px 15px;
-  border: 1px solid #e9edf3;
+  border: 1px solid #ECECEC;
   border-radius: 11px;
-  background: #fff;
-  box-shadow: 0 2px 7px rgba(25, 44, 73, 0.025);
+  background: #FFFFFF;
+  box-shadow: 0 2px 7px rgba(43, 43, 43, 0.025);
   box-sizing: border-box;
 }
 
@@ -74,19 +75,19 @@
   border-radius: 9px;
 }
 
-/* [파란색 지표 아이콘] */
-.metric-icon-blue { color: #5688cb; background: #f3f3f3; }
-/* [보라색 지표 아이콘] */
-.metric-icon-violet { color: #8878d7; background: #f3f3f3; }
-/* [민트색 지표 아이콘] */
-.metric-icon-mint { color: #4caa97; background: #f3f3f3; }
-/* [주황색 지표 아이콘] */
-.metric-icon-amber { color: #c49343; background: #f3f3f3; }
+/* [첫 번째 핵심 지표 아이콘] */
+.metric-icon-blue { color: #888888; background: #ECECEC; }
+/* [두 번째 핵심 지표 아이콘] */
+.metric-icon-violet { color: #888888; background: #ECECEC; }
+/* [세 번째 핵심 지표 아이콘] */
+.metric-icon-mint { color: #888888; background: #ECECEC; }
+/* [네 번째 핵심 지표 아이콘] */
+.metric-icon-amber { color: #888888; background: #ECECEC; }
 
 /* [지표 이름 텍스트] */
 .metric-label {
   margin: 12px 0 0;
-  color: #8995a6;
+  color: #888888;
   font-size: 12px;
   font-weight: 550;
 }
@@ -94,7 +95,7 @@
 /* [지표 숫자 값] */
 .metric-value {
   margin: 3px 0 0;
-  color: #26344b;
+  color: #2B2B2B;
   font-size: 23px;
   font-weight: 760;
   line-height: 1.25;
@@ -107,7 +108,7 @@
 /* [지표 보조 설명] */
 .metric-detail {
   margin: 6px 0 0;
-  color: #a1aab8;
+  color: #B5B5B5;
   font-size: 11px;
 }
 
@@ -124,10 +125,10 @@
 /* [대시보드 공통 흰색 카드] */
 .surface-card {
   min-width: 0;
-  border: 1px solid #e9edf3;
+  border: 1px solid #ECECEC;
   border-radius: 11px;
-  background: #fff;
-  box-shadow: 0 2px 7px rgba(25, 44, 73, 0.025);
+  background: #FFFFFF;
+  box-shadow: 0 2px 7px rgba(43, 43, 43, 0.025);
 }
 
 /* [교육 운영 추이 차트 카드] */
@@ -146,9 +147,9 @@
   align-items: center;
   gap: 5px;
   padding: 6px 8px;
-  border: 1px solid #edf0f5;
+  border: 1px solid #ECECEC;
   border-radius: 6px;
-  color: #8b97a8;
+  color: #888888;
   font-size: 9px;
 }
 
@@ -169,16 +170,16 @@
   width: 43px;
   height: 43px;
   place-items: center;
-  border: 1px solid #e7edf6;
+  border: 1px solid #ECECEC;
   border-radius: 13px;
-  color: #8ba4c5;
-  background: #f5f8fc;
+  color: #B5B5B5;
+  background: #FFFFFF;
 }
 
 /* [차트 데이터가 없을 때 표시 영역] */
 .chart-empty-state strong {
   margin-top: 12px;
-  color: #536176;
+  color: #666666;
   font-size: 10px;
   font-weight: 700;
 }
@@ -186,7 +187,7 @@
 /* [차트 데이터가 없을 때 표시 영역] */
 .chart-empty-state p {
   margin: 5px 0 0;
-  color: #a0aaba;
+  color: #B5B5B5;
   font-size: 9px;
   line-height: 1.65;
 }
@@ -197,8 +198,8 @@
   align-items: center;
   gap: 13px;
   padding-top: 10px;
-  border-top: 1px solid #f0f2f6;
-  color: #8793a4;
+  border-top: 1px solid #ECECEC;
+  color: #888888;
   font-size: 9px;
 }
 
@@ -224,7 +225,7 @@
 /* [차트 범례 보조 안내] */
 .legend-hint {
   margin-left: auto;
-  color: #b0b8c4;
+  color: #B5B5B5;
   font-size: 8px;
 }
 
@@ -242,8 +243,8 @@
   height: 31px;
   place-items: center;
   border-radius: 8px;
-  color: #7796be;
-  background: #f0f5fc;
+  color: #888888;
+  background: #ECECEC;
 }
 
 /* [서비스 연결 항목 목록] */
@@ -255,7 +256,7 @@
   align-items: center;
   gap: 9px;
   padding: 10px 0;
-  border-bottom: 1px solid #f0f2f6;
+  border-bottom: 1px solid #ECECEC;
 }
 
 /* [개별 서비스 연결 항목 (마지막 항목)] */
@@ -269,8 +270,8 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 8px;
-  color: #7d91ad;
-  background: #f3f6fa;
+  color: #888888;
+  background: #ECECEC;
 }
 
 /* [서비스 이름과 설명] */
@@ -284,14 +285,14 @@
 
 /* [서비스 이름과 설명] */
 .connection-copy strong {
-  color: #4d5b70;
+  color: #666666;
   font-size: 9px;
   font-weight: 700;
 }
 
 /* [서비스 이름과 설명] */
 .connection-copy span {
-  color: #a0aab8;
+  color: #B5B5B5;
   font-size: 8px;
 }
 
@@ -315,30 +316,30 @@
 
 /* [정상 연결 상태 배지] */
 .status-ready {
-  color: #438c78;
-  background: #edf8f4;
+  color: #888888;
+  background: #ECECEC;
 }
 
 /* [정상 연결 상태 배지] */
-.status-ready .status-dot { background: #64b49d; }
+.status-ready .status-dot { background: #B5B5B5; }
 
 /* [확인 대기 상태 배지] */
 .status-waiting {
-  color: #a18348;
-  background: #fff8eb;
+  color: #888888;
+  background: #FFFFFF;
 }
 
 /* [확인 대기 상태 배지] */
-.status-waiting .status-dot { background: #dfb65e; }
+.status-waiting .status-dot { background: #B5B5B5; }
 
 /* [연결 오류 상태 배지] */
 .status-error {
-  color: #b96d6d;
-  background: #fff1f1;
+  color: #888888;
+  background: #ECECEC;
 }
 
 /* [연결 오류 상태 배지] */
-.status-error .status-dot { background: #d68181; }
+.status-error .status-dot { background: #888888; }
 
 /* [서비스 연결 관련 안내 문구] */
 .connection-note {
@@ -348,15 +349,15 @@
   margin-top: 7px;
   padding: 8px 9px;
   border-radius: 6px;
-  color: #8d9bb0;
-  background: #f7f9fc;
+  color: #888888;
+  background: #FFFFFF;
   font-size: 14px;
 }
 
 /* [사업별 현황 섹션] */
 .business-section { margin-top: 30px; }
 /* [섹션 우측 보조 설명] */
-.section-caption { color: #9da8b7; font-size: 9px; }
+.section-caption { color: #B5B5B5; font-size: 9px; }
 
 /* [사업 카드 배치 영역] */
 .business-card-grid {
@@ -374,9 +375,9 @@
   justify-content: space-between;
   overflow: hidden;
   padding: 16px 18px 0;
-  border: 1px solid #e7ebf2;
+  border: 1px solid #ECECEC;
   border-radius: 11px;
-  background: #fff;
+  background: #FFFFFF;
   box-sizing: border-box;
 }
 
@@ -387,11 +388,11 @@
   right: -32px;
   width: 126px;
   height: 126px;
-  border: 1px solid rgba(103, 144, 197, 0.09);
+  border: 1px solid rgba(136, 136, 136, 0.09);
   border-radius: 50%;
   content: '';
-  box-shadow: 0 0 0 15px rgba(103, 144, 197, 0.025),
-    0 0 0 31px rgba(103, 144, 197, 0.02);
+  box-shadow: 0 0 0 15px rgba(136, 136, 136, 0.025),
+    0 0 0 31px rgba(136, 136, 136, 0.02);
 }
 
 /* [사업 카드 상단 영역] */
@@ -417,29 +418,29 @@
 
 /* [GW 사업 카드의 파란색 심볼] */
 .business-card-gw .business-symbol {
-  color: #527db7;
-  background: #edf4ff;
+  color: #888888;
+  background: #ECECEC;
 }
 
 /* [DS 사업 카드의 초록색 심볼] */
 .business-card-ds .business-symbol {
-  color: #318d3c; 
-  background: rgba(97, 230, 108, 0.14); 
+  color: #888888; 
+  background: rgba(208, 208, 208, 0.14); 
 }
 
 /* [사업 운영 상태 배지] */
 .business-status {
   padding: 4px 7px;
   border-radius: 5px;
-  color: #999faa;
-  background: #f4f6f9;
+  color: #888888;
+  background: #FFFFFF;
   font-size: 8px;
 }
 
 /* [사업 카드 영문 소제목] */
 .business-overline {
   margin: 10px 0 3px;
-  color: #9ba7b8;
+  color: #B5B5B5;
   font-size: 8px;
   font-weight: 750;
   letter-spacing: 0.12em;
@@ -448,7 +449,7 @@
 /* [개별 사업 현황 카드] */
 .business-card h3 {
   margin: 0;
-  color: #344259;
+  color: #454545;
   font-size: 13px;
   font-weight: 740;
   letter-spacing: -0.03em;
@@ -457,7 +458,7 @@
 /* [사업 카드 설명 문구] */
 .business-description {
   margin: 5px 0 11px;
-  color: #929eae;
+  color: #888888;
   font-size: 9px;
 }
 
@@ -470,13 +471,13 @@
   justify-content: space-between;
   margin: 0 -18px;
   padding: 10px 18px;
-  border-top: 1px solid #f0f2f6;
-  color: #8090a5;
+  border-top: 1px solid #ECECEC;
+  color: #888888;
   font-size: 9px;
 }
 
 /* [사업 카드 하단 이동 영역] */
-.business-card-footer svg { color: #aab4c1; }
+.business-card-footer svg { color: #B5B5B5; }
 
 /* [페이지 하단 푸터] */
 .page-footer {
@@ -484,8 +485,8 @@
   justify-content: space-between;
   margin-top: 31px;
   padding-top: 14px;
-  border-top: 1px solid #e9edf3;
-  color: #a0aab8;
+  border-top: 1px solid #ECECEC;
+  color: #B5B5B5;
   font-size: 8px;
 }
 
@@ -494,4 +495,3 @@
   font-weight: 750;
   letter-spacing: 0.12em;
 }
-

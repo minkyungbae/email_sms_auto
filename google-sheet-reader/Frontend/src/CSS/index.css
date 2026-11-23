@@ -1,14 +1,14 @@
-
 /**
  * @file index.css
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-20
+ * @updated 2026-11-23
  * @description
+ * 20261123 수정: 블랙·화이트·그레이 단색 팔레트 통일
  * 전역 폰트, 기본 페이지 설정, 공통 색상 변수 및 접근성 스타일.
- */
+ * [공통] [전역 기본값 및 공통 색상 변수: 페이지 전체에서 재사용]
+ * 20261123 수정: 블랙·화이트·그레이 단색 디자인 시스템 */
 
-/* [공통] [전역 기본값 및 공통 색상 변수: 페이지 전체에서 재사용] */
 :root {
   font-family:
     Inter,
@@ -17,8 +17,8 @@
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  color: #171717;
-  background: #f8f8f8;
+  color: var(--color-text);
+  background: var(--color-page);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -27,14 +27,26 @@
   font-weight: 400;
   color-scheme: light;
 
-  /* [공통] [사업별 대표 색상] */
-  --color-gw: #70a7f6; 
-  --color-ds: #61e66c; 
+  /* [공통] [블랙·화이트·그레이 디자인 토큰] */
+  --color-black: #111111;
+  --color-charcoal: #252525;
+  --color-dark-gray: #3B3B3B;
+  --color-gray: #737373;
+  --color-muted: #858585;
+  --color-border: #DEDEDE;
+  --color-soft: #F3F3F3;
+  --color-white: #FFFFFF;
 
-  /* [공통] [공통 텍스트·테두리 색상] */
-  --color-text: #26344b; 
-  --color-muted: #8793a4; 
-  --color-border: #e7ebf2; 
+  /* [공통] [사업별 구분: 색상 대신 명도 차이로 구분] */
+  --color-gw: #406cfc;
+  --color-ds: #4ae01c;
+
+  /* [공통] [공통 텍스트·배경·테두리 색상] */
+  --color-text: #1A1A1A;
+  --color-page: #F5F5F5;
+  --color-surface: #FFFFFF;
+  --color-primary: #252525;
+  --color-primary-hover: #3B3B3B;
 }
 
 /* [공통] [모든 요소: padding과 border를 너비·높이에 포함] */
@@ -46,7 +58,7 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #f8f8f8;
+  background: var(--color-page);
 }
 
 /* [공통] [페이지 본문: 기본 여백 제거 및 최소 화면 높이 설정] */
@@ -73,12 +85,12 @@ button {
 /* [공통] [버튼과 링크: 키보드로 포커스했을 때 외곽선 표시] */
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid rgba(128, 128, 128, 0.35);
+  outline: 3px solid rgba(136, 136, 136, 0.35);
   outline-offset: 2px;
 }
 
 /* [공통] [텍스트 선택 영역: 드래그로 선택한 글자의 색상] */
 ::selection {
-  color: #313131;
-  background: #e8e8e8;
+  color: #2B2B2B;
+  background: #ECECEC;
 }

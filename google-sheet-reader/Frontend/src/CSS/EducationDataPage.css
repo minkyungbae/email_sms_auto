@@ -4,6 +4,7 @@
  * @created 2026-11-23
  * @updated 2026-11-23
  * @description 교육 데이터 조회 페이지
+ * 20261123 수정: 블랙·화이트·그레이 단색 팔레트 통일
  */
 
 /* [교육 데이터 조회 화면] */
@@ -16,10 +17,10 @@
 .education-filter-card,
 .education-table-card {
   padding: 22px;
-  border: 1px solid #e7ebf2;
+  border: 1px solid #ECECEC;
   border-radius: 13px;
-  background: #ffffff;
-  box-shadow: 0 3px 12px rgba(30, 48, 76, 0.025);
+  background: #FFFFFF;
+  box-shadow: 0 3px 12px rgba(43, 43, 43, 0.025);
 }
 
 /* [교육 데이터 조회 조건 카드] */
@@ -31,7 +32,7 @@
 .education-filter-heading h2,
 .education-table-heading h2 {
   margin: 0;
-  color: #344259;
+  color: #454545;
   font-size: 14px;
   font-weight: 750;
 }
@@ -40,7 +41,7 @@
 .education-filter-heading p,
 .education-table-heading p {
   margin: 6px 0 0;
-  color: #929eae;
+  color: #888888;
   font-size: 12px;
 }
 
@@ -63,7 +64,7 @@
 
 /* [교육 데이터 조회 필터 입력 영역] */
 .education-filter-controls label span {
-  color: #77869a;
+  color: #888888;
   font-size: 12px;
   font-weight: 650;
 }
@@ -74,11 +75,11 @@
   width: 100%;
   height: 39px;
   padding: 0 10px;
-  border: 1px solid #e4e9f0;
+  border: 1px solid #ECECEC;
   border-radius: 7px;
   outline: none;
-  color: #45556d;
-  background: #ffffff;
+  color: #454545;
+  background: #FFFFFF;
   font: inherit;
   font-size: 12px;
 }
@@ -86,8 +87,8 @@
 /* [교육 데이터 조회 필터 입력 영역 (입력 요소에 포커스된 상태)] */
 .education-filter-controls input:focus,
 .education-filter-controls select:focus {
-  border-color: #8eacd6;
-  box-shadow: 0 0 0 3px rgba(110, 158, 220, 0.1);
+  border-color: #B5B5B5;
+  box-shadow: 0 0 0 3px rgba(136, 136, 136, 0.1);
 }
 
 /* [교육 데이터 조회 버튼] */
@@ -96,8 +97,8 @@
   padding: 0 18px;
   border: 0;
   border-radius: 7px;
-  color: #ffffff;
-  background: #466b9d;
+  color: #FFFFFF;
+  background: var(--color-primary);
   font: inherit;
   font-size: 12px;
   font-weight: 650;
@@ -127,13 +128,13 @@
 
 /* [교육 데이터 조회 결과 요약] */
 .education-result-summary > div span {
-  color: #929eae;
+  color: #888888;
   font-size: 12px;
 }
 
 /* [교육 데이터 조회 결과 요약] */
 .education-result-summary > div strong {
-  color: #344259;
+  color: #454545;
   font-size: 17px;
   font-weight: 750;
 }
@@ -141,7 +142,7 @@
 /* [교육 데이터 조회 기간 표시] */
 .education-result-period {
   margin-left: auto;
-  color: #929eae;
+  color: #888888;
   font-size: 9px;
 }
 
@@ -172,10 +173,10 @@
 /* [교육 데이터 표] */
 .education-table th {
   padding: 12px 13px;
-  border-top: 1px solid #edf0f5;
-  border-bottom: 1px solid #e8edf3;
-  color: #77869a;
-  background: #f8f9fc;
+  border-top: 1px solid #ECECEC;
+  border-bottom: 1px solid #ECECEC;
+  color: #888888;
+  background: #FFFFFF;
   font-size: 12px;
   font-weight: 700;
 }
@@ -183,14 +184,14 @@
 /* [교육 데이터 표] */
 .education-table td {
   padding: 13px;
-  border-bottom: 1px solid #f0f2f6;
-  color: #536278;
+  border-bottom: 1px solid #d6d6d6;
+  color: #888888;
   font-size: 12px;
 }
 
 /* [교육 데이터 표 (마우스를 올린 상태)] */
 .education-table tbody tr:hover {
-  background: #fafbfd;
+  background: #FFFFFF;
 }
 
 /* [교육 데이터 사업 구분 배지] */
@@ -205,14 +206,14 @@
 
 /* [GW 사업 구분 배지] */
 .badge-gw {
-  color: #527db7;
-  background: #edf4ff;
+  color: #888888;
+  background: #ECECEC;
 }
 
 /* [DS 사업 구분 배지] */
 .badge-ds {
-  color: #318d3c; 
-  background: rgba(97, 230, 108, 0.14); 
+  color: #888888; 
+  background: rgba(208, 208, 208, 0.14); 
 }
 
 /* [교육 데이터 테이블 안내 메시지] */
@@ -221,14 +222,14 @@
   min-height: 190px;
   align-items: center;
   justify-content: center;
-  color: #929eae;
+  color: #888888;
   font-size: 11px;
   text-align: center;
 }
 
 /* [교육 데이터 조회 오류 메시지] */
 .education-table-error {
-  color: #bd7777;
+  color: #888888;
 }
 
 /* [교육 데이터 페이지네이션 영역] */
@@ -237,7 +238,7 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 17px;
-  color: #929eae;
+  color: #888888;
   font-size: 12px;
 }
 
@@ -250,10 +251,10 @@
 /* [교육 데이터 페이지네이션 영역] */
 .education-pagination button {
   padding: 7px 12px;
-  border: 1px solid #e4e9f0;
+  border: 1px solid #ECECEC;
   border-radius: 6px;
-  color: #64758d;
-  background: #ffffff;
+  color: #666666;
+  background: #FFFFFF;
   font: inherit;
   font-size: 9px;
   cursor: pointer;
@@ -261,8 +262,8 @@
 
 /* [교육 데이터 페이지네이션 영역 (비활성화된 상태)] */
 .education-pagination button:disabled {
-  color: #b8c0cc;
-  background: #f7f8fa;
+  color: #B5B5B5;
+  background: #FFFFFF;
   cursor: not-allowed;
 }
 
@@ -279,7 +280,7 @@ button.nav-item {
 
 /* [현재 선택된 사이드바 메뉴 버튼] */
 button.nav-item.nav-item-active {
-  background: #3b3b3b; 
+  background: #454545; 
 }
 
 /* [사업 카드 하단 이동 영역] */
@@ -296,7 +297,7 @@ button.business-card-footer {
 
 /* [사업 카드 하단 이동 영역 (마우스를 올린 상태)] */
 button.business-card-footer:hover {
-  color: #527db7;
+  color: #888888;
 }
 
 @media (max-width: 900px) {

@@ -4,6 +4,7 @@
  * @created 2026-11-23
  * @updated 2026-11-23
  * @description 사업 현황 페이지 및 사업 현황 반응형 레이아웃
+ * 20261123 수정: 블랙·화이트·그레이 단색 팔레트 통일
  */
 
 
@@ -16,9 +17,9 @@
 .business-filter-panel {
   margin-top: 27px;
   padding: 19px 21px;
-  border: 1px solid #e8edf4;
+  border: 1px solid #ECECEC;
   border-radius: 11px;
-  background: #fff;
+  background: #FFFFFF;
 }
 
 /* [사업 현황 조회 조건 제목] */
@@ -31,13 +32,13 @@
 
 /* [사업 현황 조회 조건 제목] */
 .business-filter-heading strong {
-  color: #354158;
+  color: #454545;
   font-size: 14px;
 }
 
 /* [사업 현황 조회 조건 제목] */
 .business-filter-heading span {
-  color: #9aa5b5;
+  color: #B5B5B5;
   font-size: 12px;
 }
 
@@ -59,7 +60,7 @@
 
 /* [사업 현황 필터 입력 영역] */
 .business-filter-controls label > span {
-  color: #738197;
+  color: #888888;
   font-size: 12px;
   font-weight: 650;
 }
@@ -70,11 +71,11 @@
   width: 100%;
   height: 38px;
   padding: 0 10px;
-  border: 1px solid #e5eaf1;
+  border: 1px solid #ECECEC;
   border-radius: 7px;
   outline: none;
-  color: #4b5870;
-  background: #fbfcfe;
+  color: #666666;
+  background: #FFFFFF;
   font-family: inherit;
   font-size: 11px;
   box-sizing: border-box;
@@ -83,7 +84,7 @@
 /* [사업 현황 필터 입력 영역 (입력 요소에 포커스된 상태)] */
 .business-filter-controls input:focus,
 .business-filter-controls select:focus {
-  border-color: #829fc6;
+  border-color: #888888;
 }
 
 /* [사업 현황 조회 버튼] */
@@ -93,8 +94,8 @@
   padding: 0 19px;
   border: 0;
   border-radius: 7px;
-  color: #fff;
-  background: #344d70;
+  color: #FFFFFF;
+  background: var(--color-primary);
   font-family: inherit;
   font-size: 11px;
   font-weight: 650;
@@ -103,7 +104,7 @@
 
 /* [사업 현황 조회 버튼 (마우스를 올린 상태)] */
 .business-search-button:hover {
-  background: #263e60;
+  background: var(--color-primary-hover);
 }
 
 /* [사업 현황 조회 버튼 (비활성화된 상태)] */
@@ -131,7 +132,7 @@
   align-items: center;
   gap: 8px;
   margin-top: 15px;
-  color: #8290a3;
+  color: #888888;
   font-size: 11px;
 }
 
@@ -140,23 +141,23 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #61b69b;
+  background: #B5B5B5;
 }
 
 /* [사업 현황 API 연결 상태 영역 (마지막 항목)] */
 .business-data-status > span:last-child {
   margin-left: auto;
-  color: #a0aab8;
+  color: #B5B5B5;
 }
 
 /* [사업 현황 조회 오류 메시지] */
 .business-error-message {
   margin-top: 12px;
   padding: 11px 13px;
-  border: 1px solid #f0dede;
+  border: 1px solid #ECECEC;
   border-radius: 7px;
-  color: #ad6262;
-  background: #fff8f8;
+  color: #666666;
+  background: #FFFFFF;
   font-size: 11px;
 }
 
@@ -175,9 +176,9 @@
   min-height: 139px;
   padding: 19px 19px 15px;
   overflow: hidden;
-  border: 1px solid #e8edf4;
+  border: 1px solid #ECECEC;
   border-radius: 11px;
-  background: #fff;
+  background: #FFFFFF;
   box-sizing: border-box;
 }
 
@@ -190,30 +191,30 @@
   border-radius: 5px;
 }
 
-/* [사업 지표 파란색 강조 표시] */
+/* [사업 지표 첫 번째 강조 표시] */
 .business-tone-blue {
-  background: #828283;
+  background: #888888;
 }
 
-/* [사업 지표 보라색 강조 표시] */
+/* [사업 지표 두 번째 강조 표시] */
 .business-tone-violet {
   background: var(--color-gw);
 }
 
-/* [사업 지표 초록색 강조 표시] */
+/* [사업 지표 세 번째 강조 표시] */
 .business-tone-green {
   background: var(--color-ds); 
 }
 
-/* [사업 지표 주황색 강조 표시] */
+/* [사업 지표 네 번째 강조 표시] */
 .business-tone-amber {
-  background: #828283;
+  background: #888888;
 }
 
 /* [사업 현황 핵심 지표 카드] */
 .business-metric-card p {
   margin: 0;
-  color: #8995a6;
+  color: #888888;
   font-size: 12px;
 }
 
@@ -221,7 +222,7 @@
 .business-metric-card strong {
   display: block;
   margin-top: 6px;
-  color: #28364c;
+  color: #2B2B2B;
   font-size: 25px;
   font-weight: 760;
   letter-spacing: -0.045em;
@@ -231,7 +232,7 @@
 .business-metric-card > span:last-child {
   display: block;
   margin-top: 7px;
-  color: #a0aaba;
+  color: #B5B5B5;
   font-size: 9px;
 }
 
@@ -241,9 +242,9 @@
 .business-status-card {
   min-width: 0;
   padding: 20px;
-  border: 1px solid #e8edf4;
+  border: 1px solid #ECECEC;
   border-radius: 11px;
-  background: #fff;
+  background: #FFFFFF;
   box-sizing: border-box;
 }
 
@@ -259,7 +260,7 @@
 /* [사업 통계 카드 제목 영역] */
 .business-status-card-heading h3 {
   margin: 0;
-  color: #29364b;
+  color: #2B2B2B;
   font-size: 13px;
   font-weight: 740;
 }
@@ -267,14 +268,14 @@
 /* [사업 통계 카드 제목 영역] */
 .business-status-card-heading p {
   margin: 5px 0 0;
-  color: #929eae;
+  color: #888888;
   font-size: 9px;
 }
 
 /* [사업 통계 카드 제목 영역] */
 .business-status-card-heading > span {
   flex: 0 0 auto;
-  color: #a0aaba;
+  color: #B5B5B5;
   font-size: 9px;
 }
 
@@ -319,7 +320,7 @@
 
 /* [GW·DS 사업 비교 요약 영역] */
 .comparison-summary strong {
-  color: #7d899b;
+  color: #888888;
   font-size: 12px;
   font-weight: 550;
 }
@@ -327,7 +328,7 @@
 /* [GW·DS 사업 비교 요약 영역] */
 .comparison-summary b {
   margin-left: auto;
-  color: #344158;
+  color: #454545;
   font-size: 13px;
 }
 
@@ -349,14 +350,14 @@
 
 /* [사업별 비교 막대 한 줄] */
 .comparison-bar-row > span {
-  color: #718097;
+  color: #888888;
   font-size: 12px;
   font-weight: 700;
 }
 
 /* [사업별 비교 막대 한 줄] */
 .comparison-bar-row > strong {
-  color: #4d5b70;
+  color: #666666;
   font-size: 14px;
   text-align: right;
 }
@@ -366,7 +367,7 @@
   height: 12px;
   overflow: hidden;
   border-radius: 10px;
-  background: #f0f3f8;
+  background: #ECECEC;
 }
 
 /* [사업별 비교 수치 막대] */
@@ -394,14 +395,14 @@
   justify-content: space-between;
   margin-top: 25px;
   padding-top: 15px;
-  border-top: 1px solid #edf0f5;
-  color: #8995a6;
+  border-top: 1px solid #ECECEC;
+  color: #888888;
   font-size: 12px;
 }
 
 /* [사업별 학생 수 합계 요약] */
 .comparison-student-summary strong {
-  color: #394960;
+  color: #454545;
   font-size: 13px;
 }
 
@@ -445,7 +446,7 @@
   align-items: center;
   gap: 9px;
   overflow: hidden;
-  color: #66748a;
+  color: #666666;
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -459,8 +460,8 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 5px;
-  color: #8291a7;
-  background: #f1f4f8;
+  color: #888888;
+  background: #ECECEC;
   font-size: 9px;
   font-style: normal;
   font-weight: 700;
@@ -469,7 +470,7 @@
 /* [순위 항목의 이름과 건수] */
 .business-ranking-top strong {
   flex: 0 0 auto;
-  color: #45546a;
+  color: #454545;
   font-size: 12px;
 }
 
@@ -478,19 +479,19 @@
   height: 6px;
   overflow: hidden;
   border-radius: 8px;
-  background: #f0f3f7;
+  background: #ECECEC;
 }
 
 /* [순위별 수치 막대] */
 .business-ranking-bar {
   height: 100%;
   border-radius: 8px;
-  background: #c9c9c9;
+  background: #D0D0D0;
 }
 
 /* [지역·수요처 순위 항목 (짝수 번째 항목)] */
 .business-ranking-item:nth-child(2n) .business-ranking-bar {
-  background: #828283;
+  background: #888888;
 }
 
 /* [사업 현황 데이터 없음 안내] */
@@ -498,7 +499,7 @@
   display: grid;
   min-height: 110px;
   place-items: center;
-  color: #a0aaba;
+  color: #B5B5B5;
   font-size: 12px;
 }
 
@@ -575,14 +576,14 @@
 
 /* [사업 현황 오류 상태 표시] */
 .business-status-error {
-  color: #b96d6d;
-  background: #fff1f1;
+  color: #888888;
+  background: #ECECEC;
 }
 
 /* [교육 추이 SVG 차트] */
 /* [교육 추이 차트 격자선] */
 .trend-chart-grid-line {
-  stroke: #edf1f6;
+  stroke: #ECECEC;
   stroke-width: 1;
   stroke-dasharray: 3 4;
 }
@@ -590,7 +591,7 @@
 /* [교육 추이 차트 축 레이블] */
 /* 20261123 수정: SVG 확대에 따른 축 글씨 크기 조정 */
 .trend-chart-axis-label {
-  fill: #9aa5b4;
+  fill: #B5B5B5;
   font-size: 9px;
 }
 
@@ -606,7 +607,7 @@
 /* [GW 교육 추이 그래프 선] */
 .trend-chart-line-gw { stroke: var(--color-gw); } 
 /* [DS 교육 추이 그래프 선] */
-.trend-chart-line-ds { stroke: var(--color-ds); } 
+.trend-chart-line-ds { stroke: var(--color-ds); stroke-dasharray: 8 5; } 
 
 @media (max-width: 560px) {
 /* [반응형 대시보드 제목 우측 액션 버튼 묶음] */

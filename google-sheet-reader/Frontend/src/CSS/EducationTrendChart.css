@@ -4,6 +4,7 @@
  * @created 2026-11-23
  * @updated 2026-11-23
  * @description 대시보드 교육 운영 추이 차트
+ * 20261123 수정: 블랙·화이트·그레이 단색 팔레트 통일
  */
 
 /* [교육 운영 추이 차트] */
@@ -13,9 +14,9 @@
   align-items: center;
   gap: 3px;
   padding: 3px;
-  border: 1px solid #edf0f5;
+  border: 1px solid #ECECEC;
   border-radius: 7px;
-  background: #f8f9fc;
+  background: #FFFFFF;
 }
 
 /* [교육 추이 기간 선택 버튼] */
@@ -24,7 +25,7 @@
   padding: 5px 7px;
   border: 0;
   border-radius: 5px;
-  color: #8b97a8;
+  color: #888888;
   background: transparent;
   font: inherit;
   font-size: 9px;
@@ -33,9 +34,9 @@
 
 /* [현재 선택된 교육 추이 기간 버튼] */
 .period-button.active {
-  color: #476b9d;
-  background: #ffffff;
-  box-shadow: 0 1px 4px rgba(25, 44, 73, 0.1);
+  color: #666666;
+  background: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(43, 43, 43, 0.1);
 }
 
 /* [교육 추이 기간 선택 버튼 (비활성화된 상태)] */
@@ -61,13 +62,13 @@
 
 /* [교육 추이 요약 정보] */
 .trend-summary span {
-  color: #929eae;
+  color: #888888;
   font-size: 9px;
 }
 
 /* [교육 추이 요약 정보] */
 .trend-summary strong {
-  color: #26344b;
+  color: #2B2B2B;
   font-size: 22px;
   font-weight: 760;
   letter-spacing: -0.04em;
@@ -103,14 +104,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #8793a4;
+  color: #888888;
   font-size: 10px;
   text-align: center;
 }
 
 /* [교육 추이 차트 오류 안내] */
 .chart-error strong {
-  color: #bd7777;
+  color: #888888;
 }
 
 /* [교육 추이 차트 오류 안내] */
@@ -124,10 +125,10 @@
 /* [교육 추이 차트 다시 시도 버튼] */
 .chart-retry-button {
   padding: 6px 10px;
-  border: 1px solid #e2e7ef;
+  border: 1px solid #ECECEC;
   border-radius: 6px;
-  color: #647d9e;
-  background: #f8fafd;
+  color: #888888;
+  background: #FFFFFF;
   font: inherit;
   font-size: 9px;
   cursor: pointer;

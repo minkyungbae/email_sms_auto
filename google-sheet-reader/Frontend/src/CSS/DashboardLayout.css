@@ -4,13 +4,14 @@
  * @created 2026-11-23
  * @updated 2026-11-23
  * @description 공통 대시보드 뼈대: 사이드바, 상단바, 페이지 공통 요소
+ * 20261123 수정: 블랙·화이트·그레이 단색 팔레트 통일
  */
 
 /* [앱 전체 화면 레이아웃] */
 .app-shell {
   min-height: 100vh;
   display: flex;
-  background: #f6f8fc;
+  background: var(--color-page);
 }
 
 /* [좌측 사이드바] */
@@ -22,8 +23,8 @@
   flex-direction: column;
   width: 252px;
   padding: 27px 18px 18px;
-  color:  #e0e0e0;
-  background: #1a1a1a;
+  color:  #ECECEC;
+  background: #171717;
   box-sizing: border-box;
 }
 
@@ -45,8 +46,8 @@
   gap: 3px;
   border: 1px solid rgba(255, 255, 255, 0.17);
   border-radius: 11px;
-  background: linear-gradient(145deg, #385b91, #253c67);
-  box-shadow: 0 5px 14px rgba(3, 10, 23, 0.22);
+  background: linear-gradient(145deg, #666666, #454545);
+  box-shadow: 0 5px 14px rgba(17, 17, 17, 0.22);
 }
 
 /* [브랜드 로고 아이콘] */
@@ -54,7 +55,7 @@
   display: block;
   width: 4px;
   border-radius: 5px;
-  background: #e9f2ff;
+  background: #ECECEC;
 }
 
 /* [브랜드 로고 아이콘] */
@@ -75,14 +76,14 @@
 
 /* [브랜드 이름 텍스트] */
 .brand-name span {
-  color: #aab8ce;
+  color: #B5B5B5;
   font-size: 9px;
   font-weight: 700;
 }
 
 /* [브랜드 이름 텍스트] */
 .brand-name strong {
-  color: #fff;
+  color: #FFFFFF;
   font-size: 13px;
   font-weight: 750;
   letter-spacing: 0.17em;
@@ -95,7 +96,7 @@
   gap: 10px;
   margin-top: 39px;
   padding: 11px 10px;
-  border: 1px solid rgba(201, 216, 239, 0.12);
+  border: 1px solid rgba(208, 208, 208, 0.12);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.045);
 }
@@ -108,8 +109,8 @@
   place-items: center;
   flex: 0 0 auto;
   border-radius: 8px;
-  color: #dbeafe;
-  background: #34517d;
+  color: #ECECEC;
+  background: #454545;
   font-size: 10px;
   font-weight: 800;
 }
@@ -125,7 +126,7 @@
 
 /* [워크스페이스 이름과 설명] */
 .workspace-copy span {
-  color: #8ea0ba;
+  color: #888888;
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.11em;
@@ -133,7 +134,7 @@
 
 /* [워크스페이스 이름과 설명] */
 .workspace-copy strong {
-  color: #f3f6fb;
+  color: #ECECEC;
   font-size: 11px;
   font-weight: 650;
 }
@@ -142,7 +143,7 @@
 .workspace-chevron {
   display: flex;
   margin-left: auto;
-  color: #8192ad;
+  color: #888888;
   transform: rotate(90deg);
 }
 
@@ -154,7 +155,7 @@
 /* [사이드바 메뉴 그룹 제목] */
 .nav-caption {
   margin: 0 10px 12px;
-  color: #71819b;
+  color: #888888;
   font-size: 9px;
   font-weight: 750;
   letter-spacing: 0.14em;
@@ -175,7 +176,7 @@
   margin: 3px 0;
   padding: 0 11px;
   border-radius: 8px;
-  color: #aab7ca;
+  color: #B5B5B5;
   font-size: 12px;
   font-weight: 550;
   text-decoration: none;
@@ -184,20 +185,20 @@
 
 /* [현재 선택된 사이드바 메뉴] */
 .nav-item-active {
-  color: #ffffff;
-  background: #3b3b3b;
-  box-shadow: inset 3px 0 #a3a3a3;
+  color: #FFFFFF;
+  background: #3B3B3B;
+  box-shadow: inset 3px 0 #FFFFFF;
 }
 
 /* [현재 선택된 사이드바 메뉴] */
-.nav-item-active svg { color: #9dc4ff; }
+.nav-item-active svg { color: #B5B5B5; }
 /* [비활성화된 사이드바 메뉴] */
-.nav-item-disabled { color: #8291a8; }
+.nav-item-disabled { color: #888888; }
 
 /* [준비 중 표시] */
 .nav-soon {
   margin-left: auto;
-  color: #71819b;
+  color: #888888;
   font-size: 9px;
 }
 
@@ -208,7 +209,7 @@
   align-items: center;
   gap: 10px;
   padding: 0 12px;
-  color: #aab7ca;
+  color: #B5B5B5;
   font-size: 11px;
 }
 
@@ -234,7 +235,7 @@
 /* [사이드바 서비스 연결 상태 카드] */
 .sidebar-service-card {
   padding: 13px 13px 12px;
-  border: 1px solid rgba(201, 216, 239, 0.1);
+  border: 1px solid rgba(208, 208, 208, 0.1);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
 }
@@ -244,24 +245,24 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #d9e2ef;
+  color: #ECECEC;
   font-size: 10px;
 }
 
 /* [서비스 연결 상태 표시 점] */
 .service-indicator {
-  background: #e9b75d;
-  box-shadow: 0 0 0 3px rgba(233, 183, 93, 0.12);
+  background: #B5B5B5;
+  box-shadow: 0 0 0 3px rgba(181, 181, 181, 0.12);
 }
 
-/* [서비스 확인 중 상태 표시] */
-.service-indicator-loading { background: #e9b75d; }
-/* [서비스 정상 연결 상태 표시] */
-.service-indicator-ready { background: var(--color-ds); box-shadow: 0 0 0 3px rgba(97, 230, 108, 0.12); } 
-/* [일부 연결 상태 표시] */
-.service-indicator-partial { background: #dfb65e; }
+/* [서비스 연결 확인 중 상태 표시] */
+.service-indicator-loading { background: #B5B5B5; }
+/* [서비스 연결 정상 상태 표시] */
+.service-indicator-ready { background: var(--color-ds); box-shadow: 0 0 0 3px rgba(208, 208, 208, 0.12); } 
+/* [서비스 일부 연결 상태 표시] */
+.service-indicator-partial { background: #B5B5B5; }
 /* [서비스 연결 오류 상태 표시] */
-.service-indicator-error { background: #d68181; box-shadow: 0 0 0 3px rgba(214, 129, 129, 0.12); }
+.service-indicator-error { background: #888888; box-shadow: 0 0 0 3px rgba(136, 136, 136, 0.12); }
 
 /* [서비스 상태 텍스트 배지] */
 .service-card-status {
@@ -269,8 +270,8 @@
   margin-top: 11px;
   padding: 4px 7px;
   border-radius: 5px;
-  color: #edc77f;
-  background: rgba(211, 158, 65, 0.12);
+  color: #D0D0D0;
+  background: rgba(181, 181, 181, 0.12);
   font-size: 9px;
   font-weight: 700;
 }
@@ -278,26 +279,26 @@
 /* [서비스 확인 중 상태 배지] */
 .service-status-loading,
 .service-status-partial {
-  color: #edc77f;
-  background: rgba(211, 158, 65, 0.12);
+  color: #D0D0D0;
+  background: rgba(181, 181, 181, 0.12);
 }
 
 /* [서비스 정상 연결 상태 배지] */
 .service-status-ready {
-  color: #a6e3bf;
-  background: rgba(97, 230, 108, 0.12);
+  color: #D0D0D0;
+  background: rgba(208, 208, 208, 0.12);
 }
 
 /* [서비스 연결 오류 상태 배지] */
 .service-status-error {
-  color: #f0aaaa;
-  background: rgba(214, 129, 129, 0.12);
+  color: #B5B5B5;
+  background: rgba(136, 136, 136, 0.12);
 }
 
 /* [사이드바 서비스 연결 상태 카드] */
 .sidebar-service-card p {
   margin: 8px 0 0;
-  color: #8292aa;
+  color: #888888;
   font-size: 9px;
   line-height: 1.65;
 }
@@ -309,7 +310,7 @@
   gap: 9px;
   margin-top: 16px;
   padding: 14px 4px 1px;
-  border-top: 1px solid rgba(201, 216, 239, 0.1);
+  border-top: 1px solid rgba(208, 208, 208, 0.1);
 }
 
 /* [사이드바 사용자 프로필 이미지] */
@@ -319,19 +320,19 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
-  color: #e8f0fe;
-  background: #476188;
+  color: #ECECEC;
+  background: #666666;
   font-weight: 700;
 }
 
 /* [사이드바 사용자 프로필 이미지] */
 .profile-avatar { width: 31px; height: 31px; font-size: 10px; }
 /* [사용자 프로필 텍스트] */
-.profile-copy strong { color: #e8edf5; font-size: 10px; font-weight: 650; }
+.profile-copy strong { color: #ECECEC; font-size: 10px; font-weight: 650; }
 /* [사용자 프로필 텍스트] */
-.profile-copy span { color: #8797af; font-size: 9px; }
+.profile-copy span { color: #888888; font-size: 9px; }
 /* [사용자 프로필 메뉴 표시] */
-.profile-menu { margin-left: auto; color: #7f90a9; font-size: 14px; letter-spacing: 1px; }
+.profile-menu { margin-left: auto; color: #888888; font-size: 14px; letter-spacing: 1px; }
 
 /* [메인 콘텐츠 영역] */
 .main-area {
@@ -350,7 +351,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 42px;
-  border-bottom: 1px solid #e9edf4;
+  border-bottom: 1px solid #ECECEC;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(14px);
 }
@@ -366,13 +367,13 @@
 /* [현재 페이지 경로 표시] */
 .breadcrumb {
   gap: 9px;
-  color: #9aa5b5;
+  color: #B5B5B5;
   font-size: 11px;
 }
 
 /* [현재 페이지 경로 표시] */
 .breadcrumb strong {
-  color: #354158;
+  color: #454545;
   font-weight: 650;
 }
 
@@ -382,7 +383,7 @@
 /* [상단바 날짜 표시] */
 .topbar-date {
   gap: 7px;
-  color: #78859a;
+  color: #888888;
   font-size: 11px;
 }
 
@@ -393,10 +394,10 @@
   width: 34px;
   height: 34px;
   place-items: center;
-  border: 1px solid #e9edf4;
+  border: 1px solid #ECECEC;
   border-radius: 9px;
-  color: #6d7b91;
-  background: #fff;
+  color: #888888;
+  background: #FFFFFF;
 }
 
 /* [알림 버튼] */
@@ -406,17 +407,17 @@
   right: 7px;
   width: 5px;
   height: 5px;
-  border: 1px solid #fff;
+  border: 1px solid #FFFFFF;
   border-radius: 50%;
-  background: #e9a94f;
+  background: #B5B5B5;
 }
 
 /* [상단바 사용자 프로필 이미지] */
 .topbar-avatar {
   width: 31px;
   height: 31px;
-  color: #435875;
-  background: #e9eff8;
+  color: #454545;
+  background: #ECECEC;
   font-size: 11px;
 }
 
@@ -441,7 +442,7 @@
 /* [페이지 상단 영문 소제목] */
 .eyebrow {
   margin: 0 0 8px;
-  color: #6486b7;
+  color: #888888;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -450,7 +451,7 @@
 /* [페이지 제목과 액션 영역] */
 .page-heading h1 {
   margin: 0;
-  color: #1c2940;
+  color: #2B2B2B;
   font-size: 25px;
   font-weight: 750;
   letter-spacing: -0.055em;
@@ -459,7 +460,7 @@
 /* [페이지 설명 문구] */
 .page-subtitle {
   margin: 8px 0 0;
-  color: #8995a7;
+  color: #888888;
   font-size: 12px;
 }
 
@@ -470,10 +471,10 @@
   align-items: center;
   gap: 7px;
   padding: 0 12px;
-  border: 1px solid #e2e7ef;
+  border: 1px solid #ECECEC;
   border-radius: 8px;
-  color: #536b89;
-  background: #f9fafc;
+  color: #666666;
+  background: #FFFFFF;
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -482,9 +483,9 @@
 
 /* [데이터 새로고침 버튼 (비활성 상태가 아닐 때 마우스를 올린 상태)] */
 .refresh-button:hover:not(:disabled) {
-  border-color: #cbd8e9;
-  color: #34547b;
-  background: #f0f5fc;
+  border-color: #D0D0D0;
+  color: #454545;
+  background: #ECECEC;
 }
 
 /* [데이터 새로고침 버튼 (비활성화된 상태)] */

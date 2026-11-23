@@ -29,7 +29,6 @@ import type {
 // =====================================================
 // 타입 정의
 // =====================================================
-
 type BusinessFilter = 'ALL' | BusinessType
 
 type ApiStatus = 'loading' | 'connected' | 'error'
@@ -117,7 +116,6 @@ function getTopItems(
 // =====================================================
 // 공통 UI 컴포넌트
 // =====================================================
-
 interface MetricCardProps {
   title: string
   value: number
@@ -169,7 +167,6 @@ function RankingList({
           <h3>{title}</h3>
           <p>{description}</p>
         </div>
-
         <span>{items.length}개 항목</span>
       </div>
 
@@ -186,13 +183,11 @@ function RankingList({
                   <i>{index + 1}</i>
                   {item.name}
                 </span>
-
                 <strong>
                   {item.count.toLocaleString('ko-KR')}
                   {unit}
                 </strong>
               </div>
-
               <div className="business-ranking-track">
                 <div
                   className="business-ranking-bar"
@@ -212,7 +207,6 @@ function RankingList({
 // =====================================================
 // 메인 컴포넌트
 // =====================================================
-
 function BusinessStatusPage() {
   // 조회 기간
   const defaultDates = getDefaultDates()
@@ -355,7 +349,6 @@ function BusinessStatusPage() {
   // ===================================================
   // 사업별 필터링
   // ===================================================
-
   const filteredGwData = useMemo(
     () =>
       businessFilter === 'DS'
@@ -377,7 +370,6 @@ function BusinessStatusPage() {
   // ===================================================
   // 지역 / 권역 집계
   // ===================================================
-
   const regionItems = useMemo(() => {
     const gwRegions = filteredGwData.map((record) =>
       normalizeValue((record as GWEducationRecord).지역)
@@ -416,7 +408,6 @@ function BusinessStatusPage() {
   // ===================================================
   // 수요처 / 학교 집계
   // ===================================================
-
   const destinationItems = useMemo(() => {
     const gwDestinations = filteredGwData.map((record) => {
       const name = normalizeValue(
@@ -444,7 +435,6 @@ function BusinessStatusPage() {
   // ===================================================
   // 학생 수 집계
   // ===================================================
-
   const totalStudents = useMemo(
     () =>
       filteredDsData.reduce(
@@ -458,7 +448,6 @@ function BusinessStatusPage() {
   // ===================================================
   // 화면 렌더링
   // ===================================================
-
   const gwCount = filteredGwData.length
   const dsCount = filteredDsData.length
 
@@ -477,14 +466,11 @@ function BusinessStatusPage() {
 
   return (
     <div className="page-content business-status-page">
-
       {/* 페이지 제목 */}
       <section className="page-heading">
         <div>
           <p className="eyebrow">BUSINESS OVERVIEW</p>
-
           <h1>사업 현황</h1>
-
           <p className="page-subtitle">
             GW·DS 교육사업의 실적과 운영 현황을 통합 조회합니다.
           </p>
@@ -508,7 +494,6 @@ function BusinessStatusPage() {
         </div>
 
         <div className="business-filter-controls">
-
           <label>
             <span>시작일</span>
             <input
@@ -520,7 +505,6 @@ function BusinessStatusPage() {
               }
             />
           </label>
-
           <label>
             <span>종료일</span>
             <input
@@ -532,10 +516,8 @@ function BusinessStatusPage() {
               }
             />
           </label>
-
           <label>
             <span>사업 구분</span>
-
             <select
               value={businessFilter}
               onChange={(event) =>
@@ -549,7 +531,6 @@ function BusinessStatusPage() {
               <option value="DS">DS · 디지털새싹</option>
             </select>
           </label>
-
           <button
             type="button"
             className="business-search-button"
@@ -592,37 +573,31 @@ function BusinessStatusPage() {
             <p>선택한 기간과 사업을 기준으로 집계한 결과입니다.</p>
           </div>
         </div>
-
         <div className="business-metric-grid">
-
           <MetricCard
             title="전체 교육 건수"
             value={totalCount}
             description="GW + DS 교육 데이터"
             tone="business-tone-blue"
           />
-
-          <MetricCard
-            title="GW 교육 건수"
-            value={gwCount}
-            description="강원SW미래채움"
-            tone="business-tone-violet"
-          />
-
-          <MetricCard
-            title="DS 교육 건수"
-            value={dsCount}
-            description="디지털새싹"
-            tone="business-tone-green"
-          />
-
           <MetricCard
             title="운영 지역 수"
             value={regionCount}
             description="GW 지역 + DS 권역"
             tone="business-tone-amber"
           />
-
+          <MetricCard
+            title="GW 교육 건수"
+            value={gwCount}
+            description="강원SW미래채움"
+            tone="business-tone-violet"
+          />
+          <MetricCard
+            title="DS 교육 건수"
+            value={dsCount}
+            description="디지털새싹"
+            tone="business-tone-green"
+          />
         </div>
       </section>
 
@@ -634,23 +609,19 @@ function BusinessStatusPage() {
             <p>사업별 교육 데이터 건수를 비교합니다.</p>
           </div>
         </div>
-
         <article className="business-status-card comparison-card">
-
           <div className="comparison-summary">
             <div>
               <span className="comparison-dot comparison-dot-gw" />
               <strong>GW · 강원SW미래채움</strong>
               <b>{gwCount.toLocaleString()}건</b>
             </div>
-
             <div>
               <span className="comparison-dot comparison-dot-ds" />
               <strong>DS · 디지털새싹</strong>
               <b>{dsCount.toLocaleString()}건</b>
             </div>
           </div>
-
           <div className="comparison-bar-group">
             <div className="comparison-bar-row">
               <span>GW</span>
@@ -662,7 +633,6 @@ function BusinessStatusPage() {
               </div>
               <strong>{gwCount.toLocaleString()}</strong>
             </div>
-
             <div className="comparison-bar-row">
               <span>DS</span>
               <div className="comparison-track">
@@ -687,19 +657,16 @@ function BusinessStatusPage() {
 
       {/* 지역별 / 수요처별 */}
       <section className="business-status-grid section-block">
-
         <RankingList
           title="지역별 운영 현황"
           description="GW 지역 및 DS 권역별 교육 건수"
           items={regionItems}
         />
-
         <RankingList
           title="수요처 및 학교 현황"
           description="수요처 및 학교별 교육 건수"
           items={destinationItems}
         />
-
       </section>
 
       {/* 하단 안내 */}
@@ -707,7 +674,6 @@ function BusinessStatusPage() {
         <span>GOOGLE SHEET READER</span>
         <span>Business Status Management</span>
       </footer>
-
     </div>
   )
 }
