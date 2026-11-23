@@ -18,6 +18,10 @@
  * - useEffect 내부 setState ESLint 오류 개선
  * - 중복 API 요청 및 오래된 응답 처리 방지
  * - 조회 오류와 검색 조건 오류 상태 분리
+ * 
+ * 20261123 추가:
+ * - 발송 이력 정렬 옵션 추가 및 정렬 후 페이지네이션 적용
+ * - 한국어 오전/오후 형식의 발송일시 정렬 지원
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -32,6 +36,14 @@ const PAGE_SIZE = 10
 
 type StatusFilter = 'ALL' | 'SUCCESS' | 'FAILURE' | 'TEST' | 'SKIPPED'
 type StatusCategory = Exclude<StatusFilter, 'ALL'> | 'UNKNOWN'
+
+// 20261123 추가: 발송 이력 정렬 기준 타입
+type LogSortOption =
+  | 'DATE_DESC'
+  | 'DATE_ASC'
+  | 'RECIPIENT_ASC'
+  | 'INSTITUTION_ASC'
+  | 'STATUS'
 
 // =======================================
 // 2. 발송 로그 데이터 처리 함수
@@ -83,6 +95,83 @@ function getLogDate(value: string): string {
 
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 }
+
+
+// 20261123 추가: ISO 및 구글 시트의 한국어 오전/오후 날짜 형식 정렬 지원
+function getLogTimestamp(value: string): number | null {
+  const normalizedValue = String(value || '').trim()
+
+  if (!normalizedValue) return null
+
+  const parsedTimestamp = Date.parse(normalizedValue)
+
+  if (!Number.isNaN(parsedTimestamp)) return parsedTimestamp
+
+  const match = normalizedValue.match(
+    /^(\d{4})[-./]\s*(\d{1,2})[-./]\s*(\d{1,2})\.?\s*(오전|오후)?\s*(\d{1,2})?(?::(\d{2}))?(?::(\d{2}))?/,
+  )
+
+  if (!match) return null
+
+  const [, year, month, day, meridiem, hour = '0', minute = '0', second = '0'] = match
+  let hours = Number(hour)
+
+  if (meridiem === '오전' && hours === 12) hours = 0
+  if (meridiem === '오후' && hours !== 12) hours += 12
+
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    hours,
+    Number(minute),
+    Number(second),
+  ).getTime()
+}
+
+// 20261123 추가: 날짜 정렬 시 발송일시가 없는 로그는 항상 아래에 배치
+function compareLogDate(
+  firstRecord: LogRecord,
+  secondRecord: LogRecord,
+  order: 'ASC' | 'DESC',
+): number {
+  const firstTimestamp = getLogTimestamp(firstRecord.발송일시)
+  const secondTimestamp = getLogTimestamp(secondRecord.발송일시)
+
+  if (firstTimestamp === null && secondTimestamp === null) return 0
+  if (firstTimestamp === null) return 1
+  if (secondTimestamp === null) return -1
+
+  return order === 'ASC'
+    ? firstTimestamp - secondTimestamp
+    : secondTimestamp - firstTimestamp
+}
+
+// 20261123 추가: 한글 텍스트 정렬 시 빈 값은 마지막에 배치
+function compareLogText(firstValue = '', secondValue = ''): number {
+  const firstText = firstValue.trim()
+  const secondText = secondValue.trim()
+
+  if (!firstText && !secondText) return 0
+  if (!firstText) return 1
+  if (!secondText) return -1
+
+  return firstText.localeCompare(secondText, 'ko')
+}
+
+// 20261123 추가: 상태 정렬 우선순위(실패 → 스킵 → 테스트 → 성공 → 미분류)
+function getStatusSortOrder(record: LogRecord): number {
+  const statusOrder: Record<StatusCategory, number> = {
+    FAILURE: 1,
+    SKIPPED: 2,
+    TEST: 3,
+    SUCCESS: 4,
+    UNKNOWN: 5,
+  }
+
+  return statusOrder[getStatusCategory(record)]
+}
+
 
 /** 발송일시 표시 형식 정리 */
 function formatDateTime(value: string): string {
@@ -274,6 +363,9 @@ function LogDataPage() {
 
   const [currentPage, setCurrentPage] = useState(1)
 
+  // 20261123 추가: 발송 이력 정렬 기준(기본값: 최신 발송순)
+  const [sortOption, setSortOption] = useState<LogSortOption>('DATE_DESC')
+
   const [selectedLog, setSelectedLog] = useState<LogRecord | null>(null)
 
   // ---------------------------------------
@@ -416,6 +508,58 @@ function LogDataPage() {
     })
   }, [logs, startDate, endDate, statusFilter, appliedKeyword])
 
+
+  // =======================================
+  // 20261123 추가: 발송 로그 정렬
+  // =======================================
+  const sortedLogs = useMemo(() => {
+    const sortableLogs = [...filteredLogs]
+
+    sortableLogs.sort((firstRecord, secondRecord) => {
+      switch (sortOption) {
+        // 오래된 발송순
+        case 'DATE_ASC':
+          return compareLogDate(firstRecord, secondRecord, 'ASC')
+
+        // 수신인 가나다순
+        case 'RECIPIENT_ASC': {
+          const recipientCompare = compareLogText(
+            firstRecord.성명 || firstRecord.수신인 || '',
+            secondRecord.성명 || secondRecord.수신인 || '',
+          )
+
+          return recipientCompare || compareLogDate(firstRecord, secondRecord, 'DESC')
+        }
+
+        // 교육기관 가나다순
+        case 'INSTITUTION_ASC': {
+          const institutionCompare = compareLogText(
+            firstRecord.교육기관명 || '',
+            secondRecord.교육기관명 || '',
+          )
+
+          return institutionCompare || compareLogDate(firstRecord, secondRecord, 'DESC')
+        }
+
+        // 발송 상태순
+        case 'STATUS': {
+          const statusCompare =
+            getStatusSortOrder(firstRecord) - getStatusSortOrder(secondRecord)
+
+          return statusCompare || compareLogDate(firstRecord, secondRecord, 'DESC')
+        }
+
+        // 최신 발송순(기본값)
+        case 'DATE_DESC':
+        default:
+          return compareLogDate(firstRecord, secondRecord, 'DESC')
+      }
+    })
+
+    return sortableLogs
+  }, [filteredLogs, sortOption])
+
+
   // =======================================
   // 7. 발송 로그 통계 계산
   // =======================================
@@ -440,12 +584,14 @@ function LogDataPage() {
 
   // =======================================
   // 8. 페이지네이션 데이터 계산
+  // 20261123 수정: 정렬된 데이터를 기준으로 페이지네이션 적용
   // =======================================
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredLogs.length / PAGE_SIZE),
+    Math.ceil(sortedLogs.length / PAGE_SIZE),
   )
-  const pageLogs = filteredLogs.slice(
+
+  const pageLogs = sortedLogs.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   )
@@ -650,20 +796,35 @@ function LogDataPage() {
           </div>
         )}
       </section>
-
       {/* 10-4. 발송 로그 테이블 */}
       <section className="log-table-card">
-
         <div className="log-table-heading">
           <div>
             <h2>발송 이력</h2>
-
             <p>
               조회 결과 {formatCount(filteredLogs.length)}건
             </p>
           </div>
 
-          <span className="log-table-caption">최신 발송 순</span>
+          {/* 20261123 추가: 발송 이력 정렬 기준 선택 */}
+          <label className="log-sort-control">
+            <span>정렬 기준</span>
+            <select
+              className="log-sort-select"
+              value={sortOption}
+              onChange={(event) => {
+                setSortOption(event.target.value as LogSortOption)
+                setCurrentPage(1)
+              }}
+              aria-label="발송 이력 정렬 기준"
+            >
+              <option value="DATE_DESC">최신 발송순</option>
+              <option value="DATE_ASC">오래된 발송순</option>
+              <option value="RECIPIENT_ASC">수신인 가나다순</option>
+              <option value="INSTITUTION_ASC">교육기관 가나다순</option>
+              <option value="STATUS">발송 상태순 (실패 우선)</option>
+            </select>
+          </label>
         </div>
 
         {/* API 조회 오류 */}
@@ -672,6 +833,7 @@ function LogDataPage() {
             {error}
           </div>
         )}
+
         <div className="log-table-scroll">
           <table className="log-table">
             <thead>
@@ -799,14 +961,11 @@ function LogDataPage() {
                         상세 보기
                       </button>
                     </td>
-
                   </tr>
                 ))
               )}
-
             </tbody>
           </table>
-
         </div>
 
         {/* 10-5. 페이지네이션 */}
@@ -846,11 +1005,8 @@ function LogDataPage() {
             >
               다음
             </button>
-
           </div>
-
         </footer>
-
       </section>
 
       {/* 10-6. 발송 로그 상세 모달 */}
@@ -863,5 +1019,6 @@ function LogDataPage() {
     </div>
   )
 }
+
 
 export default LogDataPage
