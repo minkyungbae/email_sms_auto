@@ -13,6 +13,7 @@
  * - 2026-11-19: 발송 로그 화면 연결 및 발송 완료 후 로그 화면 이동 기능 추가
  * - 2026-11-23: 공통 UI 컴포넌트(Icon, MetricCard, ConnectionRow) 분리
  * - 2026-11-23: 교육 데이터 조회 상태 및 로직을 useDashboardData 훅으로 분리
+ * - 2026-11-23: 현재 화면에 따른 breadcrumb 제목 변경 기능 추가
  *
  * 주요 기능:
  * - 좌측 사이드바 및 메뉴
@@ -49,6 +50,20 @@ import {
 } from '../Services/DispatchService' // 20261119 추가: 발송 자동화 서비스
 
 import { useDashboardData } from '../Hooks/useDashboardData' // 20261123 추가: 교육 데이터 관리 훅
+
+
+// =======================================
+// 1-1. 20261123 추가: 페이지별 breadcrumb 제목
+// =======================================
+const PAGE_TITLES: Record<
+  'dashboard' | 'education' | 'business' | 'logs',
+  string
+> = {
+  dashboard: '대시보드',
+  education: '교육 데이터',
+  business: '사업 현황',
+  logs: '발송 로그',
+}
 
 
 // =======================================
@@ -339,7 +354,9 @@ function Dashboard() {
           <div className="breadcrumb">
             <span>Workspace</span>
             <Icon name="chevron" size={14} />
-            <strong>대시보드</strong>
+            <strong>
+              {PAGE_TITLES[currentView]} {/* 20261123 수정: 현재 화면에 따른 제목 표시 */}
+            </strong>
           </div>
 
           <div className="topbar-actions">
