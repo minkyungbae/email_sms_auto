@@ -1,0 +1,207 @@
+/**
+ * @file EducationTrendChart.css
+ * @author 배민경
+ * @created 2026-11-23
+ * @updated 2026-11-23
+ * @description 대시보드 교육 운영 추이 차트
+ */
+
+/* [교육 운영 추이 차트] */
+/* [교육 추이 차트 기간 선택 영역] */
+.trend-period-selector {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #edf0f5;
+  border-radius: 7px;
+  background: #f8f9fc;
+}
+
+/* [교육 추이 기간 선택 버튼] */
+.period-button {
+  min-width: 34px;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 5px;
+  color: #8b97a8;
+  background: transparent;
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+/* [현재 선택된 교육 추이 기간 버튼] */
+.period-button.active {
+  color: #476b9d;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(25, 44, 73, 0.1);
+}
+
+/* [교육 추이 기간 선택 버튼 (비활성화된 상태)] */
+.period-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+/* [교육 추이 요약 정보] */
+.trend-summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 17px;
+}
+
+/* [교육 추이 요약 정보] */
+.trend-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* [교육 추이 요약 정보] */
+.trend-summary span {
+  color: #929eae;
+  font-size: 9px;
+}
+
+/* [교육 추이 요약 정보] */
+.trend-summary strong {
+  color: #26344b;
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: -0.04em;
+}
+
+/* [교육 추이 선택 기간 텍스트] */
+.trend-summary .trend-period-label {
+  padding-bottom: 3px;
+}
+
+/* [교육 추이 차트 스크롤·배치 영역] */
+.trend-chart-wrap {
+  width: 100%;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+/* [교육 추이 SVG 차트] */
+/* 20261123 수정: 전체 너비에 맞춘 차트 비율 조정 */
+.trend-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 1120 / 368;
+  overflow: visible;
+}
+
+/* [교육 추이 차트 상태 메시지] */
+.chart-message {
+  display: flex;
+  min-height: 175px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #8793a4;
+  font-size: 10px;
+  text-align: center;
+}
+
+/* [교육 추이 차트 오류 안내] */
+.chart-error strong {
+  color: #bd7777;
+}
+
+/* [교육 추이 차트 오류 안내] */
+.chart-error p {
+  max-width: 100%;
+  margin: 7px 0;
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+
+/* [교육 추이 차트 다시 시도 버튼] */
+.chart-retry-button {
+  padding: 6px 10px;
+  border: 1px solid #e2e7ef;
+  border-radius: 6px;
+  color: #647d9e;
+  background: #f8fafd;
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+/* [반응형 교육 운영 추이 차트 카드] */
+  .trend-card {
+    padding: 16px 13px 13px;
+  }
+
+/* [반응형 교육 추이 SVG 차트] */
+  .trend-chart {
+    min-height: 145px;
+  }
+
+/* [반응형 교육 추이 차트 기간 선택 영역] */
+  .trend-period-selector {
+    gap: 1px;
+  }
+
+/* [반응형 교육 추이 기간 선택 버튼] */
+  .period-button {
+    min-width: 29px;
+    padding: 5px;
+    font-size: 8px;
+  }
+}
+
+/* =======================================
+교육 운영 추이 차트 글씨 크기 조정
+======================================= */
+/* 1. 차트 제목 */
+.trend-card .card-heading h2 {
+  font-size: 17px;
+}
+
+/* 2. 차트 설명 */
+.trend-card .card-heading p {
+  font-size: 12px;
+}
+
+/* 3. 조회 기간 버튼 */
+.trend-card .period-button {
+  font-size: 11px;
+  padding: 6px 9px;
+}
+
+/* 4. 선택 기간 교육 건수 설명 */
+.trend-card .trend-summary span {
+  font-size: 11px;
+}
+
+/* 5. 핵심 교육 건수 */
+.trend-card .trend-summary strong {
+  font-size: 25px;
+}
+
+/* 6. 차트 축 숫자 및 날짜 */
+.trend-card .trend-chart-axis-label {
+  font-size: 12px;
+}
+
+/* 7. 최근 조회 기간 표시 */
+.trend-card .trend-summary .trend-period-label {
+  font-size: 11px;
+}
+
+/* 8. GW·DS 범례 */
+.trend-card .chart-legend {
+  font-size: 11px;
+}
+
+/* 9. 차트 데이터 안내 문구 */
+.trend-card .chart-message {
+  font-size: 12px;
+}

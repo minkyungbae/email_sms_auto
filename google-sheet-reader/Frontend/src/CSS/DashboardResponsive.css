@@ -1,0 +1,206 @@
+/**
+ * @file DashboardResponsive.css
+ * @author 배민경
+ * @created 2026-11-23
+ * @updated 2026-11-23
+ * @description 대시보드 반응형 레이아웃 규칙
+ */
+
+/* [반응형 레이아웃] */
+@media (max-width: 1200px) {
+/* [반응형 페이지 본문 콘텐츠 영역] */
+  .page-content {
+    padding-right: 28px;
+    padding-left: 28px;
+  }
+
+/* [반응형 상단 고정 헤더] */
+  .topbar {
+    padding-right: 28px;
+    padding-left: 28px;
+  }
+
+/* [반응형 대시보드 핵심 지표 카드 배치] */
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+/* [반응형 대시보드 차트와 연결 현황 배치] */
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+/* [반응형 환영 배너 장식 그래픽 영역] */
+  .welcome-visual {
+    right: 5px;
+    opacity: 0.85;
+  }
+}
+
+@media (max-width: 760px) {
+/* [반응형 좌측 사이드바] */
+  .sidebar {
+    position: static;
+    width: 64px;
+    flex: 0 0 64px;
+    padding: 19px 10px;
+  }
+
+/* [반응형 브랜드 로고와 이름 묶음] */
+  .brand-lockup {
+    justify-content: center;
+    padding: 0;
+  }
+
+/* [반응형 워크스페이스 선택 영역] */
+  .brand-name,
+  .workspace-switcher,
+  .nav-caption,
+  .nav-item span,
+  .business-nav-item span:not(.business-nav-dot),
+  .sidebar-bottom {
+    display: none;
+  }
+
+/* [반응형 사이드바 메뉴 묶음] */
+  .side-navigation { margin-top: 35px; }
+
+/* [반응형 사이드바 메뉴 버튼] */
+  .nav-item {
+    justify-content: center;
+    padding: 0;
+  }
+
+/* [반응형 사이드바 메뉴 버튼] */
+  .nav-item svg {
+    width: 19px;
+    height: 19px;
+  }
+
+/* [반응형 사업별 사이드바 메뉴] */
+  .business-nav-item {
+    justify-content: center;
+    padding: 0;
+    margin-top: 12px;
+  }
+
+/* [반응형 메인 콘텐츠 영역] */
+  .main-area {
+    width: calc(100% - 64px);
+    margin-left: 0;
+  }
+
+/* [반응형 상단 고정 헤더] */
+  .topbar {
+    height: 59px;
+    padding: 0 17px;
+  }
+
+/* [반응형 상단바 날짜 표시] */
+  .topbar-date { display: none; }
+/* [반응형 상단바 우측 액션 영역] */
+  .topbar-actions { gap: 11px; }
+
+/* [반응형 페이지 본문 콘텐츠 영역] */
+  .page-content {
+    padding: 26px 17px 22px;
+  }
+
+/* [반응형 페이지 제목과 액션 영역] */
+  .page-heading { align-items: flex-start; }
+
+/* [반응형 페이지 제목과 액션 영역] */
+  .page-heading h1 { font-size: 21px; }
+
+/* [반응형 페이지 설명 문구] */
+  .page-subtitle {
+    max-width: 330px;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+/* [반응형 데이터 새로고침 버튼] */
+  .refresh-button {
+    width: 36px;
+    height: 36px;
+    overflow: hidden;
+    justify-content: flex-start;
+    padding: 0 9px;
+    font-size: 0;
+    gap: 0;
+  }
+
+/* [반응형 데이터 새로고침 버튼] */
+  .refresh-button svg { flex: 0 0 auto; }
+
+/* [반응형 대시보드 환영 배너] */
+  .welcome-panel {
+    min-height: 215px;
+    margin-top: 22px;
+    padding: 23px 22px;
+  }
+
+/* [반응형 환영 배너 텍스트 영역] */
+  .welcome-content h2 { font-size: 21px; }
+/* [반응형 환영 배너 텍스트 영역] */
+  .welcome-content > p { font-size: 10px; }
+
+/* [반응형 환영 배너 장식 그래픽 영역] */
+  .welcome-visual {
+    right: -125px;
+    opacity: 0.34;
+  }
+
+/* [반응형 환영 배너 하단 정보] */
+  .welcome-meta {
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 8px;
+  }
+
+/* [반응형 대시보드 핵심 지표 카드 배치] */
+  .metric-grid { gap: 9px; }
+
+/* [반응형 대시보드 핵심 지표 카드] */
+  .metric-card {
+    min-height: 132px;
+    padding: 13px;
+  }
+
+/* [반응형 지표 이름 텍스트] */
+  .metric-label { font-size: 12px; }
+/* [반응형 지표 숫자 값] */
+  .metric-value { font-size: 21px; }
+/* [반응형 지표 보조 설명] */
+  .metric-detail { font-size: 12px; }
+
+/* [반응형 사업 카드 배치 영역] */
+  .business-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+/* [반응형 섹션 제목 영역] */
+  .section-heading { align-items: flex-end; }
+/* [반응형 대기 상태 안내 문구] */
+  .waiting-label { font-size: 8px; }
+}
+
+@media (max-width: 420px) {
+/* [반응형 대시보드 핵심 지표 카드 배치] */
+  .metric-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+/* [반응형 대시보드 핵심 지표 카드] */
+  .metric-card { min-height: 118px; }
+/* [반응형 현재 페이지 경로 표시] */
+  .breadcrumb { font-size: 10px; }
+/* [반응형 개별 서비스 연결 항목] */
+  .connection-row { gap: 7px; }
+/* [반응형 서비스 이름과 설명] */
+  .connection-copy span { font-size: 7px; }
+/* [반응형 서비스 연결 상태 배지] */
+  .status-pill { font-size: 7px; }
+/* [반응형 차트 범례 보조 안내] */
+  .legend-hint { display: none; }
+}

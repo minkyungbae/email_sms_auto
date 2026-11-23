@@ -1,0 +1,494 @@
+/**
+ * @file DashboardLayout.css
+ * @author 배민경
+ * @created 2026-11-23
+ * @updated 2026-11-23
+ * @description 공통 대시보드 뼈대: 사이드바, 상단바, 페이지 공통 요소
+ */
+
+/* [앱 전체 화면 레이아웃] */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  background: #f6f8fc;
+}
+
+/* [좌측 사이드바] */
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 252px;
+  padding: 27px 18px 18px;
+  color:  #e0e0e0;
+  background: #1a1a1a;
+  box-sizing: border-box;
+}
+
+/* [브랜드 로고와 이름 묶음] */
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 9px;
+}
+
+/* [브랜드 로고 아이콘] */
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 11px;
+  background: linear-gradient(145deg, #385b91, #253c67);
+  box-shadow: 0 5px 14px rgba(3, 10, 23, 0.22);
+}
+
+/* [브랜드 로고 아이콘] */
+.brand-mark span {
+  display: block;
+  width: 4px;
+  border-radius: 5px;
+  background: #e9f2ff;
+}
+
+/* [브랜드 로고 아이콘] */
+.brand-mark span:nth-child(1) { height: 10px; opacity: 0.72; }
+/* [브랜드 로고 아이콘] */
+.brand-mark span:nth-child(2) { height: 17px; }
+/* [브랜드 로고 아이콘] */
+.brand-mark span:nth-child(3) { height: 13px; opacity: 0.85; }
+
+/* [브랜드 이름 텍스트] */
+.brand-name {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  letter-spacing: 0.09em;
+  line-height: 1.25;
+}
+
+/* [브랜드 이름 텍스트] */
+.brand-name span {
+  color: #aab8ce;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* [브랜드 이름 텍스트] */
+.brand-name strong {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.17em;
+}
+
+/* [워크스페이스 선택 영역] */
+.workspace-switcher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 39px;
+  padding: 11px 10px;
+  border: 1px solid rgba(201, 216, 239, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+/* [워크스페이스 아이콘] */
+.workspace-avatar {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  color: #dbeafe;
+  background: #34517d;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* [워크스페이스 이름과 설명] */
+.workspace-copy,
+.profile-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* [워크스페이스 이름과 설명] */
+.workspace-copy span {
+  color: #8ea0ba;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+}
+
+/* [워크스페이스 이름과 설명] */
+.workspace-copy strong {
+  color: #f3f6fb;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+/* [워크스페이스 펼침 표시] */
+.workspace-chevron {
+  display: flex;
+  margin-left: auto;
+  color: #8192ad;
+  transform: rotate(90deg);
+}
+
+/* [사이드바 메뉴 묶음] */
+.side-navigation {
+  margin-top: 35px;
+}
+
+/* [사이드바 메뉴 그룹 제목] */
+.nav-caption {
+  margin: 0 10px 12px;
+  color: #71819b;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+/* [간격을 추가한 메뉴 그룹 제목] */
+.nav-caption-spaced {
+  margin-top: 33px;
+}
+
+/* [사이드바 메뉴 버튼] */
+.nav-item {
+  position: relative;
+  display: flex;
+  min-height: 43px;
+  align-items: center;
+  gap: 12px;
+  margin: 3px 0;
+  padding: 0 11px;
+  border-radius: 8px;
+  color: #aab7ca;
+  font-size: 12px;
+  font-weight: 550;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+/* [현재 선택된 사이드바 메뉴] */
+.nav-item-active {
+  color: #ffffff;
+  background: #3b3b3b;
+  box-shadow: inset 3px 0 #a3a3a3;
+}
+
+/* [현재 선택된 사이드바 메뉴] */
+.nav-item-active svg { color: #9dc4ff; }
+/* [비활성화된 사이드바 메뉴] */
+.nav-item-disabled { color: #8291a8; }
+
+/* [준비 중 표시] */
+.nav-soon {
+  margin-left: auto;
+  color: #71819b;
+  font-size: 9px;
+}
+
+/* [사업별 사이드바 메뉴] */
+.business-nav-item {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  color: #aab7ca;
+  font-size: 11px;
+}
+
+/* [서비스 연결 상태 표시 점] */
+.business-nav-dot,
+.status-dot,
+.waiting-label > span,
+.service-indicator {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+/* [GW 사업 색상 표시 점] */
+.business-dot-gw { background: var(--color-gw); } 
+/* [DS 사업 색상 표시 점] */
+.business-dot-ds { background: var(--color-ds); } 
+
+/* [사이드바 하단 영역] */
+.sidebar-bottom { margin-top: auto; }
+
+/* [사이드바 서비스 연결 상태 카드] */
+.sidebar-service-card {
+  padding: 13px 13px 12px;
+  border: 1px solid rgba(201, 216, 239, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* [서비스 연결 카드 제목] */
+.service-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #d9e2ef;
+  font-size: 10px;
+}
+
+/* [서비스 연결 상태 표시 점] */
+.service-indicator {
+  background: #e9b75d;
+  box-shadow: 0 0 0 3px rgba(233, 183, 93, 0.12);
+}
+
+/* [서비스 확인 중 상태 표시] */
+.service-indicator-loading { background: #e9b75d; }
+/* [서비스 정상 연결 상태 표시] */
+.service-indicator-ready { background: var(--color-ds); box-shadow: 0 0 0 3px rgba(97, 230, 108, 0.12); } 
+/* [일부 연결 상태 표시] */
+.service-indicator-partial { background: #dfb65e; }
+/* [서비스 연결 오류 상태 표시] */
+.service-indicator-error { background: #d68181; box-shadow: 0 0 0 3px rgba(214, 129, 129, 0.12); }
+
+/* [서비스 상태 텍스트 배지] */
+.service-card-status {
+  display: inline-block;
+  margin-top: 11px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  color: #edc77f;
+  background: rgba(211, 158, 65, 0.12);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* [서비스 확인 중 상태 배지] */
+.service-status-loading,
+.service-status-partial {
+  color: #edc77f;
+  background: rgba(211, 158, 65, 0.12);
+}
+
+/* [서비스 정상 연결 상태 배지] */
+.service-status-ready {
+  color: #a6e3bf;
+  background: rgba(97, 230, 108, 0.12);
+}
+
+/* [서비스 연결 오류 상태 배지] */
+.service-status-error {
+  color: #f0aaaa;
+  background: rgba(214, 129, 129, 0.12);
+}
+
+/* [사이드바 서비스 연결 상태 카드] */
+.sidebar-service-card p {
+  margin: 8px 0 0;
+  color: #8292aa;
+  font-size: 9px;
+  line-height: 1.65;
+}
+
+/* [사이드바 사용자 프로필 영역] */
+.sidebar-profile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 16px;
+  padding: 14px 4px 1px;
+  border-top: 1px solid rgba(201, 216, 239, 0.1);
+}
+
+/* [사이드바 사용자 프로필 이미지] */
+.profile-avatar,
+.topbar-avatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: #e8f0fe;
+  background: #476188;
+  font-weight: 700;
+}
+
+/* [사이드바 사용자 프로필 이미지] */
+.profile-avatar { width: 31px; height: 31px; font-size: 10px; }
+/* [사용자 프로필 텍스트] */
+.profile-copy strong { color: #e8edf5; font-size: 10px; font-weight: 650; }
+/* [사용자 프로필 텍스트] */
+.profile-copy span { color: #8797af; font-size: 9px; }
+/* [사용자 프로필 메뉴 표시] */
+.profile-menu { margin-left: auto; color: #7f90a9; font-size: 14px; letter-spacing: 1px; }
+
+/* [메인 콘텐츠 영역] */
+.main-area {
+  width: calc(100% - 252px);
+  min-width: 0;
+  margin-left: 252px;
+}
+
+/* [상단 고정 헤더] */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 42px;
+  border-bottom: 1px solid #e9edf4;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+}
+
+/* [상단바 우측 액션 영역] */
+.breadcrumb,
+.topbar-actions,
+.topbar-date {
+  display: flex;
+  align-items: center;
+}
+
+/* [현재 페이지 경로 표시] */
+.breadcrumb {
+  gap: 9px;
+  color: #9aa5b5;
+  font-size: 11px;
+}
+
+/* [현재 페이지 경로 표시] */
+.breadcrumb strong {
+  color: #354158;
+  font-weight: 650;
+}
+
+/* [상단바 우측 액션 영역] */
+.topbar-actions { gap: 18px; }
+
+/* [상단바 날짜 표시] */
+.topbar-date {
+  gap: 7px;
+  color: #78859a;
+  font-size: 11px;
+}
+
+/* [알림 버튼] */
+.notification-button {
+  position: relative;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #e9edf4;
+  border-radius: 9px;
+  color: #6d7b91;
+  background: #fff;
+}
+
+/* [알림 버튼] */
+.notification-button > span {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 5px;
+  height: 5px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #e9a94f;
+}
+
+/* [상단바 사용자 프로필 이미지] */
+.topbar-avatar {
+  width: 31px;
+  height: 31px;
+  color: #435875;
+  background: #e9eff8;
+  font-size: 11px;
+}
+
+/* [페이지 본문 콘텐츠 영역] */
+.page-content {
+  width: min(100%, 1510px);
+  margin: 0 auto;
+  padding: 37px 42px 27px;
+  box-sizing: border-box;
+}
+
+/* [섹션 제목 영역] */
+.page-heading,
+.section-heading,
+.card-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* [페이지 상단 영문 소제목] */
+.eyebrow {
+  margin: 0 0 8px;
+  color: #6486b7;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+/* [페이지 제목과 액션 영역] */
+.page-heading h1 {
+  margin: 0;
+  color: #1c2940;
+  font-size: 25px;
+  font-weight: 750;
+  letter-spacing: -0.055em;
+}
+
+/* [페이지 설명 문구] */
+.page-subtitle {
+  margin: 8px 0 0;
+  color: #8995a7;
+  font-size: 12px;
+}
+
+/* [데이터 새로고침 버튼] */
+.refresh-button {
+  display: inline-flex;
+  height: 37px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid #e2e7ef;
+  border-radius: 8px;
+  color: #536b89;
+  background: #f9fafc;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+/* [데이터 새로고침 버튼 (비활성 상태가 아닐 때 마우스를 올린 상태)] */
+.refresh-button:hover:not(:disabled) {
+  border-color: #cbd8e9;
+  color: #34547b;
+  background: #f0f5fc;
+}
+
+/* [데이터 새로고침 버튼 (비활성화된 상태)] */
+.refresh-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
