@@ -22,10 +22,14 @@
  * 20261123 추가:
  * - 발송 이력 정렬 옵션 추가 및 정렬 후 페이지네이션 적용
  * - 한국어 오전/오후 형식의 발송일시 정렬 지원
+ * 
+ * 20261124 추가:
+ * - 수동 발송 확인 체크박스 및 저장 API 연결
+ * - 수정 중인 로그의 중복 요청 방지
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { getLogs } from '../Services/LogService'
+import { getLogs, updateManualConfirmation, } from '../Services/LogService'
 import type { LogRecord } from '../Services/LogService'
 import '../CSS/LogDataPage.css'
 
@@ -81,6 +85,13 @@ function getIndividualStatusClass(value: string): string {
   if (value.includes('테스트')) return 'test'
 
   return 'success'
+}
+
+// 20261124 추가: Apps Script/Google Sheets에서 반환하는 확인 값을 Boolean으로 정규화
+function isManualConfirmed(value: string): boolean {
+  return ['true', '1', 'yes', '확인'].includes(
+    String(value || '').trim().toLocaleLowerCase(),
+  )
 }
 
 /** 발송일시에서 YYYY-MM-DD 형식의 날짜 추출 */
@@ -269,6 +280,19 @@ function LogDetailModal({
               <DetailField label="발송 채널" value={getChannelLabel(record)} />
               <DetailField label="문자 발송 상태" value={record.문자발송상태} />
               <DetailField label="이메일 발송 상태" value={record.이메일발송상태} />
+              {/* 20261124 추가: 수동 발송 확인 정보 */}
+              <DetailField
+                label="수동 발송 확인"
+                value={
+                  isManualConfirmed(record.수동발송확인)
+                    ? '확인 완료'
+                    : '미확인'
+                }
+              />
+              <DetailField
+                label="수동 확인 일시"
+                value={record.수동확인일시}
+              />
               <DetailField label="발송인" value={record.발송인} />
               <DetailField label="발송 연락처" value={record.발송연락처} />
               <DetailField label="발송 이메일" value={record.발송이메일} />
@@ -349,7 +373,12 @@ function LogDataPage() {
   const [error, setError] = useState('')
   const [validationError, setValidationError] = useState('')
   const [lastUpdated, setLastUpdated] = useState('')
+  const [updateMessage, setUpdateMessage] = useState('') // 20261124 추가: 수동 확인 상태 저장 메시지
 
+  // 20261124 추가: 수동 확인 상태 저장 중인 로그 ID 관리
+  const [updatingLogIds, setUpdatingLogIds] = useState<Set<string>>(
+    new Set(),
+  )
   // ---------------------------------------
   // 5-2. 검색 및 페이지네이션 상태
   // ---------------------------------------
@@ -447,6 +476,69 @@ function LogDataPage() {
       }
     }
   }
+
+
+  // =======================================
+  // 5-6. 수동 발송 확인 상태 수정
+  // 20261124 추가
+  // =======================================
+  const handleManualConfirmationChange = async (
+    record: LogRecord,
+    confirmed: boolean,
+  ) => {
+    const logId = record.ID.trim()
+
+    if (!logId) {
+      setError('로그 ID가 없어 수동 확인 상태를 변경할 수 없습니다.')
+      return
+    }
+
+    setUpdatingLogIds((current) => new Set(current).add(logId))
+    setError('')
+    setUpdateMessage('')
+
+    try {
+      // Apps Script 저장 성공 응답을 받은 뒤에만 화면 상태 변경
+      const updatedRecord = await updateManualConfirmation(
+        logId,
+        confirmed,
+      )
+
+      // 전체 로그 목록에 수정 내용 반영
+      const applyUpdate = (currentRecord: LogRecord): LogRecord =>
+        currentRecord.ID === logId
+          ? { ...currentRecord, ...updatedRecord }
+          : currentRecord
+
+      setLogs((currentLogs) => currentLogs.map(applyUpdate))
+
+      // 상세 모달이 열려 있는 경우에도 상태 반영
+      setSelectedLog((currentRecord) =>
+        currentRecord ? applyUpdate(currentRecord) : null,
+      )
+
+      setUpdateMessage(
+        confirmed
+          ? `${record.성명 || record.수신인 || '해당 로그'}의 수동 발송 확인을 저장했습니다.`
+          : `${record.성명 || record.수신인 || '해당 로그'}의 수동 발송 확인을 해제했습니다.`,
+      )
+
+    } catch (updateError: unknown) {
+
+      // 저장 실패 시 기존 로그 상태는 변경하지 않음
+      setError(getErrorMessage(updateError))
+
+    } finally {
+
+      // 해당 로그의 저장 중 상태 해제
+      setUpdatingLogIds((current) => {
+        const next = new Set(current)
+        next.delete(logId)
+        return next
+      })
+    }
+  }
+
 
   // =======================================
   // 6. 발송 로그 검색 및 필터링
@@ -834,6 +926,13 @@ function LogDataPage() {
           </div>
         )}
 
+        {/* 20261124 추가: Update 성공 메시지 */}
+        {updateMessage && (
+          <div className="log-update-message" role="status">
+            {updateMessage}
+          </div>
+        )}
+
         <div className="log-table-scroll">
           <table className="log-table">
             <thead>
@@ -845,6 +944,7 @@ function LogDataPage() {
                 <th>역할</th>
                 <th>문자 상태</th>
                 <th>이메일 상태</th>
+                <th>수동 확인</th>
                 <th>상세</th>
               </tr>
             </thead>
@@ -852,7 +952,7 @@ function LogDataPage() {
               {/* 조회 중 */}
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="log-table-message">
+                  <td colSpan={9} className="log-table-message">
                     발송 로그를 불러오고 있습니다.
                   </td>
                 </tr>
@@ -948,6 +1048,43 @@ function LogDataPage() {
                         </span>
                       ) : (
                         <span className="log-muted">-</span>
+                      )}
+                    </td>
+
+                    {/* ======================================= */}
+                    {/* 20261124 추가: 수동 발송 확인 체크박스 */}
+                    {/* ======================================= */}
+                    <td className="log-manual-confirmation-cell">
+                      <label className="log-manual-confirmation">
+                        <input
+                          type="checkbox"
+                          checked={isManualConfirmed(record.수동발송확인)}
+                          disabled={
+                            !record.ID ||
+                            updatingLogIds.has(record.ID)
+                          }
+                          onChange={(event) =>
+                            void handleManualConfirmationChange(
+                              record,
+                              event.target.checked,
+                            )
+                          }
+                          aria-label={`${record.성명 || record.수신인 || '해당 로그'} 수동 발송 확인`}
+                        />
+
+                        <span>
+                          {updatingLogIds.has(record.ID)
+                            ? '저장 중'
+                            : isManualConfirmed(record.수동발송확인)
+                              ? '확인 완료'
+                              : '미확인'}
+                        </span>
+                      </label>
+
+                      {record.수동확인일시 && (
+                        <small className="log-manual-confirmation-date">
+                          {formatDateTime(record.수동확인일시)}
+                        </small>
                       )}
                     </td>
 

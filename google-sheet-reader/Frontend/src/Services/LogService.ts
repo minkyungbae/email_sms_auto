@@ -2,7 +2,7 @@
  * @file LogService.ts
  * @author 배민경
  * @created 2026-11-19
- * @updated 2026-11-20
+ * @updated 2026-11-24
  * @description 문자 및 이메일 발송 로그 조회
  *
  * 주요 기능:
@@ -12,6 +12,7 @@
  * - 각 필드의 데이터 형식 검증
  * 
  * 20261120 수정: 공통 ApiClient 활용 및 필드값 정규화 보완
+ * 20261124 추가: 수동 발송 확인 상태 Update 기능
  */
 
 import { API_CONFIG, createLogApiUrl } from '../Configs/api'
@@ -47,11 +48,24 @@ export type LogRecord = {
   제목: string
   문자본문내용: string
   이메일본문내용: string
+
+  // 20261124 추가: 수동 발송 확인 정보
+  수동발송확인: string
+  수동확인일시: string
 }
+
+// =======================================
+// 2. 수동 발송 확인 상태 변경 결과 타입
+// 20261124 추가
+// =======================================
+export type ManualConfirmationResult = Pick<
+  LogRecord,
+  'ID' | '수동발송확인' | '수동확인일시'
+>
 
 
 // =======================================
-// 2. 정규화할 로그 필드 목록
+// 3. 정규화할 로그 필드 목록
 // =======================================
 const LOG_FIELDS: (keyof LogRecord)[] = [
   'ID',
@@ -80,11 +94,13 @@ const LOG_FIELDS: (keyof LogRecord)[] = [
   '제목',
   '문자본문내용',
   '이메일본문내용',
+  '수동발송확인', // 20261124 추가: AA열
+  '수동확인일시', // 20261124 추가: AB열
 ]
 
 
 // =======================================
-// 3. 전달받은 값이 일반 객체인지 확인
+// 4. 전달받은 값이 일반 객체인지 확인
 // =======================================
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -92,7 +108,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 
 // =======================================
-// 4. 로그 필드의 값을 문자열로 변환하고 예상하지 못한 자료형은 차단
+// 5. 로그 필드의 값을 문자열로 변환하고 예상하지 못한 자료형은 차단
 // =======================================
 function normalizeLogField(value: unknown, field: keyof LogRecord): string {
   if (value === null || value === undefined) return ''
@@ -110,7 +126,7 @@ function normalizeLogField(value: unknown, field: keyof LogRecord): string {
 
 
 // =======================================
-// 5. 로그 항목의 누락값과 필드 자료형 정규화
+// 6. 로그 항목의 누락값과 필드 자료형 정규화
 // =======================================
 function normalizeLogRecord(value: unknown): LogRecord {
   if (!isRecord(value)) {
@@ -126,7 +142,7 @@ function normalizeLogRecord(value: unknown): LogRecord {
 
 
 // =======================================
-// 6. 전체 발송 로그 조회
+// 7. 전체 발송 로그 조회
 // =======================================
 export async function getLogs(): Promise<LogRecord[]> {
   const data = await requestApiData<unknown>(createLogApiUrl(), {
@@ -145,4 +161,71 @@ export async function getLogs(): Promise<LogRecord[]> {
   }
 
   return data.map(normalizeLogRecord)
+}
+
+
+// =======================================
+// 8. 수동 발송 확인 상태 수정
+// PATCH /api/logs/:id/manual-confirmation
+// 20261124 추가
+// =======================================
+export async function updateManualConfirmation(
+  id: string,
+  confirmed: boolean,
+): Promise<ManualConfirmationResult> {
+  const normalizedId = String(id || '').trim()
+
+  if (!normalizedId) {
+    throw new Error('발송 로그 ID가 없어 수동 확인 상태를 변경할 수 없습니다.')
+  }
+
+  if (typeof confirmed !== 'boolean') {
+    throw new Error('수동 확인 상태는 Boolean 값이어야 합니다.')
+  }
+
+  const data = await requestApiData<unknown>(
+    createLogApiUrl(
+      `/${encodeURIComponent(normalizedId)}/manual-confirmation`,
+    ),
+    {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ confirmed }),
+      timeoutMs: API_CONFIG.LOG_TIMEOUT_MS,
+      timeoutMessage: '수동 확인 상태 저장 시간이 초과되었습니다.',
+      networkErrorMessage:
+        'Node.js API 서버에 연결할 수 없습니다. 서버 실행 주소와 CORS 설정을 확인해 주세요.',
+      invalidResponseMessage:
+        '수동 확인 상태 수정 API 응답 형식이 올바르지 않습니다.',
+      requestFailureMessage: '수동 확인 상태 저장에 실패했습니다.',
+    },
+  )
+
+  if (!isRecord(data)) {
+    throw new Error(
+      '수동 확인 상태 수정 API의 data 형식이 올바르지 않습니다.',
+    )
+  }
+
+  const updatedId = normalizeLogField(data.ID, 'ID')
+
+  if (updatedId !== normalizedId) {
+    throw new Error(
+      '수정된 발송 로그 ID가 요청한 로그와 일치하지 않습니다.',
+    )
+  }
+  return {
+    ID: updatedId,
+    수동발송확인: normalizeLogField(
+      data.수동발송확인,
+      '수동발송확인',
+    ),
+    수동확인일시: normalizeLogField(
+      data.수동확인일시,
+      '수동확인일시',
+    ),
+  }
 }

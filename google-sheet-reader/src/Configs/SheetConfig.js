@@ -2,7 +2,7 @@
  * @file SheetConfig.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-11-17
+ * @updated 2026-11-24
  * @description
  * Google Sheets 및 Apps Script 연동에 필요한 설정 관리
  * 
@@ -19,6 +19,8 @@
  * - 실제 스프레드시트 ID는 security_info.js에서 관리
  * - API URL 및 인증키는 환경 변수(.env)에서 관리
  * - 기존 SHEET_CONFIG 참조 구조 유지
+ * 
+ * 20261124 추가: LOG 수동발송확인, 수동확인일시 컬럼 추가
  */
 
 
@@ -141,7 +143,9 @@ const LOG_HEADERS = [
     "실제수신이메일",       // W
     "제목",               // X
     "문자본문내용",        // Y 20261117 컬럼명 변경
-    "이메일본문내용",      // Z  20261117 추가
+    "이메일본문내용",      // Z 20261117 추가
+    "수동발송확인",       // AA 20261124 추가
+    "수동확인일시",       // AB 20261124 추가
 ];
 
 

@@ -2,14 +2,17 @@
  * @file logRoutes.js
  * @author 배민경
  * @created 2026-11-19
+ * @updated 2026-11-24
  * @description
- * Google Sheets 발송 로그 조회 API 라우터
+ * Google Sheets 발송 로그 조회 및 수동 확인 상태 수정 API 라우터
  *
  * 주요 기능:
  * - Apps Script 발송 로그 조회 요청
  * - 서버 설정의 인증 토큰 및 스프레드시트 ID 사용
  * - API 응답 형식 통일
  * - 요청 시간 초과 및 오류 처리
+ * 
+ * - 20261124 수정: 발송 로그의 수동 확인 상태 수정 요청
  */
 
 const express = require("express");
@@ -167,6 +170,153 @@ router.get("/", async (req, res) => {
                 error.message || "발송 로그 조회 중 오류가 발생했습니다."
             )
         );
+    } finally {
+        clearTimeout(timeoutId);
+    }
+});
+
+
+// =============================================================
+// 20261124 추가: 5. 수동 발송 확인 상태 수정 API
+// PATCH /api/logs/:id/manual-confirmation
+// =============================================================
+router.patch("/:id/manual-confirmation", async (req, res) => {
+
+    const id = String(req.params.id || "").trim();
+    const { confirmed } = req.body || {};
+
+    // ---------------------------------------------------------
+    // 5-1. 요청 데이터 검증
+    // ---------------------------------------------------------
+    if (!id) {
+        return res.status(400).json(
+            createResponse(false, null, "발송 로그 ID가 필요합니다.")
+        );
+    }
+
+    if (typeof confirmed !== "boolean") {
+        return res.status(400).json(
+            createResponse(false, null, "confirmed 값은 true 또는 false여야 합니다.")
+        );
+    }
+
+
+    // ---------------------------------------------------------
+    // 5-2. 서버 설정 확인
+    // ---------------------------------------------------------
+    const url = LOG_CONFIG?.APPS_SCRIPT_URL;
+    const token = LOG_CONFIG?.TOKEN;
+    const spreadsheetId = LOG_CONFIG?.SPREADSHEET?.ID;
+
+    if (!url || !token || !spreadsheetId) {
+        return res.status(500).json(
+            createResponse(
+                false,
+                null,
+                "로그 Apps Script URL, 인증키 또는 스프레드시트 설정이 누락되었습니다."
+            )
+        );
+    }
+
+    if (typeof fetch !== "function") {
+        return res.status(500).json(
+            createResponse(false, null, "현재 Node.js 환경에서 fetch를 사용할 수 없습니다.")
+        );
+    }
+
+
+    // ---------------------------------------------------------
+    // 5-3. Apps Script 수정 요청
+    // ---------------------------------------------------------
+    const controller = new AbortController();
+
+    const timeoutId = setTimeout(
+        () => controller.abort(),
+        REQUEST_TIMEOUT_MS
+    );
+
+    try {
+        console.log("");
+        console.log(`[logRoutes.js] 수동 발송 확인 상태 수정 시작: ${id}`);
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            body: JSON.stringify({
+                action: "updateManualConfirmation",
+                token,
+                spreadsheetId,
+                id,
+                confirmed,
+            }),
+            redirect: "follow",
+            signal: controller.signal,
+        });
+
+        const responseData = await parseAppsScriptResponse(response);
+
+        if (!response.ok || !responseData.success) {
+            throw new Error(
+                responseData.message || `수동 확인 상태 수정 실패: HTTP ${response.status}`
+            );
+        }
+
+
+        // -----------------------------------------------------
+        // 5-4. Apps Script 수정 결과 검증
+        // -----------------------------------------------------
+        const updatedRecord = responseData.data;
+
+        if (
+            !updatedRecord ||
+            String(updatedRecord.ID || "") !== id ||
+            String(updatedRecord.수동발송확인).toLowerCase() !== String(confirmed) ||
+            typeof updatedRecord.수동확인일시 !== "string"
+        ) {
+            throw new Error("Apps Script 수정 응답에 필수 로그 정보가 없습니다.");
+        }
+
+        console.log(`[logRoutes.js] 수동 발송 확인 상태 수정 완료: ${id}`);
+
+
+        // -----------------------------------------------------
+        // 5-5. 수정 완료 응답
+        // -----------------------------------------------------
+        return res.status(200).json(
+            createResponse(
+                true,
+                updatedRecord,
+                responseData.message || "수동 발송 확인 상태가 저장되었습니다."
+            )
+        );
+
+    } catch (error) {
+
+        console.error("");
+        console.error("[logRoutes.js] 수동 발송 확인 상태 수정 실패");
+        console.error("오류 내용:", error.message);
+
+        if (error.name === "AbortError") {
+            return res.status(504).json(
+                createResponse(
+                    false,
+                    null,
+                    "수동 확인 상태 저장 시간이 초과되었습니다."
+                )
+            );
+        }
+
+        return res.status(502).json(
+            createResponse(
+                false,
+                null,
+                error.message || "수동 확인 상태 저장 중 오류가 발생했습니다."
+            )
+        );
+
     } finally {
         clearTimeout(timeoutId);
     }

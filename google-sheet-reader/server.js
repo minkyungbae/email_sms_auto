@@ -2,7 +2,7 @@
  * @file server.js
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-19
+ * @updated 2026-11-24
  * @description
  * Node.js Express 서버 실행 및 관리
  *
@@ -12,6 +12,7 @@
  * - 교육 데이터 API 라우터 연결
  * - 서버 상태 확인 API
  * - 공통 오류 처리
+ * - 20261124 수정: 발송 로그 수동 확인 상태 변경 PATCH 요청 허용
  */
 
 require("dotenv").config();
@@ -42,7 +43,7 @@ app.disable("x-powered-by");
 // =============================================================
 app.use(cors({
     origin: FRONTEND_URL,
-    methods: ["GET", "POST", "OPTIONS"], // 20261119 수정: POST 추가
+    methods: ["GET", "POST", "PATCH", "OPTIONS"], // 20261119 수정: POST 추가, 1124: PATCH 추가
     allowedHeaders: ["Content-Type", "Accept"],
 }));
 

@@ -2,10 +2,11 @@
  * @file api.ts
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-20
+ * @updated 2026-11-24
  * @description 프론트엔드 API 주소 및 요청 설정.
  * 
  * EducationService.ts / LogService.ts / DispatchService.ts에 API 주소 전달
+ * 20261124 수정: 로그 조회 및 개별 로그 수정 경로 지원
  */
 
 // 교육 사업 유형 타입 가져오기
@@ -14,7 +15,9 @@ import type { BusinessType } from '../Types/education'
 // Vite 환경변수에서 백엔드 서버 주소 가져오기
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '')
 
-// API 주소 및 요청 시간 설정
+// =============================================================
+// 1. API 주소 및 요청 시간 설정
+// =============================================================
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,           // 백엔드 서버 기본 주소
   EDUCATION_ENDPOINT: '/api/education', // 교육 데이터 조회 API
@@ -25,7 +28,10 @@ export const API_CONFIG = {
   TIMEOUT_MS: 300000,                 // 교육 데이터 조회 제한 시간: 300초
 } as const
 
-// 백엔드 서버 주소가 정상적으로 설정되었는지 검증
+
+// =============================================================
+// 2. 백엔드 서버 주소 검증
+// =============================================================
 function getApiBaseUrl(): string {
   if (!API_CONFIG.BASE_URL) {
     throw new Error('VITE_API_BASE_URL 환경변수가 설정되지 않았습니다.')
@@ -34,7 +40,10 @@ function getApiBaseUrl(): string {
   return API_CONFIG.BASE_URL
 }
 
-// 교육 데이터 조회 API URL 생성
+
+// =============================================================
+// 3. 교육 데이터 조회 API URL 생성
+// =============================================================
 export function createEducationApiUrl(
   businessType: BusinessType,
   params: Record<string, string>,
@@ -52,12 +61,20 @@ export function createEducationApiUrl(
   return url
 }
 
-// 발송 로그 조회 API URL 생성
-export function createLogApiUrl(): URL {
-  return new URL(API_CONFIG.LOG_ENDPOINT, getApiBaseUrl())
+// =============================================================
+// 4. 발송 로그 API URL 생성
+// 20261124 수정: 로그 조회 및 개별 로그 수정 경로 지원
+// =============================================================
+export function createLogApiUrl(path = ''): URL {
+  return new URL(
+    `${API_CONFIG.LOG_ENDPOINT}${path}`,
+    getApiBaseUrl(),
+  )
 }
 
-// 발송 자동화 API URL 생성
+// =============================================================
+// 5. 발송 자동화 API URL 생성
+// =============================================================
 export function createDispatchApiUrl(path: string): URL {
   return new URL(
     `${API_CONFIG.DISPATCH_ENDPOINT}${path}`,
