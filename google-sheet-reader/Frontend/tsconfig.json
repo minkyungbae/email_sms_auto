@@ -1,3 +1,9 @@
+/**
+ * @file tsconfig.json
+ * @author 배민경
+ * @description TypeScript 전체 설정
+ */
+
 {
   "files": [],
   "references": [

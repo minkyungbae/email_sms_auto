@@ -1,4 +1,8 @@
-
+/**
+ * @file tsconfig.app.json
+ * @author 배민경
+ * @description React 애플리케이션 TypeScript 설정
+ */
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",

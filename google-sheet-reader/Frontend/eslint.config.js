@@ -1,3 +1,10 @@
+/**
+ * @file eslint.config.js
+ * @author 배민경
+ * @description 코드 검사 및 ESLint 설정
+ */
+
+
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
