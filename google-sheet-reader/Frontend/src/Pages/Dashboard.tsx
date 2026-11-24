@@ -2,7 +2,7 @@
  * @file Dashboard.tsx
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-23
+ * @updated 2026-11-24
  * @description
  * 메인 화면 구성.
  *
@@ -14,6 +14,7 @@
  * - 2026-11-23: 공통 UI 컴포넌트(Icon, MetricCard, ConnectionRow) 분리
  * - 2026-11-23: 교육 데이터 조회 상태 및 로직을 useDashboardData 훅으로 분리
  * - 2026-11-23: 현재 화면에 따른 breadcrumb 제목 변경 기능 추가
+ * - 2026-11-24: 발송 자동화 서비스 관련 코드 삭제 (발송 로그 화면으로 옮김)
  *
  * 주요 기능:
  * - 좌측 사이드바 및 메뉴
@@ -42,12 +43,6 @@ import BusinessStatusPage from './BusinessStatusPage' // 20261118 추가: 사업
 import LogDataPage from './LogDataPage' // 20261119 추가: 발송 로그 조회 화면
 
 import type { BusinessType } from '../Types/education' // 20261118 추가: 사업 구분 타입
-
-import {
-  getDispatchSettings,
-  startDispatch,
-  getDispatchStatus,
-} from '../Services/DispatchService' // 20261119 추가: 발송 자동화 서비스
 
 import { useDashboardData } from '../Hooks/useDashboardData' // 20261123 추가: 교육 데이터 관리 훅
 
@@ -86,15 +81,7 @@ function Dashboard() {
   } = useDashboardData()
 
   // =======================================
-  // 2-2. 발송 자동화 상태
-  // 20261119 추가
-  // =======================================
-  const [isDispatching, setIsDispatching] = useState(false)
-  const [dispatchMessage, setDispatchMessage] = useState('')
-  const [dispatchError, setDispatchError] = useState('')
-
-  // =======================================
-  // 2-3. 화면 전환 상태
+  // 2-2. 화면 전환 상태
   // 20261118 추가
   // 20261119 수정: 발송 로그 화면 추가
   // =======================================
@@ -106,7 +93,7 @@ function Dashboard() {
     useState<BusinessType | null>(null)
 
   // =======================================
-  // 2-4. 교육 데이터 화면 열기
+  // 2-3. 교육 데이터 화면 열기
   // 20261118 추가
   // =======================================
   const openEducationPage = (
@@ -117,116 +104,7 @@ function Dashboard() {
   }
 
   // =======================================
-  // 3. 발송 자동화 실행
-  // 20261119 추가
-  // =======================================
-  const handleStartDispatch = async () => {
-
-    if (isDispatching) {
-      return
-    }
-
-    setIsDispatching(true)
-    setDispatchMessage('발송 설정을 확인하고 있습니다...')
-    setDispatchError('')
-
-    try {
-      // ---------------------------------------
-      // 3-1. 최신 발송 설정 조회
-      // ---------------------------------------
-      const settings = await getDispatchSettings()
-
-      // ---------------------------------------
-      // 3-2. 테스트 설정 확인 문구 생성
-      // ---------------------------------------
-      const modeSummary = [
-        `이메일 미리보기: ${settings.modes.emailPreviewMode ? 'ON' : 'OFF'}`,
-        `이메일 테스트 수신자: ${settings.modes.emailTestRecipientMode ? 'ON' : 'OFF'}`,
-        `SMS 테스트 수신번호: ${settings.modes.smsTestRecipientMode ? 'ON' : 'OFF'}`,
-        `뿌리오 API 테스트: ${settings.modes.smsApiTestMode ? 'ON' : 'OFF'}`,
-      ].join('\n')
-
-      // ---------------------------------------
-      // 3-3. 최종 발송 확인
-      // ---------------------------------------
-      const confirmed = window.confirm(
-        [
-          '아래 설정으로 발송 자동화를 실행할까요?',
-          '',
-          `실행 사업: ${settings.businessTypes.join(', ')}`,
-          `발송 기준: 수업일 ${settings.daysBefore}일 전`,
-          `조회 대상 교육일: ${settings.targetDate}`,
-          '',
-          '[발송 설정]',
-          modeSummary,
-          '',
-          '주의: 설정에 따라 실제 이메일 및 문자가 발송될 수 있습니다.',
-        ].join('\n'),
-      )
-
-      if (!confirmed) {
-        setDispatchMessage('발송 실행이 취소되었습니다.')
-        return
-      }
-
-      // ---------------------------------------
-      // 3-4. 발송 실행 요청
-      // ---------------------------------------
-      const jobId = await startDispatch(settings.targetDate)
-
-      setDispatchMessage('발송 자동화가 시작되었습니다.')
-
-      // ---------------------------------------
-      // 3-5. 발송 작업 상태 조회
-      // ---------------------------------------
-      let job = await getDispatchStatus(jobId)
-
-      while (job.status === 'queued' || job.status === 'running') {
-
-        setDispatchMessage(
-          job.status === 'queued'
-            ? '발송 작업을 준비하고 있습니다.'
-            : '이메일 및 문자 발송을 진행하고 있습니다.',
-        )
-
-        // 20261119 추가: 1.5초 간격으로 상태 조회
-        await new Promise<void>((resolve) => {
-          window.setTimeout(resolve, 1500)
-        })
-
-        job = await getDispatchStatus(jobId)
-      }
-
-      // ---------------------------------------
-      // 3-6. 발송 실패 처리
-      // ---------------------------------------
-      if (job.status === 'failed') {
-        throw new Error(job.error || '발송 자동화에 실패했습니다.')
-      }
-
-      // ---------------------------------------
-      // 3-7. 발송 완료 처리
-      // ---------------------------------------
-      setDispatchMessage(`발송 자동화 완료 · 로그 ${job.result?.logCount ?? 0}건 기록`,)
-
-      // 20261119 추가: 완료 후 발송 로그 화면 이동
-      setCurrentView('logs')
-
-    } catch (error) {
-      setDispatchError(
-        error instanceof Error
-          ? error.message
-          : '발송 자동화 중 알 수 없는 오류가 발생했습니다.',
-      )
-      setDispatchMessage('')
-
-    } finally {
-      setIsDispatching(false)
-    }
-  }
-
-  // =======================================
-  // 4. 최초 진입 시 교육 데이터 조회
+  // 3. 최초 진입 시 교육 데이터 조회
   // 20261118 추가
   // =======================================
   useEffect(() => {
@@ -240,7 +118,7 @@ function Dashboard() {
   }, [loadEducationData])
 
   // =======================================
-  // 5. 대시보드 데이터 계산
+  // 4. 대시보드 데이터 계산
   // =======================================
   // 20261118 추가: 전체 데이터 건수
   const totalCount = gwData.length + dsData.length
@@ -259,13 +137,13 @@ function Dashboard() {
   }).format(new Date())
 
   // =======================================
-  // 6. 화면 렌더링
+  // 5. 화면 렌더링
   // =======================================
   return (
     <div className="app-shell">
 
       {/* =======================================
-          6-1. 사이드바
+          5-1. 사이드바
       ======================================= */}
       <aside className="sidebar">
         <div className="brand-lockup">
@@ -347,7 +225,7 @@ function Dashboard() {
       </aside>
 
       {/* =======================================
-          6-2. 메인 영역
+          5-2. 메인 영역
       ======================================= */}
       <main className="main-area" id="dashboard">
         <header className="topbar">
@@ -393,7 +271,7 @@ function Dashboard() {
           <div className="page-content">
 
             {/* =======================================
-                6-3. 페이지 제목 및 버튼
+                5-3. 페이지 제목 및 버튼
             ======================================= */}
             <section className="page-heading">
               <div>
@@ -405,6 +283,7 @@ function Dashboard() {
               </div>
 
               {/* 20261119 수정: 데이터 새로고침 및 발송 실행 버튼 */}
+              {/* 20261124 수정: 발송 실행 버튼 삭제, 데이터 새로고침만 유지 */}
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
 
                 <button
@@ -417,37 +296,11 @@ function Dashboard() {
                   <Icon name="refresh" size={16} />
                   {isLoading ? '조회 중...' : '데이터 새로고침'}
                 </button>
-                {/* 20261119 추가: 발송 자동화 실행 */}
-                <button
-                  className="refresh-button"
-                  type="button"
-                  onClick={() => void handleStartDispatch()}
-                  disabled={isDispatching || isLoading}
-                  title="설정된 사업의 이메일 및 문자 발송 자동화를 실행합니다."
-                >
-                  <Icon name="bell" size={16} />
-                  {isDispatching ? '발송 진행 중...' : '발송 실행'}
-                </button>
               </div>
             </section>
 
-            {/* 20261119 추가: 발송 자동화 상태 표시 */}
-            {dispatchMessage && (
-              <div className="connection-note" role="status">
-                <Icon name="info" size={15} />
-                <span>{dispatchMessage}</span>
-              </div>
-            )}
-
-            {dispatchError && (
-              <div className="connection-note" role="alert">
-                <Icon name="info" size={15} />
-                <span>{dispatchError}</span>
-              </div>
-            )}
-
             {/* =======================================
-                6-4. 핵심 지표
+                5-4. 핵심 지표
             ======================================= */}
             <section className="section-block">
               <div className="section-heading">
@@ -519,7 +372,7 @@ function Dashboard() {
             </section>
 
             {/* =======================================
-                6-5. 교육 운영 추이 및 연결 상태
+                5-5. 교육 운영 추이 및 연결 상태
             ======================================= */}
             <section className="dashboard-grid">
               <EducationTrendChart
@@ -532,15 +385,14 @@ function Dashboard() {
             </section>
 
             {/* =======================================
-                6-6. 푸터
+                5-6. 푸터
             ======================================= */}
             <footer className="page-footer">
               <span>GOOGLE SHEET READER</span>
               <span>Education Operations Dashboard</span>
             </footer>
           </div>
-        )}
-      </main>
+    )}</main>
     </div>
   )
 }

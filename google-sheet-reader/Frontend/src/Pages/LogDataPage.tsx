@@ -2,7 +2,7 @@
  * @file LogDataPage.tsx
  * @author 배민경
  * @created 2026-11-19
- * @updated 2026-11-20
+ * @updated 2026-11-24
  * @description
  * 문자 및 이메일 발송 로그 조회 화면
  *
@@ -26,12 +26,20 @@
  * 20261124 추가:
  * - 수동 발송 확인 체크박스 및 저장 API 연결
  * - 수정 중인 로그의 중복 요청 방지
+ * - 발송 자동화 서비스 추가 및 버튼 추가
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getLogs, updateManualConfirmation, } from '../Services/LogService'
 import type { LogRecord } from '../Services/LogService'
 import '../CSS/LogDataPage.css'
+
+// 20261124 추가: 발송 자동화 서비스
+import {
+  getDispatchSettings,
+  startDispatch,
+  getDispatchStatus,
+} from '../Services/DispatchService'
 
 // =======================================
 // 1. 발송 로그 화면 기본 설정 및 타입
@@ -379,6 +387,13 @@ function LogDataPage() {
   const [updatingLogIds, setUpdatingLogIds] = useState<Set<string>>(
     new Set(),
   )
+
+  // 20261124 추가: 발송 자동화 실행 상태
+  const [isDispatching, setIsDispatching] = useState(false)   // 현재 발송 진행 여부
+  const [dispatchMessage, setDispatchMessage] = useState('') // 발송 진행 및 완료 메시지
+  const [dispatchError, setDispatchError] = useState('')    // 발송 실패 메시지
+
+
   // ---------------------------------------
   // 5-2. 검색 및 페이지네이션 상태
   // ---------------------------------------
@@ -479,7 +494,118 @@ function LogDataPage() {
 
 
   // =======================================
-  // 5-6. 수동 발송 확인 상태 수정
+  // 5-6. 발송 자동화 실행
+  // 20261119 추가: Dashboard.tsx에서 이동
+  // 20261124 수정: 발송 로그 페이지에서 실행 및 완료 후 로그 새로고침
+  // =======================================
+  const handleStartDispatch = async () => {
+    if (isDispatching) {
+      return
+    }
+
+    setIsDispatching(true)
+    setDispatchMessage('발송 설정을 확인하고 있습니다...')
+    setDispatchError('')
+
+    try {
+      // ---------------------------------------
+      // 5-6-1. 최신 발송 설정 조회
+      // ---------------------------------------
+      const settings = await getDispatchSettings()
+
+      // ---------------------------------------
+      // 5-6-2. 테스트 설정 확인 문구 생성
+      // ---------------------------------------
+      const modeSummary = [
+        `이메일 미리보기: ${settings.modes.emailPreviewMode ? 'ON' : 'OFF'}`,
+        `이메일 테스트 수신자: ${settings.modes.emailTestRecipientMode ? 'ON' : 'OFF'}`,
+        `SMS 테스트 수신번호: ${settings.modes.smsTestRecipientMode ? 'ON' : 'OFF'}`,
+        `뿌리오 API 테스트: ${settings.modes.smsApiTestMode ? 'ON' : 'OFF'}`,
+      ].join('\n')
+
+      // ---------------------------------------
+      // 5-6-3. 최종 발송 확인
+      // ---------------------------------------
+      const confirmed = window.confirm(
+        [
+          '아래 설정으로 발송 자동화를 실행할까요?',
+          '',
+          `실행 사업: ${settings.businessTypes.join(', ')}`,
+          `발송 기준: 수업일 ${settings.daysBefore}일 전`,
+          `조회 대상 교육일: ${settings.targetDate}`,
+          '',
+          '[발송 설정]',
+          modeSummary,
+          '',
+          '주의: 설정에 따라 실제 이메일 및 문자가 발송될 수 있습니다.',
+        ].join('\n'),
+      )
+
+      if (!confirmed) {
+        setDispatchMessage('발송 실행이 취소되었습니다.')
+        return
+      }
+
+      // ---------------------------------------
+      // 5-6-4. 발송 실행 요청
+      // ---------------------------------------
+      const jobId = await startDispatch(settings.targetDate)
+
+      setDispatchMessage('발송 자동화가 시작되었습니다.')
+
+      // ---------------------------------------
+      // 5-6-5. 발송 작업 상태 조회
+      // ---------------------------------------
+      let job = await getDispatchStatus(jobId)
+
+      while (job.status === 'queued' || job.status === 'running') {
+        setDispatchMessage(
+          job.status === 'queued'
+            ? '발송 작업을 준비하고 있습니다.'
+            : '이메일 및 문자 발송을 진행하고 있습니다.',
+        )
+
+        // 20261119 추가: 1.5초 간격으로 상태 조회
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 1500)
+        })
+
+        job = await getDispatchStatus(jobId)
+      }
+
+      // ---------------------------------------
+      // 5-6-6. 발송 실패 처리
+      // ---------------------------------------
+      if (job.status === 'failed') {
+        throw new Error(job.error || '발송 자동화에 실패했습니다.')
+      }
+
+      // ---------------------------------------
+      // 5-6-7. 발송 완료 및 로그 새로고침
+      // ---------------------------------------
+      setDispatchMessage(
+        `발송 자동화 완료 · 로그 ${job.result?.logCount ?? 0}건 기록`,
+      )
+
+      // 20261124 추가: 발송 완료 후 최신 로그 자동 조회
+      await handleRefresh()
+
+    } catch (error) {
+      setDispatchError(
+        error instanceof Error
+          ? error.message
+          : '발송 자동화 중 알 수 없는 오류가 발생했습니다.',
+      )
+      setDispatchMessage('')
+
+    } finally {
+      setIsDispatching(false)
+    }
+  }
+
+
+  // =======================================
+  // 5-7. 수동 발송 확인 상태 수정
   // 20261124 추가
   // =======================================
   const handleManualConfirmationChange = async (
@@ -732,6 +858,13 @@ function LogDataPage() {
           </p>
         </div>
 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        flexWrap: 'wrap',
+      }}>
+        {/* 새로고침 버튼 */}
         <button
           className="log-refresh-button"
           type="button"
@@ -747,10 +880,34 @@ function LogDataPage() {
           >
             ↻
           </span>
-
           {isLoading ? '조회 중...' : '새로고침'}
         </button>
+
+        {/* 20261124 추가: 발송 자동화 실행 버튼 */}
+        <button
+          className="log-refresh-button"
+          type="button"
+          onClick={() => void handleStartDispatch()}
+          disabled={isDispatching || isLoading}
+          title="설정된 사업의 이메일 및 문자 발송 자동화를 실행합니다."
+        >
+          {isDispatching ? '발송 진행 중...' : '발송 실행'}
+        </button>
+      </div>
       </section>
+
+        {/* 20261124 추가: 발송 자동화 진행 상태 및 결과 표시 */}
+        {dispatchMessage && (
+          <div className="log-update-message" role="status">
+            {dispatchMessage}
+          </div>
+        )}
+
+        {dispatchError && (
+          <div className="log-error-message" role="alert">
+            {dispatchError}
+          </div>
+        )}
 
       {/* 10-2. 발송 로그 통계 카드 */}
       <section className="log-metric-grid" aria-label="발송 로그 요약">
