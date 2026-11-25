@@ -2,7 +2,7 @@
  * @file DispatchService.ts
  * @author 배민경
  * @created 2026-11-19
- * @updated 2026-11-24
+ * @updated 2026-11-25
  * @description React에서 Node.js 발송 자동화 API를 호출하고 응답을 검증
  *
  * 주요 기능:
@@ -13,6 +13,7 @@
  * 
  * 20261120 수정: 공통 ApiClient 활용 및 타입·검증 함수 구조 정리
  * 20261124 추가: 웹에서 발송 기준일 변경 기능 추가
+ * 20261125 추가: 발송 로그 화면 개별 발송(선택 수신자 / 직접 입력) 요청 및 상태 조회
  */
 
 import { API_CONFIG, createDispatchApiUrl } from '../Configs/api'
@@ -31,9 +32,90 @@ type DispatchSettingsRequestBody = {
   daysBefore: number
 }
 
+// 20261125 추가: 개별 발송 요청 본문
+type ManualSendRequestBody = {
+  confirm: true
+  messages: ManualSendMessage[]
+}
+
 type DispatchRequestBody =
   | DispatchRunRequestBody
   | DispatchSettingsRequestBody
+  | ManualSendRequestBody
+
+// =======================================
+// 1-1. 개별 발송 메시지 타입
+// 20261125 추가
+// =======================================
+export type ManualBusinessType = 'GW' | 'DS'
+
+export type ManualSendMessage = {
+  sourceLogId: string
+  businessType: ManualBusinessType
+  recipient: {
+    name: string
+    role: string
+    phone: string
+    email: string
+    affiliation: string
+  }
+  education: {
+    교육과정명: string
+    교육기관명: string
+    반명: string
+    교육일: string
+    요일: string
+    교육시간: string
+  }
+  sms: {
+    enabled: boolean
+    subject: string
+    body: string
+  }
+  email: {
+    enabled: boolean
+    subject: string
+    body: string
+  }
+}
+
+// 20261125 추가: 채널별 개별 발송 결과
+export type ManualChannelResult = {
+  success: boolean
+  previewOnly: boolean
+  testMode: boolean
+  recipient: string
+  error: string
+}
+
+// 20261125 추가: 수신자별 개별 발송 결과
+export type ManualRecipientResult = {
+  index: number
+  sourceLogId: string
+  name: string
+  sms: ManualChannelResult | null
+  email: ManualChannelResult | null
+}
+
+// 20261125 추가: 개별 발송 작업 결과
+export type ManualSendJobResult = {
+  total: number
+  logCount: number
+  summary: {
+    smsSuccess: number
+    smsFailure: number
+    emailSuccess: number
+    emailFailure: number
+  }
+  results: ManualRecipientResult[]
+}
+
+export type ManualSendStatusResult = {
+  jobId: string
+  status: DispatchJobStatus
+  result: ManualSendJobResult | null
+  error: string | null
+}
 
 // =======================================
 // 2. 발송 테스트 설정 타입
@@ -258,6 +340,120 @@ export async function getDispatchStatus(
     jobId: data.jobId,
     status: data.status,
     result,
+    error: typeof data.error === 'string' ? data.error : null,
+  }
+}
+
+// =======================================
+// 15. 개별 발송 실행
+// POST /api/dispatch/manual-send
+// 20261125 추가
+// =======================================
+export async function startManualSend(
+  messages: ManualSendMessage[],
+): Promise<string> {
+  if (messages.length === 0) {
+    throw new Error('발송할 수신자가 없습니다.')
+  }
+
+  const data = await requestDispatchApi('/manual-send', 'POST', {
+    confirm: true,
+    messages,
+  })
+
+  if (!isRecord(data) || typeof data.jobId !== 'string') {
+    throw new Error('개별 발송 작업 ID를 확인할 수 없습니다.')
+  }
+
+  return data.jobId
+}
+
+// =======================================
+// 16. 개별 발송 결과 데이터 검증
+// 20261125 추가
+// =======================================
+function parseManualChannelResult(value: unknown): ManualChannelResult | null {
+  if (value === null || value === undefined) return null
+
+  if (!isRecord(value) || typeof value.success !== 'boolean') {
+    throw new Error('개별 발송 채널 결과 형식이 올바르지 않습니다.')
+  }
+
+  return {
+    success: value.success,
+    previewOnly: value.previewOnly === true,
+    testMode: value.testMode === true,
+    recipient: typeof value.recipient === 'string' ? value.recipient : '',
+    error: typeof value.error === 'string' ? value.error : '',
+  }
+}
+
+function parseManualSendJobResult(value: unknown): ManualSendJobResult {
+  if (
+    !isRecord(value) ||
+    typeof value.total !== 'number' ||
+    typeof value.logCount !== 'number' ||
+    !isRecord(value.summary) ||
+    !Array.isArray(value.results)
+  ) {
+    throw new Error('개별 발송 결과 데이터 형식이 올바르지 않습니다.')
+  }
+
+  const summary = value.summary
+  const toCount = (count: unknown) => (typeof count === 'number' ? count : 0)
+
+  return {
+    total: value.total,
+    logCount: value.logCount,
+    summary: {
+      smsSuccess: toCount(summary.smsSuccess),
+      smsFailure: toCount(summary.smsFailure),
+      emailSuccess: toCount(summary.emailSuccess),
+      emailFailure: toCount(summary.emailFailure),
+    },
+    results: value.results.map((item, index) => {
+      if (!isRecord(item)) {
+        throw new Error('개별 발송 수신자 결과 형식이 올바르지 않습니다.')
+      }
+
+      return {
+        index: typeof item.index === 'number' ? item.index : index,
+        sourceLogId: typeof item.sourceLogId === 'string' ? item.sourceLogId : '',
+        name: typeof item.name === 'string' ? item.name : '',
+        sms: parseManualChannelResult(item.sms),
+        email: parseManualChannelResult(item.email),
+      }
+    }),
+  }
+}
+
+// =======================================
+// 17. 개별 발송 작업 상태 조회
+// GET /api/dispatch/status/:jobId
+// 20261125 추가
+// =======================================
+export async function getManualSendStatus(
+  jobId: string,
+): Promise<ManualSendStatusResult> {
+  const data = await requestDispatchApi(
+    `/status/${encodeURIComponent(jobId)}`,
+  )
+
+  if (
+    !isRecord(data) ||
+    typeof data.jobId !== 'string' ||
+    !isDispatchJobStatus(data.status)
+  ) {
+    throw new Error('개별 발송 작업 상태 데이터 형식이 올바르지 않습니다.')
+  }
+
+  return {
+    jobId: data.jobId,
+    status: data.status,
+    result:
+      data.result === null || data.result === undefined
+        ? null
+        : parseManualSendJobResult(data.result),
     error: typeof data.error === 'string' ? data.error : null,
   }
 }

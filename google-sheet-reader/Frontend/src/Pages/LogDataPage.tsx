@@ -2,7 +2,7 @@
  * @file LogDataPage.tsx
  * @author 배민경
  * @created 2026-11-19
- * @updated 2026-11-24
+ * @updated 2026-11-25
  * @description
  * 문자 및 이메일 발송 로그 조회 화면
  *
@@ -28,6 +28,12 @@
  * - 수정 중인 로그의 중복 요청 방지
  * - 발송 자동화 서비스 추가 및 버튼 추가
  * - 웹에서 발송 기준일 변경 기능 추가
+ *
+ * 20261125 추가:
+ * - 문자 및 이메일 개별 발송 기능 (새 메시지 작성 / 수신자 직접 입력)
+ * - 발송 이력에서 특정 수신자를 선택하여 문자·이메일 개별 발송
+ * - 발송 전 수신자별 문자·이메일 제목 및 본문 수정
+ * - 상세 보기에서 해당 수신자에게 바로 발송
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -41,14 +47,30 @@ import {
   updateDispatchSettings, // 20261124 추가: 발송 기준일 저장
   startDispatch,
   getDispatchStatus,
+  startManualSend, // 20261125 추가: 개별 발송
+  getManualSendStatus, // 20261125 추가: 개별 발송 상태 조회
 } from '../Services/DispatchService'
 
-import type { DispatchSettings } from '../Services/DispatchService'
+import type {
+  DispatchSettings,
+  ManualSendJobResult,
+  ManualSendMessage,
+} from '../Services/DispatchService'
+
+// 20261125 추가: 문자·이메일 개별 발송 작성 모달
+import MessageComposeModal from '../Components/MessageComposeModal'
+import {
+  MESSAGE_LIMITS,
+  createDraftFromRecord,
+  createEmptyDraft,
+} from '../Utils/messageDraft'
+import type { MessageDraft } from '../Utils/messageDraft'
 
 // =======================================
 // 1. 발송 로그 화면 기본 설정 및 타입
 // =======================================
 const PAGE_SIZE = 10
+const TABLE_COLUMN_COUNT = 10 // 20261125 수정: 선택 열 추가
 
 type StatusFilter = 'ALL' | 'SUCCESS' | 'FAILURE' | 'TEST' | 'SKIPPED'
 type StatusCategory = Exclude<StatusFilter, 'ALL'> | 'UNKNOWN'
@@ -248,9 +270,13 @@ function DetailField({
 function LogDetailModal({
   record,
   onClose,
+  onCompose, // 20261125 추가: 해당 수신자에게 개별 발송
+  isComposeDisabled,
 }: {
   record: LogRecord
   onClose: () => void
+  onCompose: (record: LogRecord) => void
+  isComposeDisabled: boolean
 }) {
   return (
     <div
@@ -358,7 +384,17 @@ function LogDetailModal({
           </section>
         </div>
 
-        <footer className="log-detail-modal-footer">
+        <footer className="log-detail-modal-footer compose-detail-footer">
+          {/* 20261125 추가: 기존 내용을 수정하여 해당 수신자에게 발송 */}
+          <button
+            type="button"
+            className="log-reset-button compose-cancel-button"
+            onClick={() => onCompose(record)}
+            disabled={isComposeDisabled}
+          >
+            이 수신자에게 발송
+          </button>
+
           <button
             type="button"
             className="log-modal-confirm"
@@ -423,6 +459,11 @@ function LogDataPage() {
   const [sortOption, setSortOption] = useState<LogSortOption>('DATE_DESC')
 
   const [selectedLog, setSelectedLog] = useState<LogRecord | null>(null)
+
+  // 20261125 추가: 개별 발송 수신자 선택 및 작성 모달 상태
+  const [checkedLogIds, setCheckedLogIds] = useState<Set<string>>(new Set())
+  const [composeDrafts, setComposeDrafts] = useState<MessageDraft[] | null>(null)
+  const [isManualSending, setIsManualSending] = useState(false)
 
   // ---------------------------------------
   // 5-3. API 요청 중복 및 응답 순서 관리
@@ -754,6 +795,92 @@ function LogDataPage() {
 
 
   // =======================================
+  // 5-8. 문자·이메일 개별 발송
+  // 20261125 추가
+  // =======================================
+
+  /** 작성 모달 열기 (선택 수신자 / 상세 보기 / 직접 입력 공통) */
+  const openCompose = (records: LogRecord[]) => {
+    if (records.length > MESSAGE_LIMITS.MAX_RECIPIENTS) {
+      setError(
+        `한 번에 최대 ${MESSAGE_LIMITS.MAX_RECIPIENTS}명까지 발송할 수 있습니다. 선택 인원을 줄여 주세요.`,
+      )
+      return
+    }
+
+    setError('')
+    setUpdateMessage('')
+    setComposeDrafts(
+      records.length > 0
+        ? records.map(createDraftFromRecord)
+        : [createEmptyDraft()],
+    )
+
+    // 테스트 설정 안내를 위해 최신 발송 설정 조회 (실패해도 작성은 계속 가능)
+    getDispatchSettings()
+      .then((settings) => setDispatchSettings(settings))
+      .catch(() => undefined)
+  }
+
+  /** 개별 발송 요청 → 작업 상태 확인 → 완료 후 로그 새로고침 */
+  const handleManualSend = async (
+    messages: ManualSendMessage[],
+    onProgress: (message: string) => void,
+  ): Promise<ManualSendJobResult> => {
+    setIsManualSending(true)
+
+    try {
+      const jobId = await startManualSend(messages)
+
+      let job = await getManualSendStatus(jobId)
+
+      while (job.status === 'queued' || job.status === 'running') {
+        onProgress(
+          job.status === 'queued'
+            ? '개별 발송 작업을 준비하고 있습니다...'
+            : `${messages.length}명에게 문자 및 이메일을 발송하고 있습니다...`,
+        )
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 1500)
+        })
+
+        job = await getManualSendStatus(jobId)
+      }
+
+      if (job.status === 'failed' || !job.result) {
+        throw new Error(job.error || '개별 발송에 실패했습니다.')
+      }
+
+      // 발송 완료 후 선택 해제 및 최신 로그 조회
+      setCheckedLogIds(new Set())
+      onProgress('발송 로그를 새로고침하고 있습니다...')
+      await handleRefresh()
+
+      return job.result
+    } finally {
+      setIsManualSending(false)
+    }
+  }
+
+  /** 발송 이력 수신자 선택 / 해제 */
+  const toggleLogChecked = (logId: string, checked: boolean) => {
+    if (!logId) return
+
+    setCheckedLogIds((current) => {
+      const next = new Set(current)
+
+      if (checked) next.add(logId)
+      else next.delete(logId)
+
+      return next
+    })
+  }
+
+  const checkedLogs = logs.filter((record) => checkedLogIds.has(record.ID))
+
+
+  // =======================================
   // 6. 발송 로그 검색 및 필터링
   // =======================================
   const filteredLogs = useMemo(() => {
@@ -901,6 +1028,31 @@ function LogDataPage() {
     currentPage * PAGE_SIZE,
   )
 
+  // 20261125 추가: 현재 페이지 전체 선택 상태
+  const selectablePageIds = pageLogs
+    .map((record) => record.ID)
+    .filter(Boolean)
+
+  const isPageAllChecked =
+    selectablePageIds.length > 0 &&
+    selectablePageIds.every((logId) => checkedLogIds.has(logId))
+
+  const togglePageChecked = (checked: boolean) => {
+    setCheckedLogIds((current) => {
+      const next = new Set(current)
+
+      selectablePageIds.forEach((logId) => {
+        if (checked) next.add(logId)
+        else next.delete(logId)
+      })
+
+      return next
+    })
+  }
+
+  // 20261125 추가: 발송 작업 진행 중에는 개별 발송 시작 제한
+  const isSendBlocked = isDispatching || isManualSending
+
   // =======================================
   // 9. 검색 및 초기화 이벤트 처리
   // =======================================
@@ -943,6 +1095,26 @@ function LogDataPage() {
           <p className="page-subtitle">
             문자 및 이메일 발송 결과와 상세 내용을 조회합니다.
           </p>
+
+          {/* 20261124 추가: 발송 자동화 진행 상태 및 결과 표시 */}
+          {dispatchMessage && (
+            <p className="log-update-message" role="status">
+              {dispatchMessage}
+            </p>
+          )}
+
+          {dispatchError && (
+            <p className="log-error-message" role="alert">
+              {dispatchError}
+            </p>
+          )}
+
+          {/* 20261124 추가: Update 성공 메시지 */}
+          {updateMessage && (
+            <p className="log-update-message" role="status">
+              {updateMessage}
+            </p>
+          )}
         </div>
 
         <div style={{
@@ -975,10 +1147,21 @@ function LogDataPage() {
             className="log-refresh-button"
             type="button"
             onClick={() => void handleStartDispatch()}
-            disabled={isDispatching || isLoading}
+            disabled={isDispatching || isManualSending || isLoading}
             title="설정된 사업의 이메일 및 문자 발송 자동화를 실행합니다."
           >
             {isDispatching ? '발송 진행 중...' : '발송 실행'}
+          </button>
+
+          {/* 20261125 추가: 수신자를 직접 입력하여 문자·이메일 발송 */}
+          <button
+            className="log-refresh-button log-compose-button"
+            type="button"
+            onClick={() => openCompose([])}
+            disabled={isSendBlocked}
+            title="수신자를 직접 입력하여 문자 또는 이메일을 발송합니다."
+          >
+            ✎ 새 메시지 작성
           </button>
         </div>
       </section>
@@ -1065,19 +1248,6 @@ function LogDataPage() {
           </p>
         )}
       </section>
-
-        {/* 20261124 추가: 발송 자동화 진행 상태 및 결과 표시 */}
-        {dispatchMessage && (
-          <div className="log-update-message" role="status">
-            {dispatchMessage}
-          </div>
-        )}
-
-        {dispatchError && (
-          <div className="log-error-message" role="alert">
-            {dispatchError}
-          </div>
-        )}
 
       {/* 10-2. 발송 로그 통계 카드 */}
       <section className="log-metric-grid" aria-label="발송 로그 요약">
@@ -1225,25 +1395,55 @@ function LogDataPage() {
             </p>
           </div>
 
-          {/* 20261123 추가: 발송 이력 정렬 기준 선택 */}
-          <label className="log-sort-control">
-            <span>정렬 기준</span>
-            <select
-              className="log-sort-select"
-              value={sortOption}
-              onChange={(event) => {
-                setSortOption(event.target.value as LogSortOption)
-                setCurrentPage(1)
-              }}
-              aria-label="발송 이력 정렬 기준"
-            >
-              <option value="DATE_DESC">최신 발송순</option>
-              <option value="DATE_ASC">오래된 발송순</option>
-              <option value="RECIPIENT_ASC">수신인 가나다순</option>
-              <option value="INSTITUTION_ASC">교육기관 가나다순</option>
-              <option value="STATUS">발송 상태순 (실패 우선)</option>
-            </select>
-          </label>
+          <div className="log-table-actions">
+            {/* 20261125 추가: 선택 수신자 개별 발송 */}
+            <div className="log-selection-bar" aria-live="polite">
+              <span>
+                {checkedLogs.length > 0
+                  ? `${formatCount(checkedLogs.length)}명 선택됨`
+                  : '발송할 수신자를 선택하세요'}
+              </span>
+
+              {checkedLogs.length > 0 && (
+                <button
+                  type="button"
+                  className="log-reset-button"
+                  onClick={() => setCheckedLogIds(new Set())}
+                >
+                  선택 해제
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="log-search-button log-selection-send"
+                onClick={() => openCompose(checkedLogs)}
+                disabled={checkedLogs.length === 0 || isSendBlocked}
+              >
+                선택 발송
+              </button>
+            </div>
+
+            {/* 20261123 추가: 발송 이력 정렬 기준 선택 */}
+            <label className="log-sort-control">
+              <span>정렬 기준</span>
+              <select
+                className="log-sort-select"
+                value={sortOption}
+                onChange={(event) => {
+                  setSortOption(event.target.value as LogSortOption)
+                  setCurrentPage(1)
+                }}
+                aria-label="발송 이력 정렬 기준"
+              >
+                <option value="DATE_DESC">최신 발송순</option>
+                <option value="DATE_ASC">오래된 발송순</option>
+                <option value="RECIPIENT_ASC">수신인 가나다순</option>
+                <option value="INSTITUTION_ASC">교육기관 가나다순</option>
+                <option value="STATUS">발송 상태순 (실패 우선)</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         {/* API 조회 오류 */}
@@ -1253,17 +1453,20 @@ function LogDataPage() {
           </div>
         )}
 
-        {/* 20261124 추가: Update 성공 메시지 */}
-        {updateMessage && (
-          <div className="log-update-message" role="status">
-            {updateMessage}
-          </div>
-        )}
-
         <div className="log-table-scroll">
           <table className="log-table">
             <thead>
               <tr>
+                {/* 20261125 추가: 개별 발송 수신자 선택 */}
+                <th className="log-select-cell">
+                  <input
+                    type="checkbox"
+                    checked={isPageAllChecked}
+                    onChange={(event) => togglePageChecked(event.target.checked)}
+                    disabled={selectablePageIds.length === 0}
+                    aria-label="현재 페이지 수신자 전체 선택"
+                  />
+                </th>
                 <th>발송일시</th>
                 <th>채널</th>
                 <th>수신인</th>
@@ -1279,7 +1482,7 @@ function LogDataPage() {
               {/* 조회 중 */}
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="log-table-message">
+                  <td colSpan={TABLE_COLUMN_COUNT} className="log-table-message">
                     발송 로그를 불러오고 있습니다.
                   </td>
                 </tr>
@@ -1289,7 +1492,7 @@ function LogDataPage() {
                 /* 조회 실패 */
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={TABLE_COLUMN_COUNT}
                     className="log-table-message log-table-error"
                   >
                     로그 데이터를 불러오지 못했습니다.
@@ -1300,7 +1503,7 @@ function LogDataPage() {
 
                 /* 조회 결과 없음 */
                 <tr>
-                  <td colSpan={8} className="log-table-message">
+                  <td colSpan={TABLE_COLUMN_COUNT} className="log-table-message">
                     조회 조건에 해당하는 발송 로그가 없습니다.
                   </td>
                 </tr>
@@ -1309,7 +1512,23 @@ function LogDataPage() {
 
                 /* 발송 로그 목록 */
                 pageLogs.map((record, index) => (
-                  <tr key={record.ID || `${record.발송일시}-${index}`}>
+                  <tr
+                    key={record.ID || `${record.발송일시}-${index}`}
+                    className={checkedLogIds.has(record.ID) ? 'is-checked' : undefined}
+                  >
+
+                    {/* 20261125 추가: 수신자 선택 */}
+                    <td className="log-select-cell">
+                      <input
+                        type="checkbox"
+                        checked={checkedLogIds.has(record.ID)}
+                        disabled={!record.ID}
+                        onChange={(event) =>
+                          toggleLogChecked(record.ID, event.target.checked)
+                        }
+                        aria-label={`${record.성명 || record.수신인 || '해당 로그'} 발송 대상 선택`}
+                      />
+                    </td>
 
                     {/* 발송일시 */}
                     <td className="log-date-cell">
@@ -1478,6 +1697,24 @@ function LogDataPage() {
         <LogDetailModal
           record={selectedLog}
           onClose={() => setSelectedLog(null)}
+          onCompose={(record) => {
+            setSelectedLog(null)
+            openCompose([record])
+          }}
+          isComposeDisabled={isSendBlocked}
+        />
+      )}
+
+      {/* 20261125 추가: 문자·이메일 개별 발송 작성 모달 */}
+      {composeDrafts && (
+        <MessageComposeModal
+          initialDrafts={composeDrafts}
+          settings={dispatchSettings}
+          isBlocked={isDispatching}
+          onSend={handleManualSend}
+          onClose={() => {
+            if (!isManualSending) setComposeDrafts(null)
+          }}
         />
       )}
     </div>

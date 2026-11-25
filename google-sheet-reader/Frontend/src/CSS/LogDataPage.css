@@ -2,7 +2,7 @@
  * @file LogDataPage.css
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-24
+ * @updated 2026-11-25
  * @description
  * 발송 로그 조회 화면 디자인을 설정하는 CSS.
  
@@ -10,6 +10,7 @@
  * 20261123 수정: 블랙·화이트·그레이 단색 팔레트 통일
  * 20261124 추가: 수동 발송 확인 체크박스 및 저장 상태 표시
  * 20261124 추가: 웹에서 발송 기준일 변경 기능 추가
+ * 20261125 추가: 수신자 선택 열, 선택 발송 영역, 문자·이메일 개별 발송 작성 모달
  */
 
 /* [발송 로그 페이지 전체 및 페이지 전용 색상 변수] */
@@ -254,7 +255,7 @@
 /* [발송 이력 테이블 전체] */
 .log-table {
   width: 100%;
-  min-width: 1040px; /* 20261124 수정: 수동 확인 컬럼 추가 */
+  min-width: 1080px; /* 20261124 수정: 수동 확인 컬럼 추가 / 20261125 수정: 선택 열 추가 */
   border-collapse: collapse;
   white-space: nowrap;
   text-align: left;
@@ -965,4 +966,631 @@
   .dispatch-settings-save-button {
     width: 100%;
   }
+}
+
+/* =======================================================
+   20261125 추가: 문자·이메일 개별 발송
+======================================================= */
+
+/* [새 메시지 작성 버튼] */
+.log-compose-button {
+  color: #FFFFFF;
+  border-color: var(--log-color-primary);
+  background: var(--log-color-primary);
+  font-weight: 650;
+}
+
+.log-compose-button:hover:not(:disabled) {
+  border-color: var(--log-color-primary-hover) !important;
+  background: var(--log-color-primary-hover) !important;
+}
+
+.log-compose-button:disabled {
+  cursor: not-allowed;
+}
+
+/* [발송 이력 우측: 선택 발송 + 정렬] */
+.log-table-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+/* [선택 수신자 표시 및 선택 발송 버튼] */
+.log-selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #888888;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.log-selection-bar > span {
+  margin-right: 2px;
+}
+
+.log-selection-send {
+  height: 40px;
+}
+
+.log-selection-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* [발송 이력 선택 열] */
+.log-select-cell {
+  width: 40px;
+  text-align: center;
+}
+
+.log-select-cell input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--log-color-primary);
+  cursor: pointer;
+}
+
+.log-select-cell input:disabled {
+  cursor: not-allowed;
+}
+
+/* [선택된 발송 이력 행] */
+.log-table tbody tr.is-checked,
+.log-table tbody tr.is-checked:hover {
+  background: #F7F7F7;
+}
+
+/* [상세 보기 하단: 발송 + 닫기] */
+.compose-detail-footer {
+  gap: 8px;
+}
+
+/* [모달 보조 버튼 (취소, 이 수신자에게 발송)] */
+.compose-cancel-button {
+  min-width: 75px;
+  height: 34px;
+  padding: 0 14px;
+  color: #666666;
+  font-size: 12px;
+}
+
+.compose-cancel-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* [개별 발송 작성 모달 창] */
+.log-compose-modal {
+  width: min(1080px, 100%);
+}
+
+/* [현재 발송 설정 안내] */
+.compose-mode-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 11px 25px;
+  border-bottom: 1px solid #ECECEC;
+  color: #888888;
+  background: #FAFAFA;
+  font-size: 11px;
+}
+
+.compose-mode-notice strong {
+  padding: 4px 8px;
+  border: 1px solid #E0E0E0;
+  border-radius: 5px;
+  color: #666666;
+  background: #FFFFFF;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+/* [실제 발송 설정일 때 강조] */
+.compose-mode-live {
+  color: #454545;
+  background: #F0F0F0;
+}
+
+.compose-mode-live strong {
+  border-color: var(--log-color-primary);
+  color: #FFFFFF;
+  background: var(--log-color-primary);
+}
+
+/* [작성 화면: 수신자 목록 + 편집 영역] */
+.compose-body {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+
+/* [수신자 목록 패널] */
+.compose-recipient-panel {
+  display: flex;
+  min-height: 0;
+  max-height: calc(90vh - 190px);
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 16px;
+  border-right: 1px solid #ECECEC;
+  background: #FCFCFC;
+}
+
+.compose-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.compose-panel-heading h3 {
+  margin: 0;
+  color: #454545;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.compose-panel-heading span {
+  color: #888888;
+  font-size: 11px;
+}
+
+.compose-recipient-list {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compose-recipient-list li {
+  position: relative;
+}
+
+/* [수신자 항목] */
+.compose-recipient-item {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 30px 10px 11px;
+  border: 1px solid #ECECEC;
+  border-radius: 8px;
+  color: #666666;
+  background: #FFFFFF;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.compose-recipient-item:hover:not(:disabled) {
+  border-color: #D0D0D0;
+}
+
+.compose-recipient-item.is-active {
+  border-color: #888888;
+  box-shadow: 0 0 0 2px rgba(136, 136, 136, 0.12);
+}
+
+.compose-recipient-item.has-error {
+  border-style: dashed;
+  border-color: #888888;
+}
+
+.compose-recipient-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  color: #2B2B2B;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compose-recipient-name em {
+  flex: 0 0 auto;
+  color: #888888;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.compose-recipient-item small {
+  overflow: hidden;
+  color: #888888;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compose-channel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 16px;
+}
+
+.compose-channel-tags span {
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #666666;
+  background: #F0F0F0;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.compose-channel-tags .compose-tag-error {
+  color: #FFFFFF;
+  background: #888888;
+}
+
+/* [수신자 제외 버튼] */
+.compose-recipient-remove {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  color: #B5B5B5;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.compose-recipient-remove:hover:not(:disabled) {
+  color: #454545;
+  background: #F0F0F0;
+}
+
+/* [수신자 직접 추가 버튼] */
+.compose-add-button {
+  height: 36px;
+  border: 1px dashed #D0D0D0;
+  border-radius: 8px;
+  color: #666666;
+  background: #FFFFFF;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.compose-add-button:hover:not(:disabled) {
+  border-color: #888888;
+}
+
+/* [내용 편집 영역] */
+.compose-editor {
+  min-width: 0;
+  max-height: calc(90vh - 190px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 25px;
+}
+
+.compose-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 13px;
+}
+
+.compose-section-heading h3 {
+  margin: 0 !important;
+}
+
+/* [입력 항목 배치] */
+.compose-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.compose-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.compose-field + .compose-field {
+  margin-top: 10px;
+}
+
+.compose-field-grid .compose-field + .compose-field {
+  margin-top: 0;
+}
+
+.compose-field > span {
+  color: #888888;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.compose-field input,
+.compose-field select,
+.compose-field textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #ECECEC;
+  border-radius: 7px;
+  outline: none;
+  color: #454545;
+  background: #FFFFFF;
+  font: inherit;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.compose-field input,
+.compose-field select {
+  height: 37px;
+  padding: 0 10px;
+}
+
+.compose-field textarea {
+  min-height: 120px;
+  padding: 11px 12px;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.compose-field input:focus,
+.compose-field select:focus,
+.compose-field textarea:focus {
+  border-color: #B5B5B5;
+  box-shadow: 0 0 0 3px rgba(136, 136, 136, 0.1);
+}
+
+.compose-field input:disabled,
+.compose-field select:disabled,
+.compose-field textarea:disabled {
+  color: #888888;
+  background: #FAFAFA;
+}
+
+/* [발송 채널 선택] */
+.compose-channel-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.compose-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid #ECECEC;
+  border-radius: 7px;
+  color: #454545;
+  background: #FFFFFF;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.compose-toggle:has(input:checked) {
+  border-color: #888888;
+  background: #F7F7F7;
+}
+
+.compose-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--log-color-primary);
+}
+
+/* [치환 문구 안내] */
+.compose-hint {
+  margin: 10px 0 0;
+  color: #B5B5B5;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+/* [문자 바이트 수] */
+.compose-byte-counter {
+  margin: 7px 0 0;
+  color: #888888;
+  font-size: 10px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.compose-byte-counter.is-over {
+  color: #2B2B2B;
+  font-weight: 750;
+}
+
+/* [발송 미리보기 라벨] */
+.compose-preview-label {
+  margin: 12px 0 6px;
+  color: #888888;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+/* [입력 오류 목록] */
+.compose-error-list {
+  margin: 20px 0 0;
+  padding: 11px 13px 11px 28px;
+  border: 1px solid #D0D0D0;
+  border-radius: 7px;
+  color: #666666;
+  background: #FFFFFF;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+/* [모달 하단: 상태 문구 + 버튼] */
+.compose-footer {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.compose-footer-status {
+  min-width: 0;
+  color: #888888;
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.compose-footer-error {
+  color: #454545;
+  font-weight: 650;
+}
+
+.compose-footer-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.compose-footer-actions .log-modal-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* [발송 결과 요약] */
+.compose-result-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.compose-result-summary article {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 13px 14px;
+  border: 1px solid #ECECEC;
+  border-radius: 8px;
+  background: #FFFFFF;
+}
+
+.compose-result-summary span {
+  color: #888888;
+  font-size: 10px;
+}
+
+.compose-result-summary strong {
+  color: #2B2B2B;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+
+.compose-result-caption {
+  margin: 14px 0 10px;
+  color: #888888;
+  font-size: 11px;
+}
+
+.compose-result-table {
+  min-width: 560px;
+}
+
+.compose-result-table td {
+  white-space: normal;
+}
+
+.compose-result-table .log-recipient-contact {
+  display: block;
+  margin-top: 5px;
+}
+
+/* [개별 발송 반응형] */
+@media (max-width: 900px) {
+  .log-table-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .log-table-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 760px) {
+  .compose-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compose-recipient-panel {
+    max-height: 220px;
+    border-right: 0;
+    border-bottom: 1px solid #ECECEC;
+  }
+
+  .compose-editor {
+    max-height: none;
+  }
+
+  .log-compose-modal .compose-body {
+    overflow-y: auto;
+  }
+
+  .compose-field-grid,
+  .compose-result-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compose-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .compose-footer-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 560px) {
+  .compose-mode-notice {
+    padding: 10px 17px;
+  }
+
+  .compose-editor {
+    padding: 17px;
+  }
+
+  .compose-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .log-selection-bar {
+    flex-wrap: wrap;
+  }
+}
+
+
+/* 20261125 추가: 발송 진행 상태 / 수동 확인 저장 메시지 (페이지 부제목 아래) */
+.log-update-message {
+  margin: 8px 0 0;
+  color: var(--color-gw); /* 강조 파란색 (#406cfc) */
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
 }

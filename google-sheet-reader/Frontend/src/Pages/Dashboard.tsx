@@ -2,7 +2,7 @@
  * @file Dashboard.tsx
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-24
+ * @updated 2026-11-25
  * @description
  * 메인 화면 구성.
  *
@@ -15,15 +15,15 @@
  * - 2026-11-23: 교육 데이터 조회 상태 및 로직을 useDashboardData 훅으로 분리
  * - 2026-11-23: 현재 화면에 따른 breadcrumb 제목 변경 기능 추가
  * - 2026-11-24: 발송 자동화 서비스 관련 코드 삭제 (발송 로그 화면으로 옮김)
+ * - 2026-11-25: 교육 운영 추이 그래프 삭제 및 웹 서비스 소개 영역 추가
  *
  * 주요 기능:
  * - 좌측 사이드바 및 메뉴
  * - 상단 날짜 및 관리자 영역
  * - GW·DS 사업 정보
  * - 전체 교육 건수 등 핵심 지표
- * - 교육 운영 추이 영역
+ * - 웹 서비스 소개 및 주요 기능 바로가기
  * - 데이터 연결 상태
- * - 발송 자동화 실행 및 로그 조회
  */
 
 // =======================================
@@ -31,12 +31,12 @@
 // =======================================
 import { useEffect, useState } from 'react'
 
-import EducationTrendChart from '../Components/EducationTrendChart' // 20261118 추가: 교육 운영 추이 차트
-
 import {
   Icon,
   MetricCard,
 } from '../Components/DashboardUI' // 20261123 수정: 공통 UI 컴포넌트 분리
+
+import type { IconName } from '../Components/DashboardUI' // 20261125 추가: 기능 소개 아이콘
 
 import EducationDataPage from './EducationDataPage' // 20261118 추가: 교육 데이터 조회 화면
 import BusinessStatusPage from './BusinessStatusPage' // 20261118 추가: 사업 현황 페이지
@@ -59,6 +59,54 @@ const PAGE_TITLES: Record<
   business: '사업 현황',
   logs: '발송 로그',
 }
+
+
+// =======================================
+// 1-2. 20261125 추가: 웹 서비스 주요 기능 소개
+// =======================================
+type DashboardView = 'dashboard' | 'education' | 'business' | 'logs'
+
+const SERVICE_FEATURES: {
+  view: Exclude<DashboardView, 'dashboard'>
+  icon: IconName
+  overline: string
+  title: string
+  description: string
+  action: string
+}[] = [
+  {
+    view: 'education',
+    icon: 'book',
+    overline: 'EDUCATION DATA',
+    title: '교육 데이터 조회',
+    description: 'GW·DS 사업의 교육 일정 데이터를 사업 유형과 기간별로 통합 조회합니다.',
+    action: '교육 데이터 보기',
+  },
+  {
+    view: 'business',
+    icon: 'chart',
+    overline: 'BUSINESS STATUS',
+    title: '사업 현황',
+    description: '지역·권역·수요처·학교별 교육 건수를 집계하여 운영 현황을 확인합니다.',
+    action: '사업 현황 보기',
+  },
+  {
+    view: 'logs',
+    icon: 'file',
+    overline: 'DISPATCH',
+    title: '문자·이메일 발송 및 로그',
+    description: '발송 이력을 검색하고, 자동 발송 실행과 선택한 수신자 개별 발송·내용 수정을 처리합니다.',
+    action: '발송 로그 열기',
+  },
+  {
+    view: 'logs',
+    icon: 'calendar',
+    overline: 'SCHEDULE',
+    title: '예약 발송',
+    description: '매일 오전 10시, 설정한 수업일 기준으로 교육 안내 문자와 이메일을 자동 발송합니다.',
+    action: '발송 기준 설정',
+  },
+]
 
 
 // =======================================
@@ -372,16 +420,56 @@ function Dashboard() {
             </section>
 
             {/* =======================================
-                5-5. 교육 운영 추이 및 연결 상태
+                5-5. 웹 서비스 소개
+                20261125 수정: 교육 운영 추이 그래프 삭제 후 서비스 설명으로 대체
             ======================================= */}
-            <section className="dashboard-grid">
-              <EducationTrendChart
-                gwData={gwData}
-                dsData={dsData}
-                gwStatus={gwStatus}
-                dsStatus={dsStatus}
-                isLoading={isLoading}
-              />
+            <section className="section-block service-intro-section">
+              <article className="surface-card service-intro-card">
+                <div className="card-heading">
+                  <div>
+                    <h2>서비스 소개</h2>
+                    <p>EDUCATION OPERATIONS &amp; MESSAGE DISPATCH</p>
+                  </div>
+                </div>
+
+                <p className="service-intro-text">
+                  Google Sheets에 기록된 GW·DS 교육 운영 데이터를 웹에서 조회하고,
+                  교육 일정에 맞춰 강사·담당교사에게 문자와 이메일 안내를 발송·관리하는
+                  교육사업 운영 관리 시스템입니다. 발송 결과는 로그로 저장되어 언제든
+                  확인할 수 있고, 필요한 수신자에게는 내용을 수정해 개별로 다시 보낼 수 있습니다.
+                </p>
+              </article>
+
+              <div className="business-card-grid service-feature-grid">
+                {SERVICE_FEATURES.map((feature) => (
+                  <article key={feature.title} className="business-card">
+                    <div>
+                      <div className="business-card-top">
+                        <span className="business-symbol" aria-hidden="true">
+                          <Icon name={feature.icon} size={17} />
+                        </span>
+                      </div>
+
+                      <p className="business-overline">{feature.overline}</p>
+                      <h3>{feature.title}</h3>
+                      <p className="business-description">{feature.description}</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="business-card-footer"
+                      onClick={() =>
+                        feature.view === 'education'
+                          ? openEducationPage()
+                          : setCurrentView(feature.view)
+                      }
+                    >
+                      <span>{feature.action}</span>
+                      <Icon name="chevron" size={14} />
+                    </button>
+                  </article>
+                ))}
+              </div>
             </section>
 
             {/* =======================================

@@ -2,7 +2,7 @@
  * @file 01_Main.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-11-24
+ * @updated 2026-11-25
  * @description
  * 설정된 발송 기준일의 교육 데이터를 조회하여 사업별 그룹화, 발송 대상 선정 및 통합 알림 발송 수행
  *
@@ -18,6 +18,7 @@
  * 20261119 수정: Express 서버가 기존 발송 자동화 프로그램을 호출하도록 수정
  * 20261123 수정: 한국 시간 기준 날짜 계산 (트리거를 위해서)
  * 20261124 추가: 웹에서 발송 기준일 변경 기능 추가
+ * 20261125 추가: 발송 로그 화면 개별 발송(runManualSend) 기능 추가
  */
 
 
@@ -47,6 +48,7 @@ const NotificationTargetService = require("./Services/NotificationTargetService"
 const NotificationService = require("./Services/NotificationService");
 const TemplateService = require("./Services/TemplateService");
 const LogService = require("./Services/LogService");
+const ManualSendService = require("./Services/ManualSendService"); // 20261125 추가: 개별 발송
 
 
 // =============================================================
@@ -662,9 +664,158 @@ async function runDispatch() {
 }
 
 
+// =============================================================
+// 12. 개별 발송 실행
+// 20261125 추가: 발송 로그 화면에서 선택/직접 입력한 수신자에게
+//               웹에서 수정한 문자·이메일 내용을 개별 발송
+//
+// messages: ManualSendService.normalizeManualMessages()로 검증된 배열
+// =============================================================
+async function runManualSend(messages) {
+
+    const pendingLogRecords = [];
+
+    const runSummary = {
+        type: "manual",
+        total: Array.isArray(messages) ? messages.length : 0,
+        logCount: 0,
+        summary: {
+            smsSuccess: 0,
+            smsFailure: 0,
+            emailSuccess: 0,
+            emailFailure: 0,
+        },
+        results: [],
+    };
+
+    let executionError = null;
+
+    try {
+
+        // -----------------------------------------------------
+        // 12-1. 테스트 설정 확인 (자동 발송과 동일 기준 적용)
+        // -----------------------------------------------------
+        const testOptions = getTestOptions(getBusinessTypes());
+
+        logSection("개별 발송 시작");
+
+        console.log(`발송 대상: ${runSummary.total}명`);
+        console.log(
+            `이메일 미리보기 모드: ${testOptions.emailTestMode} / ` +
+            `이메일 테스트 수신자 모드: ${testOptions.emailTestRecipientMode} / ` +
+            `SMS 수신번호 테스트: ${testOptions.smsTestRecipientMode} / ` +
+            `뿌리오 API 테스트: ${testOptions.smsApiTestMode}`
+        );
+
+        // -----------------------------------------------------
+        // 12-2. 수신자별 개별 발송
+        // -----------------------------------------------------
+        for (const [index, message] of messages.entries()) {
+
+            const { smsDetail, emailDetail } = await ManualSendService.sendManualMessage(
+                message,
+                testOptions
+            );
+
+            const logOptions = {
+                emailTestRecipientMode: testOptions.emailTestRecipientMode,
+                smsTestRecipientMode: testOptions.smsTestRecipientMode,
+            };
+
+            // 발송 결과 로그 생성
+            try {
+                const record = LogService.BuildManualRecord({
+                    message,
+                    smsDetail,
+                    emailDetail,
+                    options: logOptions,
+                });
+
+                if (record) {
+                    pendingLogRecords.push(record);
+                }
+
+            } catch (error) {
+                console.error(`[개별 발송] 로그 데이터 생성 실패: ${error.message}`);
+            }
+
+            // 화면 표시용 결과 요약
+            const toChannelResult = (detail) => detail
+                ? {
+                    success: Boolean(detail.success),
+                    previewOnly: Boolean(detail.previewOnly),
+                    testMode: Boolean(detail.result?.testMode),
+                    recipient: detail.recipient || "",
+                    error: detail.success ? "" : (detail.error || "발송 실패"),
+                }
+                : null;
+
+            const smsResult = toChannelResult(smsDetail);
+            const emailResult = toChannelResult(emailDetail);
+
+            if (smsResult) {
+                runSummary.summary[smsResult.success ? "smsSuccess" : "smsFailure"] += 1;
+            }
+
+            if (emailResult) {
+                runSummary.summary[emailResult.success ? "emailSuccess" : "emailFailure"] += 1;
+            }
+
+            runSummary.results.push({
+                index,
+                sourceLogId: message.sourceLogId || "",
+                name: message.recipient.name || "",
+                sms: smsResult,
+                email: emailResult,
+            });
+
+            console.log(
+                `[개별 발송] ${message.recipient.name || `${index + 1}번째`} | ` +
+                `문자: ${smsResult ? (smsResult.success ? "성공" : `실패(${smsResult.error})`) : "-"} | ` +
+                `이메일: ${emailResult ? (emailResult.success ? "성공" : `실패(${emailResult.error})`) : "-"}`
+            );
+        }
+
+    } catch (error) {
+
+        console.error("\n개별 발송 실행 실패");
+        console.error(error.message);
+
+        executionError = error;
+
+    } finally {
+
+        // -----------------------------------------------------
+        // 12-3. 개별 발송 로그 일괄 저장
+        // -----------------------------------------------------
+        if (pendingLogRecords.length > 0) {
+
+            try {
+                await LogService.AppendLogs(pendingLogRecords);
+                runSummary.logCount = pendingLogRecords.length;
+
+            } catch (logError) {
+                console.error(`[01_Main.js] 개별 발송 로그 저장 실패: ${logError.message}`);
+
+                executionError = executionError || new Error(
+                    `발송은 처리되었으나 로그 저장에 실패했습니다: ${logError.message}`
+                );
+            }
+        }
+    }
+
+    if (executionError) {
+        throw executionError;
+    }
+
+    return runSummary;
+}
+
+
 // 20261119 추가: 메인 실행 함수 외부 공개
 module.exports = {
     runDispatch,
+    runManualSend, // 20261125 추가: 개별 발송 실행
     getDispatchSettings,
     updateDispatchSettings, // 20261124 추가: 웹 발송 기준일 설정 저장
 };

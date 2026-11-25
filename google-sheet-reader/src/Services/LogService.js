@@ -1,9 +1,8 @@
-
 /**
  * @file LogService.js
  * @author 배민경
  * @created 2026-10-28
- * @updated 2026-11-17
+ * @updated 2026-11-25
  * @description
  * 문자/이메일 발송 결과를 Google Sheets 로그 시트에 기록
  *
@@ -20,6 +19,7 @@
  * - 발송 상태 구분: 스킵, 실패, 테스트, 성공
  * 
  * 20261117 수정: 불필요한 로그 삭제 작업함
+ * 20261125 추가: 발송 로그 화면 개별 발송 로그 생성(BuildManualRecord)
  */
 
 require("dotenv").config();
@@ -738,6 +738,83 @@ function getUniqueValues(values) {
 
 
 // =============================================================
+// 12-1. 개별 발송 로그 생성
+// 20261125 추가: 발송 로그 화면에서 선택/직접 입력한 수신자 개별 발송
+//
+// - 기존 로그 시트 컬럼 구조(A:AB)를 그대로 사용
+// - 문자 / 이메일 결과를 한 행으로 통합 기록 (GW 로그와 동일 방식)
+// - 발송 상태 뒤에 " · 개별발송"을 붙여 자동 발송 로그와 구분
+// =============================================================
+const MANUAL_STATUS_SUFFIX = " · 개별발송";
+
+function BuildManualRecord({
+    message,
+    smsDetail = null,
+    emailDetail = null,
+    options = {},
+}) {
+
+    if (!message || (!smsDetail && !emailDetail)) {
+        return null;
+    }
+
+    const businessType = BUSINESS_TYPES[message.businessType] || BUSINESS_TYPES.GW;
+    const recipient = message.recipient || {};
+    const education = message.education || {};
+
+    // ---------------------------------------------------------
+    // 12-1-1. 채널별 발송 상태
+    // ---------------------------------------------------------
+    const smsStatus = smsDetail
+        ? `${getDispatchStatus(CHANNELS.SMS, smsDetail, options)}${MANUAL_STATUS_SUFFIX}`
+        : "";
+
+    const emailStatus = emailDetail
+        ? `${getDispatchStatus(CHANNELS.EMAIL, emailDetail, options)}${MANUAL_STATUS_SUFFIX}`
+        : "";
+
+    // ---------------------------------------------------------
+    // 12-1-2. 발송인 정보
+    // ---------------------------------------------------------
+    const senderName = smsDetail
+        ? MESSAGE_CONFIG[businessType]?.SENDER_NAME || EMAIL_CONFIG.SENDER_NAME
+        : EMAIL_CONFIG.SENDER_NAME;
+
+    // 제목은 이메일 제목을 우선 사용하고, 없으면 문자 제목 사용
+    const subject = (emailDetail && emailDetail.subject) ||
+        (smsDetail && smsDetail.subject) ||
+        "";
+
+    return {
+        "ID": randomUUID(),
+        "교육과정명": education.교육과정명 || "",
+        "교육기관명": education.교육기관명 || "",
+        "반명": education.반명 || "",
+        "교육일": education.교육일 || "",
+        "요일": education.요일 || "",
+        "교육시간": education.교육시간 || "",
+        "역할": recipient.role || "",
+        "성명": recipient.name || "",
+        "소속기관명": recipient.affiliation || "",
+        "연락처": recipient.phone || "",
+        "이메일": recipient.email || "",
+        "문자발송상태": smsStatus,
+        "이메일발송상태": emailStatus,
+        "발송일시": getKoreaDateTime(),
+        "발송인": senderName,
+        "발송연락처": smsDetail ? CONFIG.PPURIO?.SENDER_NUMBER || "" : "",
+        "발송이메일": emailDetail ? EMAIL_CONFIG.USER || "" : "",
+        "수신인": recipient.name || "",
+        "실제수신연락처": smsDetail ? smsDetail.recipient || "" : "",
+        "실제수신이메일": emailDetail ? emailDetail.recipient || "" : "",
+        "제목": subject,
+        "문자본문내용": smsDetail ? smsDetail.bodyText || "" : "",
+        "이메일본문내용": emailDetail ? emailDetail.bodyText || "" : "",
+    };
+}
+
+
+// =============================================================
 // 13. Google Sheets 로그 전송
 // =============================================================
 async function AppendLogs(records) {
@@ -856,5 +933,6 @@ async function AppendLogs(records) {
 
 module.exports = {
     BuildRecords,
+    BuildManualRecord, // 20261125 추가: 개별 발송 로그 생성
     AppendLogs,
 };

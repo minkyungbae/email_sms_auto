@@ -2,7 +2,7 @@
  * @file dispatchRoutes.js
  * @author 배민경
  * @created 2026-11-19
- * @updated 2026-11-24
+ * @updated 2026-11-25
  * @description
  * 이메일 및 문자 발송 자동화 실행 API 라우터
  *
@@ -13,6 +13,8 @@
  * - 중복 발송 실행 방지
  * 
  * 20261124 추가: 웹에서 발송 기준일 변경 기능 추가
+ * 20261125 추가: 발송 로그 화면 개별 발송(선택 수신자 / 직접 입력) API 추가
+ *               - 자동 발송과 같은 작업 ID / 상태 조회 / 중복 실행 방지 구조 사용
  */
 
 
@@ -24,9 +26,13 @@ const router = express.Router();
 // 기존 발송 자동화 함수 불러오기
 const {
     runDispatch,
+    runManualSend, // 20261125 추가: 개별 발송 실행
     getDispatchSettings,
     updateDispatchSettings, // 20261124 추가: 발송 기준일 설정 저장
 } = require("../src/01_Main.js");
+
+// 20261125 추가: 개별 발송 요청 검증
+const ManualSendService = require("../src/Services/ManualSendService.js");
 
 
 // =============================================================
@@ -59,7 +65,8 @@ function createResponse(
 // =============================================================
 // 3. 발송 작업 실행
 // =============================================================
-async function executeDispatch(job) {
+// 20261125 수정: 자동 발송(auto) / 개별 발송(manual) 작업 공통 실행
+async function executeDispatch(job, runner = runDispatch) {
 
     // 작업 실행 상태 변경
     job.status = "running";
@@ -67,26 +74,26 @@ async function executeDispatch(job) {
 
     console.log("");
     console.log("========================================");
-    console.log("[dispatchRoutes.js] 발송 자동화 실행");
+    console.log(`[dispatchRoutes.js] ${job.type === "manual" ? "개별 발송" : "발송 자동화"} 실행`);
     console.log(`작업 ID: ${job.id}`);
     console.log("========================================");
 
     try {
-        // 기존 자동화 프로그램 실행
-        const result = await runDispatch();
+        // 작업 유형에 맞는 발송 프로그램 실행
+        const result = await runner();
 
         // 실행 성공 결과 저장
         job.status = "succeeded";
         job.result = result;
 
-        console.log("[dispatchRoutes.js] 발송 자동화 완료");
+        console.log(`[dispatchRoutes.js] ${job.type === "manual" ? "개별 발송" : "발송 자동화"} 완료`);
     } catch (error) {
 
         // 실행 실패 결과 저장
         job.status = "failed";
         job.error = error.message;
 
-        console.error("[dispatchRoutes.js] 발송 자동화 실패");
+        console.error(`[dispatchRoutes.js] ${job.type === "manual" ? "개별 발송" : "발송 자동화"} 실패`);
         console.error(error.message);
 
     } finally {
@@ -277,6 +284,7 @@ router.post("/run", (req, res) => {
 
     const job = {
         id: jobId,
+        type: "auto", // 20261125 추가: 작업 유형
         status: "queued",
         settings,
         result: null,
@@ -316,7 +324,107 @@ router.post("/run", (req, res) => {
 
 
 // =============================================================
-// 6. 발송 작업 상태 조회 API
+// 7. 개별 발송 실행 API
+//
+// POST /api/dispatch/manual-send
+// 20261125 추가
+//
+// Request Body:
+// {
+//   "confirm": true,
+//   "messages": [
+//     {
+//       "sourceLogId": "원본 로그 ID(선택)",
+//       "businessType": "GW" | "DS",
+//       "recipient": { "name", "role", "phone", "email", "affiliation" },
+//       "education": { "교육과정명", "교육기관명", "반명", "교육일", "요일", "교육시간" },
+//       "sms":   { "enabled": true, "subject": "", "body": "" },
+//       "email": { "enabled": true, "subject": "", "body": "" }
+//     }
+//   ]
+// }
+// =============================================================
+router.post("/manual-send", (req, res) => {
+
+    // ---------------------------------------------------------
+    // 7-1. 실행 확인 여부 검증
+    // ---------------------------------------------------------
+    if (req.body?.confirm !== true) {
+        return res.status(400).json(
+            createResponse(false, null, "개별 발송 실행 확인이 필요합니다.")
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 7-2. 중복 실행 방지 (자동 발송과 동일 잠금 사용)
+    // ---------------------------------------------------------
+    if (activeJobId) {
+        return res.status(409).json(
+            createResponse(
+                false,
+                { jobId: activeJobId },
+                "다른 발송 작업이 진행 중입니다. 완료 후 다시 시도해 주세요."
+            )
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 7-3. 발송 요청 데이터 검증
+    // ---------------------------------------------------------
+    let messages;
+
+    try {
+        messages = ManualSendService.normalizeManualMessages(req.body?.messages);
+
+    } catch (error) {
+        return res.status(400).json(
+            createResponse(false, null, error.message)
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 7-4. 개별 발송 작업 생성 및 비동기 실행
+    // ---------------------------------------------------------
+    const jobId = randomUUID();
+
+    const job = {
+        id: jobId,
+        type: "manual",
+        status: "queued",
+        settings: null,
+        result: null,
+        error: null,
+        createdAt: new Date().toISOString(),
+        startedAt: null,
+        completedAt: null,
+    };
+
+    jobs.set(jobId, job);
+    activeJobId = jobId;
+
+    setImmediate(() => {
+        void executeDispatch(job, () => runManualSend(messages));
+    });
+
+    console.log(`[dispatchRoutes.js] 개별 발송 작업 등록: ${jobId} (${messages.length}명)`);
+
+    return res.status(202).json(
+        createResponse(
+            true,
+            {
+                jobId,
+                type: job.type,
+                status: job.status,
+                total: messages.length,
+            },
+            "개별 발송이 시작되었습니다."
+        )
+    );
+});
+
+
+// =============================================================
+// 8. 발송 작업 상태 조회 API
 //
 // GET /api/dispatch/status/:jobId
 // =============================================================
@@ -344,6 +452,7 @@ router.get("/status/:jobId", (req, res) => {
             true,
             {
                 jobId: job.id,
+                type: job.type, // 20261125 추가: auto / manual
                 status: job.status,
                 settings: job.settings,
                 result: job.result,
