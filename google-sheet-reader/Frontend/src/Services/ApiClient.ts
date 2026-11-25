@@ -1,6 +1,7 @@
 /**
  * @file ApiClient.ts
- * @updated 2026-11-20
+ * @created 2026-11-20
+ * @updated 2026-11-25
  * @description 프론트엔드 API 요청, 응답 검증, 타임아웃 및 네트워크 오류 처리를 공통화.
  * 
  * 주요 기능:
@@ -93,6 +94,9 @@ export async function requestApiData<T>(
     // 3-8. 정상 응답 데이터 반환
     return payload.data as T
   } catch (error) {
+    // 20261125 추가: 원래 오류를 브라우저 콘솔에 남김 (화면에는 안내 메시지만 표시되므로)
+    console.error(`[ApiClient] ${requestOptions.method ?? 'GET'} ${url.toString()} 요청 실패:`, error)
+
     // 3-9. 요청 시간 초과 처리
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new Error(timeoutMessage, { cause: error })

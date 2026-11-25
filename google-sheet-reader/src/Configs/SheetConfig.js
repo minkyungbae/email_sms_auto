@@ -2,7 +2,7 @@
  * @file SheetConfig.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-11-24
+ * @updated 2026-11-25
  * @description
  * Google Sheets 및 Apps Script 연동에 필요한 설정 관리
  * 
@@ -21,6 +21,7 @@
  * - 기존 SHEET_CONFIG 참조 구조 유지
  * 
  * 20261124 추가: LOG 수동발송확인, 수동확인일시 컬럼 추가
+ * 20261125 추가: 교육 실적 현황(수료실적_RAW) Apps Script 및 헤더 설정
  */
 
 
@@ -38,6 +39,7 @@ const { SPREADSHEET_IDS } = require("../../../security_info");
 const APPS_SCRIPT_URL = {
         GW: process.env.GW_APPS_SCRIPT_URL,
         DS: process.env.DS_APPS_SCRIPT_URL,
+        PERFORMANCE: process.env.PERFORMANCE_APPS_SCRIPT_URL, // 20261125 추가: 수료 실적
     };
 
 
@@ -150,12 +152,74 @@ const LOG_HEADERS = [
 
 
 // =============================================================
+// 6-1. PERFORMANCE - 수료 실적 (20261125 추가)
+// 스프레드시트: 1oRKLOsiEUkTqGQJHtrW5a6eOCXoNuHLPz8Zoy6LIICw
+// 시트명: 수료실적_RAW / 헤더 4행 / 데이터 5행부터 / B:AN
+// =============================================================
+const PERFORMANCE = {
+    // 수료 실적 API 인증 토큰 (Apps Script 스크립트 속성과 동일 값)
+    TOKEN: process.env.PERFORMANCE_API_TOKEN,
+
+    SPREADSHEET: {
+        ID: SPREADSHEET_IDS.PERFORMANCE_SPREADSHEET_ID,
+        SHEET_NAME: "수료실적_RAW",
+        HEADER_ROW: 4,
+        DATA_START_ROW: 5,
+        RANGE: "B:AN",
+    },
+};
+
+const PERFORMANCE_HEADERS = [
+    "종료월",            // B
+    "진행상황",          // C
+    "지역",              // D
+    "수요처명",          // E
+    "반명",              // F
+    "학교 구분",         // G
+    "근무유형",          // H
+    "교육유형",          // I
+    "교육구분",          // J
+    "유형",              // K
+    "정규구분",          // L
+    "상세",              // M
+    "카테고리1",         // N
+    "카테고리2",         // O
+    "카테고리3",         // P
+    "교육시간 (교시)",   // Q
+    "교육횟수 (회)",     // R
+    "수강인원 (명)",     // S
+    "수료인원 (명)",     // T
+    "교육시작일",        // U
+    "교육종료일",        // V
+    "활동연도",          // W
+    "주강사",            // X
+    "보조강사",          // Y
+    "구분",              // Z
+    "학년",              // AA
+    "학년/반",           // AB
+    "기관명",            // AC
+    "주소",              // AD
+    "주소(시)",          // AE
+    "성명",              // AF
+    "직위/직책",         // AG
+    "대표번호",          // AH
+    "휴대전화",          // AI
+    "이메일",            // AJ
+    "수요처 특이사항",   // AK
+    "종료수료인원(여)",  // AL
+    "종료수료인원(남)",  // AM
+    "종료수료인원(총)",  // AN
+];
+
+
+// =============================================================
 // 7. 통합 헤더 설정
 // =============================================================
 const HEADERS = {
     GW: GW_HEADERS,
     DS: DS_HEADERS,
     LOG: LOG_HEADERS,
+    PERFORMANCE: PERFORMANCE_HEADERS, // 20261125 추가
 };
 
 
@@ -165,6 +229,7 @@ const HEADERS = {
 const SHEET_CONFIG = {
     APPS_SCRIPT_URL,  // 사업별 Apps Script URL
     LOG,  // 발송 로그 설정
+    PERFORMANCE, // 20261125 추가: 수료 실적 설정
     HEADERS,  // 사업별 시트 헤더
 };
 

@@ -7,6 +7,7 @@
  * 
  * EducationService.ts / LogService.ts / DispatchService.ts에 API 주소 전달
  * 20261124 수정: 로그 조회 및 개별 로그 수정 경로 지원
+ * 20261125 추가: 교육 실적 현황 API
  */
 
 // 교육 사업 유형 타입 가져오기
@@ -25,6 +26,8 @@ export const API_CONFIG = {
   LOG_TIMEOUT_MS: 1200000,            // 로그 조회 제한 시간: 1200초
   DISPATCH_ENDPOINT: '/api/dispatch', // 발송 자동화 API
   DISPATCH_TIMEOUT_MS: 300000,        // 발송 API 제한 시간: 300초
+  PERFORMANCE_ENDPOINT: '/api/performance', // 20261125 추가: 교육 실적 현황 API
+  PERFORMANCE_TIMEOUT_MS: 300000,           // 20261125 추가: 수료 실적 조회 제한 시간: 300초
   TIMEOUT_MS: 300000,                 // 교육 데이터 조회 제한 시간: 300초
 } as const
 
@@ -80,4 +83,18 @@ export function createDispatchApiUrl(path: string): URL {
     `${API_CONFIG.DISPATCH_ENDPOINT}${path}`,
     getApiBaseUrl(),
   )
+}
+
+// =============================================================
+// 6. 교육 실적 현황(수료 실적) API URL 생성
+// 20261125 추가
+// =============================================================
+export function createPerformanceApiUrl(refresh = false): URL {
+  const url = new URL(API_CONFIG.PERFORMANCE_ENDPOINT, getApiBaseUrl())
+
+  if (refresh) {
+    url.searchParams.set('refresh', '1')
+  }
+
+  return url
 }

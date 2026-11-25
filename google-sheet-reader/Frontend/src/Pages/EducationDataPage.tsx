@@ -1,18 +1,21 @@
-
 /**
  * @file EducationDataPage.tsx
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-18
+ * @updated 2026-11-25
  * @description
- * GW·DS 교육 데이터 조회 화면
+ * 교육 실적 현황 화면
  * 
  * 20261123 수정: GW, DS의 권역/지역과 수요처명/학교명으로 컬럼 통일 및 DS의 담당교사&보조강사명 추가
+ * 20261125 수정: 페이지명 변경(교육 데이터 → 교육 실적 현황)
+ *               상단 수료 실적 그래프, 중단 실적 집계 표(수료실적_RAW) 추가
+ *               하단에 기존 GW·DS 교육 일정 데이터 조회 유지
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { getEducationByDateRange } from '../Services/EducationService'
+import PerformanceOverview from '../Components/PerformanceOverview' // 20261125 추가: 수료 실적 그래프·표
 import type {
   BusinessType,
   EducationRecord,
@@ -114,7 +117,6 @@ function displayValue(value: EducationValue | undefined): string {
 
 function EducationDataPage({
   initialBusiness,
-  onBack,
 }: EducationDataPageProps) {
   // 20261118 추가: 사업 및 조회 조건
   const [businessFilter, setBusinessFilter] = useState<BusinessFilter>(
@@ -236,33 +238,35 @@ function EducationDataPage({
     (record) => '사업구분' in record && record.사업구분 === 'DS',
   ).length
 
+  // 20261125 수정: 하단 교육 일정 데이터 영역 제목으로 사용
   const pageTitle =
     businessFilter === 'GW'
-      ? 'GW 교육 데이터'
+      ? 'GW 교육 일정 데이터'
       : businessFilter === 'DS'
-        ? 'DS 교육 데이터'
-        : '교육 데이터 조회'
+        ? 'DS 교육 일정 데이터'
+        : 'GW·DS 교육 일정 데이터'
 
   return (
     <div className="page-content education-data-page">
       {/* 20261118 추가: 페이지 제목 */}
       <section className="page-heading">
         <div>
-          <p className="eyebrow">EDUCATION DATA</p>
-          <h1>{pageTitle}</h1>
+          <p className="eyebrow">EDUCATION PERFORMANCE</p>
+          <h1>교육 실적 현황</h1>
           <p className="page-subtitle">
-            교육사업 운영 데이터를 기간별로 조회하고 확인할 수 있습니다.
+            수료 실적을 그래프와 집계 표로 확인하고, 교육 일정 데이터를 기간별로 조회합니다.
           </p>
         </div>
-
-        <button
-          className="refresh-button"
-          type="button"
-          onClick={onBack}
-        >
-          대시보드로 돌아가기
-        </button>
       </section>
+
+      {/* 20261125 추가: 상단 수료 실적 그래프 + 중단 실적 집계 표 */}
+      <PerformanceOverview />
+
+      {/* 20261125 추가: 하단 교육 일정 데이터 영역 제목 */}
+      <div className="perf-section-divider">
+        <p className="eyebrow">EDUCATION SCHEDULE</p>
+        <h2>{pageTitle}</h2>
+      </div>
 
       {/* 20261118 추가: 검색 조건 */}
       <section className="surface-card education-filter-card">

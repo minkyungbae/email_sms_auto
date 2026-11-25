@@ -17,6 +17,7 @@
  * - 2026-11-24: 발송 자동화 서비스 관련 코드 삭제 (발송 로그 화면으로 옮김)
  * - 2026-11-25: 교육 운영 추이 그래프 삭제 및 웹 서비스 소개 영역 추가
  * - 2026-11-25: 월별 캘린더 화면 및 메뉴 추가
+ * - 2026-11-25: 교육 데이터 메뉴명을 교육 실적 현황으로 변경
  *
  * 주요 기능:
  * - 좌측 사이드바 및 메뉴
@@ -56,8 +57,8 @@ const PAGE_TITLES: Record<
   'dashboard' | 'education' | 'business' | 'calendar' | 'logs',
   string
 > = {
-  dashboard: '대시보드',
-  education: '교육 데이터',
+  dashboard: '사업 소개',  // 20261125 수정: 대시 보드 → 사업 소개
+  education: '교육 실적 현황', // 20261125 수정: 교육 데이터 → 교육 실적 현황
   business: '사업 현황',
   calendar: '월별 캘린더', // 20261125 추가
   logs: '발송 로그',
@@ -80,10 +81,10 @@ const SERVICE_FEATURES: {
   {
     view: 'education',
     icon: 'book',
-    overline: 'EDUCATION DATA',
-    title: '교육 데이터 조회',
-    description: 'GW·DS 사업의 교육 일정 데이터를 사업 유형과 기간별로 통합 조회합니다.',
-    action: '교육 데이터 보기',
+    overline: 'EDUCATION PERFORMANCE',
+    title: '교육 실적 현황',
+    description: '수료 실적을 그래프와 집계 표로 확인하고, GW·DS 교육 일정 데이터를 조회합니다.',
+    action: '교육 실적 보기',
   },
   {
     view: 'business',
@@ -231,7 +232,7 @@ function Dashboard() {
             onClick={() => setCurrentView('dashboard')}
           >
             <Icon name="dashboard" size={18} />
-            <span>대시보드</span>
+            <span>사업 소개</span>
           </button>
 
           {/* 20261118 수정: 교육 데이터 메뉴 연결 */}
@@ -241,7 +242,7 @@ function Dashboard() {
             onClick={() => openEducationPage()}
           >
             <Icon name="book" size={18} />
-            <span>교육 데이터</span>
+            <span>교육 실적 현황</span>
           </button>
 
           {/* 20261118 수정: 사업 현황 메뉴 연결 */}
@@ -303,17 +304,6 @@ function Dashboard() {
               <Icon name="calendar" size={15} />
               {today}
             </span>
-            <button
-              className="notification-button"
-              type="button"
-              aria-label="알림"
-            >
-              <Icon name="bell" size={18} />
-              <span />
-            </button>
-            <div className="topbar-avatar" aria-label="관리자">
-              관
-            </div>
           </div>
         </header>
 
@@ -339,9 +329,9 @@ function Dashboard() {
             <section className="page-heading">
               <div>
                 <p className="eyebrow">OVERVIEW</p>
-                <h1>강원SW미래채움 사업 운영 관리</h1>
+                <h1>강원SW미래채움 교육 사업 운영 관리</h1>
                 <p className="page-subtitle">
-                  교육사업의 운영 현황과 데이터를 한곳에서 관리하세요.
+                  강원SW미래채움 교육 사업의 운영 실적, 데이터 관리 및 문자 발송까지 이 곳에서 한 번에 관리하세요.
                 </p>
               </div>
 

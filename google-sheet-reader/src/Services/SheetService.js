@@ -482,4 +482,12 @@ async function getRowsByDateRange(
 module.exports = {
     getRowsByDate,
     getRowsByDateRange, // 20261118 추가
+
+    // 20261125 추가: 수료 실적(PerformanceService)에서 공통 요청 처리 재사용
+    createRequestUrl,
+    requestAppsScript,
+    readResponseText,
+    validateHttpResponse,
+    parseJsonResponse,
+    validateApiResult,
 };
