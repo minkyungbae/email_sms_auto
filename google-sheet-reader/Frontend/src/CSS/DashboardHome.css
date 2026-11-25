@@ -2,9 +2,10 @@
  * @file DashboardHome.css
  * @author 배민경
  * @created 2026-11-23
- * @updated 2026-11-23
- * @description 대시보드 홈: 환영 배너, 핵심 지표, 서비스 연결, 사업 카드, 푸터
+ * @updated 2026-11-25
+ * @description 대시보드 홈: 환영 배너, 핵심 지표, 서비스 소개, 사업 카드, 푸터
  * 20261123 수정: 블랙·화이트·그레이 단색 팔레트 통일
+ * 20261125 수정: 교육 운영 추이 차트 스타일 삭제, 서비스 소개 영역 추가
  */
 
 
@@ -112,8 +113,7 @@
   font-size: 11px;
 }
 
-/* [대시보드 차트] */
-/* 20261123 수정: 교육 운영 추이 전체 너비 확장 */
+/* [대시보드 2열 그리드 (현재 미사용, 레이아웃 확장용 유지)] */
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -131,103 +131,10 @@
   box-shadow: 0 2px 7px rgba(43, 43, 43, 0.025);
 }
 
-/* [교육 운영 추이 차트 카드] */
-.trend-card {
-  min-height: 275px;
-  padding: 19px 20px 15px;
-  box-sizing: border-box;
-}
-
 /* [카드 제목 영역] */
 .card-heading { align-items: center; }
 
-/* [차트 조회 기간 표시] */
-.card-period {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 8px;
-  border: 1px solid #ECECEC;
-  border-radius: 6px;
-  color: #888888;
-  font-size: 9px;
-}
-
-/* [차트 데이터가 없을 때 표시 영역] */
-.chart-empty-state {
-  display: flex;
-  min-height: 175px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 0;
-  text-align: center;
-}
-
-/* [데이터 없음 안내 아이콘] */
-.empty-illustration {
-  display: grid;
-  width: 43px;
-  height: 43px;
-  place-items: center;
-  border: 1px solid #ECECEC;
-  border-radius: 13px;
-  color: #B5B5B5;
-  background: #FFFFFF;
-}
-
-/* [차트 데이터가 없을 때 표시 영역] */
-.chart-empty-state strong {
-  margin-top: 12px;
-  color: #666666;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-/* [차트 데이터가 없을 때 표시 영역] */
-.chart-empty-state p {
-  margin: 5px 0 0;
-  color: #B5B5B5;
-  font-size: 9px;
-  line-height: 1.65;
-}
-
-/* [교육 추이 차트 범례] */
-.chart-legend {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding-top: 10px;
-  border-top: 1px solid #ECECEC;
-  color: #888888;
-  font-size: 9px;
-}
-
-/* [교육 추이 차트 범례] */
-.chart-legend span:not(.legend-hint) {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-/* [차트 범례 색상 점] */
-.legend-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-/* [GW 차트 범례 색상] */
-.legend-gw { background: var(--color-gw); } 
-/* [DS 차트 범례 색상] */
-.legend-ds { background: var(--color-ds); } 
-
-/* [차트 범례 보조 안내] */
-.legend-hint {
-  margin-left: auto;
-  color: #B5B5B5;
-  font-size: 8px;
-}
+/* 20261125 삭제: 교육 운영 추이 차트 */
 
 /* [서비스 연결 현황 카드] */
 .connection-card {
@@ -494,4 +401,72 @@
 .page-footer span:first-child {
   font-weight: 750;
   letter-spacing: 0.12em;
+}
+
+/* =======================================
+   20261125 추가: 웹 서비스 소개
+======================================= */
+
+/* [서비스 소개 섹션] */
+.service-intro-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* [서비스 소개 카드] */
+.service-intro-card {
+  padding: 19px 20px 18px;
+}
+
+/* [서비스 소개 영문 소제목] */
+.service-intro-card .card-heading p {
+  color: #B5B5B5;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+}
+
+/* [서비스 소개 본문] */
+.service-intro-text {
+  max-width: 880px;
+  margin: 13px 0 0;
+  color: #666666;
+  font-size: 12px;
+  line-height: 1.8;
+  word-break: keep-all;
+}
+
+/* [주요 기능 카드 배치: 넓은 화면 4열] */
+.service-feature-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* [주요 기능 카드 아이콘] */
+.service-feature-grid .business-symbol {
+  color: #888888;
+  background: #ECECEC;
+}
+
+/* [주요 기능 카드 설명] */
+.service-feature-grid .business-description {
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+@media (max-width: 1200px) {
+  .service-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* [주요 기능 카드 하단 이동 버튼] */
+.service-feature-grid button.business-card-footer {
+  color: #666666;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.service-feature-grid button.business-card-footer:hover {
+  color: #2B2B2B;
 }
