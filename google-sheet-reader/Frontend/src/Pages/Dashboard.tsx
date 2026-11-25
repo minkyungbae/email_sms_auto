@@ -339,7 +339,7 @@ function Dashboard() {
             <section className="page-heading">
               <div>
                 <p className="eyebrow">OVERVIEW</p>
-                <h1>교육 운영 대시보드</h1>
+                <h1>강원SW미래채움 사업 운영 관리</h1>
                 <p className="page-subtitle">
                   교육사업의 운영 현황과 데이터를 한곳에서 관리하세요.
                 </p>
