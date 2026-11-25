@@ -4,13 +4,13 @@
  * @created 2026-11-19
  * @updated 2026-11-25
  * @description
- * 문자 및 이메일 발송 로그 조회 화면
+ * 문자 및 이메일 교육 안내 발송 조회 화면
  *
  * 주요 기능:
- * - 발송 로그 전체 조회
+ * - 교육 안내 발송 전체 조회
  * - 발송 기간 / 상태 / 키워드 필터
  * - 조회 결과 페이지네이션
- * - 발송 로그 상세 내용 확인
+ * - 교육 안내 발송 상세 내용 확인
  * - 발송 결과 통계 확인
  *
  * 20261120 수정:
@@ -34,6 +34,7 @@
  * - 발송 이력에서 특정 수신자를 선택하여 문자·이메일 개별 발송
  * - 발송 전 수신자별 문자·이메일 제목 및 본문 수정
  * - 상세 보기에서 해당 수신자에게 바로 발송
+ * - 발송 로그 -> 교육 안내 발송 발송으로 수정
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -67,7 +68,7 @@ import {
 import type { MessageDraft } from '../Utils/messageDraft'
 
 // =======================================
-// 1. 발송 로그 화면 기본 설정 및 타입
+// 1. 교육 안내 발송 화면 기본 설정 및 타입
 // =======================================
 const PAGE_SIZE = 10
 const TABLE_COLUMN_COUNT = 10 // 20261125 수정: 선택 열 추가
@@ -84,7 +85,7 @@ type LogSortOption =
   | 'STATUS'
 
 // =======================================
-// 2. 발송 로그 데이터 처리 함수
+// 2. 교육 안내 발송 데이터 처리 함수
 // =======================================
 /** 발송 상태를 기준으로 전체 상태 분류 */
 function getStatusCategory(record: LogRecord): StatusCategory {
@@ -243,11 +244,11 @@ function getCurrentTime(): string {
 function getErrorMessage(loadError: unknown): string {
   return loadError instanceof Error
     ? loadError.message
-    : '발송 로그 조회에 실패했습니다.'
+    : '교육 안내 발송 조회에 실패했습니다.'
 }
 
 // =======================================
-// 3. 발송 로그 상세 정보 필드 컴포넌트
+// 3. 교육 안내 발송 상세 정보 필드 컴포넌트
 // =======================================
 function DetailField({
   label,
@@ -265,7 +266,7 @@ function DetailField({
 }
 
 // =======================================
-// 4. 발송 로그 상세 모달 컴포넌트
+// 4. 교육 안내 발송 상세 모달 컴포넌트
 // =======================================
 function LogDetailModal({
   record,
@@ -295,7 +296,7 @@ function LogDetailModal({
         <header className="log-detail-modal-header">
           <div>
             <p className="log-detail-eyebrow">DISPATCH DETAIL</p>
-            <h2 id="log-detail-title">발송 로그 상세 정보</h2>
+            <h2 id="log-detail-title">교육 안내 발송 상세 정보</h2>
             <p>{record.ID}</p>
           </div>
 
@@ -409,11 +410,11 @@ function LogDetailModal({
 }
 
 // =======================================
-// 5. 발송 로그 페이지 컴포넌트
+// 5. 교육 안내 발송 페이지 컴포넌트
 // =======================================
 function LogDataPage() {
   // ---------------------------------------
-  // 5-1. 발송 로그 데이터 및 화면 상태
+  // 5-1. 교육 안내 발송 데이터 및 화면 상태
   // ---------------------------------------
   const [logs, setLogs] = useState<LogRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -482,7 +483,7 @@ function LogDataPage() {
   }, [])
 
   // ---------------------------------------
-  // 5-4. 최초 발송 로그 조회
+  // 5-4. 최초 교육 안내 발송 조회
   // ---------------------------------------
   useEffect(() => {
     let isActive = true
@@ -547,7 +548,7 @@ function LogDataPage() {
 
 
   // ---------------------------------------
-  // 5-5. 발송 로그 새로고침
+  // 5-5. 교육 안내 발송 새로고침
   // ---------------------------------------
   const handleRefresh = async () => {
     const requestId = requestSequenceRef.current + 1
@@ -624,7 +625,7 @@ function LogDataPage() {
   // =======================================
   // 5-6. 발송 자동화 실행
   // 20261119 추가: Dashboard.tsx에서 이동
-  // 20261124 수정: 발송 로그 페이지에서 실행 및 완료 후 로그 새로고침
+  // 20261124 수정: 교육 안내 발송 페이지에서 실행 및 완료 후 로그 새로고침
   // =======================================
   const handleStartDispatch = async () => {
     if (isDispatching || isSavingDispatchSettings) {
@@ -881,7 +882,7 @@ function LogDataPage() {
 
 
   // =======================================
-  // 6. 발송 로그 검색 및 필터링
+  // 6. 교육 안내 발송 검색 및 필터링
   // =======================================
   const filteredLogs = useMemo(() => {
     const normalizedKeyword = appliedKeyword.trim().toLocaleLowerCase()
@@ -942,7 +943,7 @@ function LogDataPage() {
 
 
   // =======================================
-  // 20261123 추가: 발송 로그 정렬
+  // 20261123 추가: 교육 안내 발송 정렬
   // =======================================
   const sortedLogs = useMemo(() => {
     const sortableLogs = [...filteredLogs]
@@ -993,7 +994,7 @@ function LogDataPage() {
 
 
   // =======================================
-  // 7. 발송 로그 통계 계산
+  // 7. 교육 안내 발송 통계 계산
   // =======================================
   const { successCount, failureCount } = logs.reduce(
     (counts, record) => {
@@ -1081,7 +1082,7 @@ function LogDataPage() {
   }
 
   // =======================================
-  // 10. 발송 로그 화면 렌더링
+  // 10. 교육 안내 발송 화면 렌더링
   // =======================================
   return (
     <div className="page-content log-data-page">
@@ -1090,7 +1091,7 @@ function LogDataPage() {
       <section className="page-heading">
         <div>
           <p className="eyebrow">DISPATCH HISTORY</p>
-          <h1>발송 로그</h1>
+          <h1>교육 안내 발송</h1>
 
           <p className="page-subtitle">
             문자 및 이메일 발송 결과와 상세 내용을 조회합니다.
@@ -1249,10 +1250,10 @@ function LogDataPage() {
         )}
       </section>
 
-      {/* 10-2. 발송 로그 통계 카드 */}
-      <section className="log-metric-grid" aria-label="발송 로그 요약">
+      {/* 10-2. 교육 안내 발송 통계 카드 */}
+      <section className="log-metric-grid" aria-label="교육 안내 발송 요약">
         <article className="log-metric-card">
-          <span>전체 발송 로그</span>
+          <span>전체 교육 안내 발송</span>
           <strong>
             {isLoading ? '-' : formatCount(logs.length)}
           </strong>
@@ -1282,7 +1283,7 @@ function LogDataPage() {
         </article>
       </section>
 
-      {/* 10-3. 발송 로그 검색 조건 */}
+      {/* 10-3. 교육 안내 발송 검색 조건 */}
       <section className="log-filter-card">
 
         <div className="log-section-heading">
@@ -1385,7 +1386,7 @@ function LogDataPage() {
           </div>
         )}
       </section>
-      {/* 10-4. 발송 로그 테이블 */}
+      {/* 10-4. 교육 안내 발송 테이블 */}
       <section className="log-table-card">
         <div className="log-table-heading">
           <div>
@@ -1510,7 +1511,7 @@ function LogDataPage() {
 
               ) : (
 
-                /* 발송 로그 목록 */
+                /* 교육 안내 발송 목록 */
                 pageLogs.map((record, index) => (
                   <tr
                     key={record.ID || `${record.발송일시}-${index}`}
@@ -1692,7 +1693,7 @@ function LogDataPage() {
         </footer>
       </section>
 
-      {/* 10-6. 발송 로그 상세 모달 */}
+      {/* 10-6. 교육 안내 발송 상세 모달 */}
       {selectedLog && (
         <LogDetailModal
           record={selectedLog}

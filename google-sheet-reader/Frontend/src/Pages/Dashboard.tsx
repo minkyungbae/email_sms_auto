@@ -18,6 +18,7 @@
  * - 2026-11-25: 교육 운영 추이 그래프 삭제 및 웹 서비스 소개 영역 추가
  * - 2026-11-25: 월별 캘린더 화면 및 메뉴 추가
  * - 2026-11-25: 교육 데이터 메뉴명을 교육 실적 현황으로 변경
+ * - 2026-11-25: 발송 로그 -> 교육 안내로 수정
  *
  * 주요 기능:
  * - 좌측 사이드바 및 메뉴
@@ -61,7 +62,7 @@ const PAGE_TITLES: Record<
   education: '교육 실적 현황', // 20261125 수정: 교육 데이터 → 교육 실적 현황
   business: '사업 현황',
   calendar: '월별 캘린더', // 20261125 추가
-  logs: '발송 로그',
+  logs: '교육 안내 발송',
 }
 
 
@@ -100,14 +101,14 @@ const SERVICE_FEATURES: {
     overline: 'DISPATCH',
     title: '문자·이메일 발송 및 로그',
     description: '발송 이력을 검색하고, 자동 발송 실행과 선택한 수신자 개별 발송·내용 수정을 처리합니다.',
-    action: '발송 로그 열기',
+    action: '교육 안내 발송 열기',
   },
   {
     view: 'logs',
     icon: 'calendar',
     overline: 'SCHEDULE',
     title: '예약 발송',
-    description: '매일 오전 10시, 설정한 수업일 기준으로 교육 안내 문자와 이메일을 자동 발송합니다.',
+    description: '매일 오전 10시, 설정한 수업일 기준으로 교육 안내 발송 문자와 이메일을 자동 발송합니다.',
     action: '발송 기준 설정',
   },
 ]
@@ -135,7 +136,7 @@ function Dashboard() {
   // =======================================
   // 2-2. 화면 전환 상태
   // 20261118 추가
-  // 20261119 수정: 발송 로그 화면 추가
+  // 20261119 수정: 교육 안내 발송 화면 추가
   // =======================================
   const [currentView, setCurrentView] = useState<
     'dashboard' | 'education' | 'business' | 'calendar' | 'logs'
@@ -265,14 +266,14 @@ function Dashboard() {
             <span>월별 캘린더</span>
           </button>
 
-          {/* 20261119 수정: 발송 로그 메뉴 연결 */}
+          {/* 20261119 수정: 교육 안내 발송 메뉴 연결 */}
           <button
             type="button"
             className={`nav-item ${currentView === 'logs' ? 'nav-item-active' : ''}`}
             onClick={() => setCurrentView('logs')}
           >
             <Icon name="file" size={18} />
-            <span>발송 로그</span>
+            <span>교육 안내 발송</span>
           </button>
           <p className="nav-caption nav-caption-spaced">BUSINESS</p>
           <div className="business-nav-item">
@@ -319,7 +320,7 @@ function Dashboard() {
         ) : currentView === 'calendar' ? (
           <MonthlyCalendarPage /> // 20261125 추가: 월별 캘린더 화면 전환
         ) : currentView === 'logs' ? (
-          <LogDataPage /> // 20261119 추가: 발송 로그 화면 전환
+          <LogDataPage /> // 20261119 추가: 교육 안내 발송 화면 전환
         ) : (
           <div className="page-content">
 
