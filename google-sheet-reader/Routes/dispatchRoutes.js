@@ -2,6 +2,7 @@
  * @file dispatchRoutes.js
  * @author 배민경
  * @created 2026-11-19
+ * @updated 2026-11-24
  * @description
  * 이메일 및 문자 발송 자동화 실행 API 라우터
  *
@@ -10,6 +11,8 @@
  * - 기존 발송 자동화 프로그램 실행
  * - 발송 작업 상태 조회
  * - 중복 발송 실행 방지
+ * 
+ * 20261124 추가: 웹에서 발송 기준일 변경 기능 추가
  */
 
 
@@ -22,6 +25,7 @@ const router = express.Router();
 const {
     runDispatch,
     getDispatchSettings,
+    updateDispatchSettings, // 20261124 추가: 발송 기준일 설정 저장
 } = require("../src/01_Main.js");
 
 
@@ -134,7 +138,69 @@ router.get("/settings", (req, res) => {
 
 
 // =============================================================
-// 5. 발송 자동화 실행 API
+// 5. 발송 기준일 설정 저장 API
+//
+// PATCH /api/dispatch/settings
+// 20261124 추가
+// =============================================================
+router.patch("/settings", (req, res) => {
+
+    const { daysBefore } = req.body || {};
+
+    // 발송 기준일 입력값 검증
+    if (!Number.isInteger(daysBefore) || daysBefore < 0) {
+        return res.status(400).json(
+            createResponse(
+                false,
+                null,
+                "발송 기준일은 0 이상의 정수로 입력해야 합니다."
+            )
+        );
+    }
+
+    // 발송 진행 중에는 설정 변경 방지
+    if (activeJobId) {
+        return res.status(409).json(
+            createResponse(
+                false,
+                { jobId: activeJobId },
+                "발송 자동화가 진행 중이므로 설정을 변경할 수 없습니다."
+            )
+        );
+    }
+
+    try {
+        // 발송 기준일 저장 및 변경된 설정 반환
+        const settings = updateDispatchSettings(daysBefore);
+
+        return res.status(200).json(
+            createResponse(
+                true,
+                settings,
+                "발송 기준일 설정이 저장되었습니다."
+            )
+        );
+
+    } catch (error) {
+
+        console.error(
+            "[dispatchRoutes.js] 발송 기준일 설정 저장 실패:",
+            error.message
+        );
+
+        return res.status(500).json(
+            createResponse(
+                false,
+                null,
+                error.message || "발송 기준일 설정을 저장하지 못했습니다."
+            )
+        );
+    }
+});
+
+
+// =============================================================
+// 6. 발송 자동화 실행 API
 //
 // POST /api/dispatch/run
 // =============================================================

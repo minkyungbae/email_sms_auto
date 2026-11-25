@@ -27,6 +27,7 @@
  * - 수동 발송 확인 체크박스 및 저장 API 연결
  * - 수정 중인 로그의 중복 요청 방지
  * - 발송 자동화 서비스 추가 및 버튼 추가
+ * - 웹에서 발송 기준일 변경 기능 추가
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -37,9 +38,12 @@ import '../CSS/LogDataPage.css'
 // 20261124 추가: 발송 자동화 서비스
 import {
   getDispatchSettings,
+  updateDispatchSettings, // 20261124 추가: 발송 기준일 저장
   startDispatch,
   getDispatchStatus,
 } from '../Services/DispatchService'
+
+import type { DispatchSettings } from '../Services/DispatchService'
 
 // =======================================
 // 1. 발송 로그 화면 기본 설정 및 타입
@@ -393,6 +397,14 @@ function LogDataPage() {
   const [dispatchMessage, setDispatchMessage] = useState('') // 발송 진행 및 완료 메시지
   const [dispatchError, setDispatchError] = useState('')    // 발송 실패 메시지
 
+  // 20261124 추가: 발송 기준일 설정 조회 및 수정 상태
+  const [dispatchSettings, setDispatchSettings] = useState<DispatchSettings | null>(null)
+  const [daysBeforeInput, setDaysBeforeInput] = useState('')
+  const [isLoadingDispatchSettings, setIsLoadingDispatchSettings] = useState(true)
+  const [isSavingDispatchSettings, setIsSavingDispatchSettings] = useState(false)
+  const [dispatchSettingsMessage, setDispatchSettingsMessage] = useState('')
+  const [dispatchSettingsError, setDispatchSettingsError] = useState('')
+
 
   // ---------------------------------------
   // 5-2. 검색 및 페이지네이션 상태
@@ -462,6 +474,37 @@ function LogDataPage() {
     }
   }, [fetchLogs])
 
+  // =======================================
+  // 5-4-1. 발송 기준일 설정 최초 조회
+  // 20261124 추가
+  // =======================================
+  useEffect(() => {
+    let isActive = true
+
+    getDispatchSettings()
+      .then((settings) => {
+        if (!isActive) return
+
+        setDispatchSettings(settings)
+        setDaysBeforeInput(String(settings.daysBefore))
+        setDispatchSettingsError('')
+      })
+      .catch((loadError: unknown) => {
+        if (!isActive) return
+
+        setDispatchSettingsError(getErrorMessage(loadError))
+      })
+      .finally(() => {
+        if (!isActive) return
+        setIsLoadingDispatchSettings(false)
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
+
+
   // ---------------------------------------
   // 5-5. 발송 로그 새로고침
   // ---------------------------------------
@@ -494,12 +537,56 @@ function LogDataPage() {
 
 
   // =======================================
+  // 5-5-1. 발송 기준일 설정 저장
+  // 20261124 추가
+  // =======================================
+  const handleSaveDispatchSettings = async () => {
+    if (isSavingDispatchSettings || isDispatching) return
+
+    const daysBefore = Number(daysBeforeInput)
+
+    // 입력값 검증
+    if (
+      daysBeforeInput.trim() === '' ||
+      !Number.isInteger(daysBefore) ||
+      daysBefore < 0
+    ) {
+      setDispatchSettingsError('발송 기준일은 0 이상의 정수로 입력해 주세요.')
+      setDispatchSettingsMessage('')
+      return
+    }
+
+    setIsSavingDispatchSettings(true)
+    setDispatchSettingsError('')
+    setDispatchSettingsMessage('발송 기준일 설정을 저장하고 있습니다...')
+
+    try {
+      const updatedSettings = await updateDispatchSettings(daysBefore)
+
+      setDispatchSettings(updatedSettings)
+      setDaysBeforeInput(String(updatedSettings.daysBefore))
+
+      setDispatchSettingsMessage(
+        `발송 기준이 수업일 ${updatedSettings.daysBefore}일 전으로 저장되었습니다. 조회 대상 교육일: ${updatedSettings.targetDate}`,
+      )
+
+    } catch (saveError) {
+      setDispatchSettingsMessage('')
+      setDispatchSettingsError(getErrorMessage(saveError))
+
+    } finally {
+      setIsSavingDispatchSettings(false)
+    }
+  }
+
+
+  // =======================================
   // 5-6. 발송 자동화 실행
   // 20261119 추가: Dashboard.tsx에서 이동
   // 20261124 수정: 발송 로그 페이지에서 실행 및 완료 후 로그 새로고침
   // =======================================
   const handleStartDispatch = async () => {
-    if (isDispatching) {
+    if (isDispatching || isSavingDispatchSettings) {
       return
     }
 
@@ -858,42 +945,125 @@ function LogDataPage() {
           </p>
         </div>
 
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        flexWrap: 'wrap',
-      }}>
-        {/* 새로고침 버튼 */}
-        <button
-          className="log-refresh-button"
-          type="button"
-          onClick={() => void handleRefresh()}
-          disabled={isLoading}
-        >
-          <span
-            className={
-              isLoading
-                ? 'log-refresh-icon is-spinning'
-                : 'log-refresh-icon'
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          flexWrap: 'wrap',
+        }}>
+          {/* 새로고침 버튼 */}
+          <button
+            className="log-refresh-button"
+            type="button"
+            onClick={() => void handleRefresh()}
+            disabled={isLoading}
+          >
+            <span
+              className={
+                isLoading
+                  ? 'log-refresh-icon is-spinning'
+                  : 'log-refresh-icon'
+              }
+            >
+              ↻
+            </span>
+            {isLoading ? '조회 중...' : '새로고침'}
+          </button>
+
+          {/* 20261124 추가: 발송 자동화 실행 버튼 */}
+          <button
+            className="log-refresh-button"
+            type="button"
+            onClick={() => void handleStartDispatch()}
+            disabled={isDispatching || isLoading}
+            title="설정된 사업의 이메일 및 문자 발송 자동화를 실행합니다."
+          >
+            {isDispatching ? '발송 진행 중...' : '발송 실행'}
+          </button>
+        </div>
+      </section>
+
+      {/* 20261124 추가: 발송 기준일 설정 */}
+      <section
+        className="dispatch-settings-card"
+        aria-labelledby="dispatch-settings-title"
+      >
+        <div className="dispatch-settings-heading">
+          <div>
+            <h2 id="dispatch-settings-title">발송 기준 설정</h2>
+            <p>
+              수업일을 기준으로 며칠 전에 안내 메시지를 발송할지 설정합니다.
+            </p>
+          </div>
+
+          <span className="dispatch-settings-current">
+            {dispatchSettings
+              ? `현재 ${dispatchSettings.daysBefore}일 전`
+              : isLoadingDispatchSettings
+                ? '설정 조회 중'
+                : '설정 확인 필요'}
+          </span>
+        </div>
+
+        <div className="dispatch-settings-controls">
+          <label className="dispatch-settings-input-group">
+            <span>발송 기준일</span>
+
+            <div className="dispatch-settings-input-wrap">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={daysBeforeInput}
+                onChange={(event) => {
+                  setDaysBeforeInput(event.target.value)
+                  setDispatchSettingsError('')
+                  setDispatchSettingsMessage('')
+                }}
+                disabled={
+                  isLoadingDispatchSettings ||
+                  isSavingDispatchSettings ||
+                  isDispatching
+                }
+                aria-label="수업일 기준 발송 며칠 전인지 입력"
+              />
+
+              <span>일 전</span>
+            </div>
+          </label>
+
+          <div className="dispatch-settings-date">
+            <span>현재 조회 대상 교육일</span>
+            <strong>{dispatchSettings?.targetDate || '-'}</strong>
+          </div>
+
+          <button
+            type="button"
+            className="dispatch-settings-save-button"
+            onClick={() => void handleSaveDispatchSettings()}
+            disabled={
+              isLoadingDispatchSettings ||
+              isSavingDispatchSettings ||
+              isDispatching ||
+              !dispatchSettings
             }
           >
-            ↻
-          </span>
-          {isLoading ? '조회 중...' : '새로고침'}
-        </button>
+            {isSavingDispatchSettings ? '저장 중...' : '설정 저장'}
+          </button>
+        </div>
 
-        {/* 20261124 추가: 발송 자동화 실행 버튼 */}
-        <button
-          className="log-refresh-button"
-          type="button"
-          onClick={() => void handleStartDispatch()}
-          disabled={isDispatching || isLoading}
-          title="설정된 사업의 이메일 및 문자 발송 자동화를 실행합니다."
-        >
-          {isDispatching ? '발송 진행 중...' : '발송 실행'}
-        </button>
-      </div>
+        {dispatchSettingsMessage && (
+          <p className="dispatch-settings-message" role="status">
+            {dispatchSettingsMessage}
+          </p>
+        )}
+
+        {dispatchSettingsError && (
+          <p className="dispatch-settings-error" role="alert">
+            {dispatchSettingsError}
+          </p>
+        )}
       </section>
 
         {/* 20261124 추가: 발송 자동화 진행 상태 및 결과 표시 */}

@@ -2,7 +2,7 @@
  * @file 01_Main.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-11-19
+ * @updated 2026-11-24
  * @description
  * 설정된 발송 기준일의 교육 데이터를 조회하여 사업별 그룹화, 발송 대상 선정 및 통합 알림 발송 수행
  *
@@ -17,6 +17,7 @@
  * 20261117 수정: 불필요한 로그 삭제 및 수정 작업함
  * 20261119 수정: Express 서버가 기존 발송 자동화 프로그램을 호출하도록 수정
  * 20261123 수정: 한국 시간 기준 날짜 계산 (트리거를 위해서)
+ * 20261124 추가: 웹에서 발송 기준일 변경 기능 추가
  */
 
 
@@ -26,6 +27,19 @@
 const { TEST_PERSONAL_INFO } = require("../../security_info");
 
 const CONFIG = require("./Configs/Config");
+
+
+// 20261124 추가: 발송 기준일 설정 파일 관리
+const fs = require("fs");
+const path = require("path");
+
+// 20261124 추가: 웹에서 변경한 발송 기준일을 저장하는 파일
+const DISPATCH_SETTINGS_PATH = path.join(
+    __dirname,
+    "Configs",
+    "dispatch-settings.json"
+);
+
 
 const SheetService = require("./Services/SheetService");
 const GroupService = require("./Services/GroupService");
@@ -78,6 +92,81 @@ function getTargetDate(daysBefore) {
     const day = String(targetDate.getUTCDate()).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
+}
+
+
+// =======================================
+// 2-1. 저장된 발송 기준일 조회
+// 20261124 추가
+// =======================================
+function getDaysBefore() {
+
+    // 웹에서 저장한 설정 파일이 있으면 해당 값을 우선 적용
+    if (fs.existsSync(DISPATCH_SETTINGS_PATH)) {
+
+        try {
+            const savedSettings = JSON.parse(
+                fs.readFileSync(DISPATCH_SETTINGS_PATH, "utf8")
+            );
+
+            const savedDaysBefore = savedSettings.daysBefore;
+
+            if (!Number.isInteger(savedDaysBefore) || savedDaysBefore < 0) {
+                throw new Error("저장된 발송 기준일은 0 이상의 정수여야 합니다.");
+            }
+
+            return savedDaysBefore;
+
+        } catch (error) {
+            throw new Error(
+                `발송 기준 설정 파일을 읽지 못했습니다: ${error.message}`
+            );
+        }
+    }
+
+    // 저장된 설정이 없으면 Config.js의 기본값 사용
+    const defaultDaysBefore = CONFIG.DAYS_BEFORE;
+
+    if (!Number.isInteger(defaultDaysBefore) || defaultDaysBefore < 0) {
+        throw new Error(
+            "Config.js의 DAYS_BEFORE는 0 이상의 정수로 설정해야 합니다."
+        );
+    }
+
+    return defaultDaysBefore;
+}
+
+
+// =======================================
+// 2-2. 발송 기준일 설정 저장
+// 20261124 추가
+// =======================================
+function updateDispatchSettings(daysBefore) {
+
+    if (!Number.isInteger(daysBefore) || daysBefore < 0) {
+        throw new Error("발송 기준일은 0 이상의 정수로 입력해야 합니다.");
+    }
+
+    const settingsDirectory = path.dirname(DISPATCH_SETTINGS_PATH);
+
+    // 설정 폴더가 없는 경우 생성
+    fs.mkdirSync(settingsDirectory, { recursive: true });
+
+    // 변경된 발송 기준일과 저장 시각 기록
+    fs.writeFileSync(
+        DISPATCH_SETTINGS_PATH,
+        JSON.stringify(
+            {
+                daysBefore,
+                updatedAt: new Date().toISOString(),
+            },
+            null,
+            2
+        ),
+        "utf8"
+    );
+
+    return getDispatchSettings();
 }
 
 
@@ -162,7 +251,7 @@ function getTestOptions(selectedBusinessTypes) {
 function getDispatchSettings() {
 
     const businessTypes = getBusinessTypes();
-    const daysBefore = CONFIG.DAYS_BEFORE;
+    const daysBefore = getDaysBefore(); // 20261124 수정: 웹 저장 설정 우선 적용
     const testOptions = getTestOptions(businessTypes);
 
     return {
@@ -455,7 +544,7 @@ async function runDispatch() {
         // 11-1. 실행 설정
         // -----------------------------------------------------
         const selectedBusinessTypes = getBusinessTypes();
-        const daysBefore = CONFIG.DAYS_BEFORE;
+        const daysBefore = getDaysBefore(); // 20261124 수정: 웹 저장 설정 우선 적용
         const targetDate = getTargetDate(daysBefore);
 
         // 20261119 추가: 웹 API에 전달할 실행 정보
@@ -577,6 +666,7 @@ async function runDispatch() {
 module.exports = {
     runDispatch,
     getDispatchSettings,
+    updateDispatchSettings, // 20261124 추가: 웹 발송 기준일 설정 저장
 };
 
 // 20261119 수정: 직접 실행할 때만 프로그램 시작

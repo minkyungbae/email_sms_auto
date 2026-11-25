@@ -2,7 +2,7 @@
  * @file DispatchService.ts
  * @author 배민경
  * @created 2026-11-19
- * @updated 2026-11-20
+ * @updated 2026-11-24
  * @description React에서 Node.js 발송 자동화 API를 호출하고 응답을 검증
  *
  * 주요 기능:
@@ -12,20 +12,28 @@
  * - 발송 API 응답 데이터 검증
  * 
  * 20261120 수정: 공통 ApiClient 활용 및 타입·검증 함수 구조 정리
+ * 20261124 추가: 웹에서 발송 기준일 변경 기능 추가
  */
-
-
 
 import { API_CONFIG, createDispatchApiUrl } from '../Configs/api'
 import { requestApiData } from './ApiClient'
 
+
 // =======================================
 // 1. 발송 요청 본문 타입
 // =======================================
-type DispatchRequestBody = {
+type DispatchRunRequestBody = {
   confirm: true
   targetDate: string
 }
+
+type DispatchSettingsRequestBody = {
+  daysBefore: number
+}
+
+type DispatchRequestBody =
+  | DispatchRunRequestBody
+  | DispatchSettingsRequestBody
 
 // =======================================
 // 2. 발송 테스트 설정 타입
@@ -118,7 +126,7 @@ function isDispatchJobStatus(value: unknown): value is DispatchJobStatus {
 // =======================================
 function requestDispatchApi(
   path: string,
-  method: 'GET' | 'POST' = 'GET',
+  method: 'GET' | 'POST' | 'PATCH' = 'GET', //20261124 수정
   body?: DispatchRequestBody,
 ): Promise<unknown> {
   return requestApiData<unknown>(createDispatchApiUrl(path), {
@@ -137,17 +145,13 @@ function requestDispatchApi(
   })
 }
 
-// =======================================
-// 12. 발송 설정 조회
-// GET /api/dispatch/settings
-// =======================================
-export async function getDispatchSettings(): Promise<DispatchSettings> {
-  const data = await requestDispatchApi('/settings')
-
+function parseDispatchSettings(data: unknown): DispatchSettings {
   if (
     !isRecord(data) ||
     !isStringArray(data.businessTypes) ||
     typeof data.daysBefore !== 'number' ||
+    !Number.isInteger(data.daysBefore) ||
+    data.daysBefore < 0 ||
     typeof data.targetDate !== 'string'
   ) {
     throw new Error('발송 설정 데이터 형식이 올바르지 않습니다.')
@@ -164,6 +168,34 @@ export async function getDispatchSettings(): Promise<DispatchSettings> {
     modes: data.modes,
   }
 }
+
+// =======================================
+// 12-1. 발송 설정 조회
+// GET /api/dispatch/settings
+// =======================================
+export async function getDispatchSettings(): Promise<DispatchSettings> {
+  const data = await requestDispatchApi('/settings')
+
+  return parseDispatchSettings(data)
+}
+
+// =======================================
+// 12-2. 발송 기준일 설정 저장
+// PATCH /api/dispatch/settings
+// 20261124 추가
+// =======================================
+export async function updateDispatchSettings(
+  daysBefore: number,
+): Promise<DispatchSettings> {
+  if (!Number.isInteger(daysBefore) || daysBefore < 0) {
+    throw new Error('발송 기준일은 0 이상의 정수로 입력해야 합니다.')
+  }
+
+  const data = await requestDispatchApi('/settings', 'PATCH', { daysBefore })
+
+  return parseDispatchSettings(data)
+}
+
 
 // =======================================
 // 13. 발송 자동화 실행
