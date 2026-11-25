@@ -16,6 +16,7 @@
  * - 2026-11-23: 현재 화면에 따른 breadcrumb 제목 변경 기능 추가
  * - 2026-11-24: 발송 자동화 서비스 관련 코드 삭제 (발송 로그 화면으로 옮김)
  * - 2026-11-25: 교육 운영 추이 그래프 삭제 및 웹 서비스 소개 영역 추가
+ * - 2026-11-25: 월별 캘린더 화면 및 메뉴 추가
  *
  * 주요 기능:
  * - 좌측 사이드바 및 메뉴
@@ -41,6 +42,7 @@ import type { IconName } from '../Components/DashboardUI' // 20261125 추가: �
 import EducationDataPage from './EducationDataPage' // 20261118 추가: 교육 데이터 조회 화면
 import BusinessStatusPage from './BusinessStatusPage' // 20261118 추가: 사업 현황 페이지
 import LogDataPage from './LogDataPage' // 20261119 추가: 발송 로그 조회 화면
+import MonthlyCalendarPage from './MonthlyCalendarPage' // 20261125 추가: 월별 캘린더 화면
 
 import type { BusinessType } from '../Types/education' // 20261118 추가: 사업 구분 타입
 
@@ -51,12 +53,13 @@ import { useDashboardData } from '../Hooks/useDashboardData' // 20261123 추가:
 // 1-1. 20261123 추가: 페이지별 breadcrumb 제목
 // =======================================
 const PAGE_TITLES: Record<
-  'dashboard' | 'education' | 'business' | 'logs',
+  'dashboard' | 'education' | 'business' | 'calendar' | 'logs',
   string
 > = {
   dashboard: '대시보드',
   education: '교육 데이터',
   business: '사업 현황',
+  calendar: '월별 캘린더', // 20261125 추가
   logs: '발송 로그',
 }
 
@@ -64,7 +67,7 @@ const PAGE_TITLES: Record<
 // =======================================
 // 1-2. 20261125 추가: 웹 서비스 주요 기능 소개
 // =======================================
-type DashboardView = 'dashboard' | 'education' | 'business' | 'logs'
+type DashboardView = 'dashboard' | 'education' | 'business' | 'calendar' | 'logs'
 
 const SERVICE_FEATURES: {
   view: Exclude<DashboardView, 'dashboard'>
@@ -134,7 +137,7 @@ function Dashboard() {
   // 20261119 수정: 발송 로그 화면 추가
   // =======================================
   const [currentView, setCurrentView] = useState<
-    'dashboard' | 'education' | 'business' | 'logs'
+    'dashboard' | 'education' | 'business' | 'calendar' | 'logs'
   >('dashboard')
 
   const [selectedBusiness, setSelectedBusiness] =
@@ -251,6 +254,16 @@ function Dashboard() {
             <span>사업 현황</span>
           </button>
 
+          {/* 20261125 추가: 월별 캘린더 메뉴 */}
+          <button
+            type="button"
+            className={`nav-item ${currentView === 'calendar' ? 'nav-item-active' : ''}`}
+            onClick={() => setCurrentView('calendar')}
+          >
+            <Icon name="calendar" size={18} />
+            <span>월별 캘린더</span>
+          </button>
+
           {/* 20261119 수정: 발송 로그 메뉴 연결 */}
           <button
             type="button"
@@ -313,6 +326,8 @@ function Dashboard() {
           />
         ) : currentView === 'business' ? (
           <BusinessStatusPage /> // 20261118 추가: 사업 현황 화면 전환
+        ) : currentView === 'calendar' ? (
+          <MonthlyCalendarPage /> // 20261125 추가: 월별 캘린더 화면 전환
         ) : currentView === 'logs' ? (
           <LogDataPage /> // 20261119 추가: 발송 로그 화면 전환
         ) : (
