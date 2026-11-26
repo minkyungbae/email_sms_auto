@@ -2,7 +2,7 @@
  * @file api.ts
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-24
+ * @updated 2026-11-25
  * @description 프론트엔드 API 주소 및 요청 설정.
  * 
  * EducationService.ts / LogService.ts / DispatchService.ts에 API 주소 전달
