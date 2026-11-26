@@ -23,6 +23,11 @@ export type IconName =
   | 'file'
   | 'grid'
   | 'bell'
+  | 'building' // 20261126 추가: 수요처 정보
+  | 'users'    // 20261126 추가: 운영 인력
+  | 'clipboard' // 20261126 추가: 강사 배정
+  | 'wallet'   // 20261126 추가: 강사비
+  | 'box'      // 20261126 추가: 교구재
 
 type IconProps = {
   name: IconName
@@ -150,6 +155,47 @@ export function Icon({
       return (
         <svg {...shared}>
           <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+        </svg>
+      )
+
+    // 20261126 추가: 운영 데이터 메뉴 아이콘
+    case 'building':
+      return (
+        <svg {...shared}>
+          <path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M3 21h18" />
+          <path d="M8 7h4M8 11h4M8 15h4" />
+        </svg>
+      )
+
+    case 'users':
+      return (
+        <svg {...shared}>
+          <circle cx="9" cy="8" r="3.5" />
+          <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8" />
+        </svg>
+      )
+
+    case 'clipboard':
+      return (
+        <svg {...shared}>
+          <rect x="5" y="4" width="14" height="17" rx="2" />
+          <path d="M9 4V3h6v1M9 11h6M9 15h4" />
+        </svg>
+      )
+
+    case 'wallet':
+      return (
+        <svg {...shared}>
+          <path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" />
+          <path d="M21 9h-5a3 3 0 0 0 0 6h5zM3 7h16" />
+        </svg>
+      )
+
+    case 'box':
+      return (
+        <svg {...shared}>
+          <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
+          <path d="m4 7.5 8 4.5 8-4.5M12 12v9" />
         </svg>
       )
 

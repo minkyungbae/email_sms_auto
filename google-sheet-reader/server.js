@@ -16,6 +16,7 @@
  * - 20261125 추가: 교육 실적 현황(수료 실적) API 라우터 연결
  * - 20261125 추가: 요청 로그(소요 시간·중단 감지), 처리되지 않은 오류 로그
  * - 20261126 추가: 자주 쓰는 데이터 미리 불러오기 시작 (PrefetchService, 설정: CacheConfig.js)
+ * - 20261126 추가: 운영 데이터(수요처·운영인력·강사배정·강사비·교구재) API 라우터 연결
  */
 
 require("dotenv").config();
@@ -27,6 +28,7 @@ const educationRoutes = require("./Routes/educationRoutes.js");
 const logRoutes = require("./Routes/logRoutes.js"); // 20261119 추가: 발송 로그 API
 const dispatchRoutes = require("./Routes/dispatchRoutes.js"); // 20261119 추가: 발송 자동화 API
 const performanceRoutes = require("./Routes/performanceRoutes.js"); // 20261125 추가: 교육 실적 현황 API
+const operationRoutes = require("./Routes/operationRoutes.js"); // 20261126 추가: 운영 데이터 API
 const { startPrefetch } = require("./src/Services/PrefetchService.js"); // 20261126 추가: 데이터 미리 불러오기
 const app = express();
 
@@ -114,6 +116,9 @@ app.use("/api/dispatch", dispatchRoutes);
 
 // 20261125 추가: 교육 실적 현황(수료 실적) API 라우터 연결
 app.use("/api/performance", performanceRoutes);
+
+// 20261126 추가: 운영 데이터(수요처·운영인력·강사배정·강사비·교구재) API 라우터 연결
+app.use("/api/operations", operationRoutes);
 
 
 // =============================================================

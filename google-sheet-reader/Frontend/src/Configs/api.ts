@@ -9,6 +9,7 @@
  * 20261124 수정: 로그 조회 및 개별 로그 수정 경로 지원
  * 20261125 추가: 교육 실적 현황 API
  * 20261126 추가: 발송 로그 조회 새로고침(refresh) 파라미터
+ * 20261126 추가: 운영 데이터(수요처·운영인력·강사배정·강사비·교구재) API
  */
 
 // 교육 사업 유형 타입 가져오기
@@ -29,6 +30,8 @@ export const API_CONFIG = {
   DISPATCH_TIMEOUT_MS: 300000,        // 발송 API 제한 시간: 300초
   PERFORMANCE_ENDPOINT: '/api/performance', // 20261125 추가: 교육 실적 현황 API
   PERFORMANCE_TIMEOUT_MS: 300000,           // 20261125 추가: 수료 실적 조회 제한 시간: 300초
+  OPERATIONS_ENDPOINT: '/api/operations',   // 20261126 추가: 운영 데이터 API
+  OPERATIONS_TIMEOUT_MS: 300000,            // 20261126 추가: 운영 데이터 조회 제한 시간: 300초
   TIMEOUT_MS: 300000,                 // 교육 데이터 조회 제한 시간: 300초
 } as const
 
@@ -99,6 +102,23 @@ export function createDispatchApiUrl(path: string): URL {
 // =============================================================
 export function createPerformanceApiUrl(refresh = false): URL {
   const url = new URL(API_CONFIG.PERFORMANCE_ENDPOINT, getApiBaseUrl())
+
+  if (refresh) {
+    url.searchParams.set('refresh', '1')
+  }
+
+  return url
+}
+
+// =============================================================
+// 7. 운영 데이터 API URL 생성
+// 20261126 추가
+// =============================================================
+export function createOperationApiUrl(key: string, refresh = false): URL {
+  const url = new URL(
+    `${API_CONFIG.OPERATIONS_ENDPOINT}/${encodeURIComponent(key)}`,
+    getApiBaseUrl(),
+  )
 
   if (refresh) {
     url.searchParams.set('refresh', '1')

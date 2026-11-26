@@ -27,6 +27,7 @@
   color:  #ECECEC;
   background: #171717;
   box-sizing: border-box;
+  overflow-y: auto; /* 20261126 추가: 운영 데이터 메뉴 추가로 낮은 화면에서 스크롤 */
 }
 
 /* [브랜드 로고와 이름 묶음] */

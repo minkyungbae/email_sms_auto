@@ -1,0 +1,771 @@
+/**
+ * @file OperationPages.css
+ * @author 배민경
+ * @created 2026-11-26
+ * @updated 2026-11-26
+ * @description
+ * 운영 데이터 화면 디자인 (수요처 정보 / 운영 인력 / 강사 배정 / 강사비 / 교구재)
+ * - 기존 블랙·화이트·그레이 카드, 표, 입력 스타일 유지
+ * - 경고 색상은 교육 실적 현황(perf-message)과 동일
+ */
+
+/* =======================================
+   1. 레이아웃
+======================================= */
+.ops-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 25px;
+}
+
+.ops-sheet-name {
+  color: #AAAAAA;
+}
+
+.ops-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ops-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ops-section-heading h2 {
+  margin: 0;
+  color: #454545;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.ops-two-column {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* =======================================
+   2. 툴바 / 필터
+======================================= */
+.ops-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+.ops-filters {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.ops-field {
+  display: flex;
+  min-width: 130px;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ops-field-wide {
+  min-width: 220px;
+  flex: 1 1 220px;
+  max-width: 360px;
+}
+
+.ops-field > span {
+  color: #888888;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.ops-field input,
+.ops-field select {
+  width: 100%;
+  height: 37px;
+  padding: 0 10px;
+  border: 1px solid #ECECEC;
+  border-radius: 7px;
+  outline: none;
+  color: #454545;
+  background: #FFFFFF;
+  font: inherit;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.ops-field input:focus,
+.ops-field select:focus {
+  border-color: #B5B5B5;
+  box-shadow: 0 0 0 3px rgba(136, 136, 136, 0.1);
+}
+
+.ops-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ops-fetched-at {
+  color: #AAAAAA;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ops-reset-button {
+  height: 37px;
+  padding: 0 12px;
+  border: 1px solid #ECECEC;
+  border-radius: 8px;
+  color: #888888;
+  background: #FFFFFF;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ops-reset-button:hover {
+  color: #454545;
+  border-color: #D0D0D0;
+}
+
+/* =======================================
+   3. 탭
+======================================= */
+.ops-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ops-tab {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid #ECECEC;
+  border-radius: 8px;
+  color: #666666;
+  background: #FFFFFF;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.ops-tab:hover {
+  border-color: #D0D0D0;
+  color: #454545;
+}
+
+.ops-tab.is-active {
+  border-color: #2B2B2B;
+  color: #FFFFFF;
+  background: #2B2B2B;
+}
+
+/* =======================================
+   4. 요약 지표
+======================================= */
+.ops-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.ops-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+}
+
+.ops-stat > span {
+  color: #888888;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.ops-stat > strong {
+  color: #2B2B2B;
+  font-size: 21px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.ops-stat > small {
+  color: #AAAAAA;
+  font-size: 11px;
+}
+
+.ops-stat-warning > strong { color: #8A5300; }
+.ops-stat-danger > strong { color: #B3261E; }
+
+/* =======================================
+   5. 표
+======================================= */
+.ops-table-card {
+  min-width: 0;
+  padding: 18px 20px 6px;
+}
+
+.ops-table-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 12px;
+}
+
+.ops-table-heading h2 {
+  margin: 0;
+  color: #454545;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.ops-table-heading p {
+  margin: 0;
+  color: #888888;
+  font-size: 12px;
+}
+
+.ops-table-scroll {
+  max-height: calc(100vh - 330px);
+  min-height: 120px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.ops-table-scroll.is-compact {
+  max-height: none;
+  min-height: 0;
+}
+
+.ops-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.ops-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 12px;
+  border-bottom: 1px solid #ECECEC;
+  color: #888888;
+  background: #FFFFFF;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ops-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #F2F2F2;
+  color: #666666;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.ops-table .is-right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ops-table .is-center {
+  text-align: center;
+}
+
+.ops-table tbody tr:hover td {
+  background: #FAFAFA;
+}
+
+.ops-table tr.is-total td {
+  color: #2B2B2B;
+  background: #F7F7F7;
+  font-weight: 700;
+}
+
+.ops-table tr.is-muted td {
+  color: #AAAAAA;
+}
+
+.ops-table tr.is-danger td {
+  background: #FFF5F4;
+}
+
+/* 20261126 추가: 클릭 가능한 행 / 선택된 행 */
+.ops-table tr.is-clickable {
+  cursor: pointer;
+}
+
+.ops-table tr.is-clickable:focus-visible {
+  outline: 2px solid #454545;
+  outline-offset: -2px;
+}
+
+.ops-table tr.is-selected td,
+.ops-table tr.is-selected:hover td {
+  color: #2B2B2B;
+  background: #F0F0F0;
+}
+
+.ops-table tr.is-selected td:first-child {
+  box-shadow: inset 3px 0 0 #2B2B2B;
+}
+
+.ops-table .ops-empty {
+  padding: 40px 12px;
+  color: #AAAAAA;
+  text-align: center;
+}
+
+.ops-cell-title {
+  display: block;
+  color: #454545;
+  font-weight: 650;
+}
+
+.ops-cell-sub {
+  display: block;
+  margin-top: 2px;
+  color: #AAAAAA;
+  font-size: 11px;
+}
+
+.ops-cell-wrap {
+  display: inline-block;
+  min-width: 140px;
+  max-width: 280px;
+  white-space: normal;
+  word-break: keep-all;
+}
+
+.ops-cell-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.ops-cell-danger {
+  color: #B3261E;
+  font-weight: 700;
+}
+
+/* =======================================
+   6. 배지
+======================================= */
+.ops-badge-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ops-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 7px;
+  border-radius: 5px;
+  color: #666666;
+  background: #F0F0F0;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.ops-badge-dark {
+  color: #FFFFFF;
+  background: #454545;
+}
+
+.ops-badge-warning {
+  color: #8A5300;
+  background: #FFF1D6;
+}
+
+.ops-badge-danger {
+  color: #B3261E;
+  background: #FDE3E0;
+}
+
+/* =======================================
+   6-1. 강사 배정 캘린더 (20261126 추가)
+   달력·모달 기본 스타일은 MonthlyCalendarPage.css 사용
+======================================= */
+.calendar-dot.assignment-dot-danger {
+  background: #D93025;
+}
+
+.assignment-summary-danger strong {
+  color: #B3261E;
+}
+
+.assignment-message {
+  margin-top: 14px;
+}
+
+.assignment-modal-alert {
+  margin-bottom: 14px;
+}
+
+.assignment-month-link {
+  padding: 0;
+  border: 0;
+  color: #454545;
+  background: none;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.assignment-section-title {
+  margin: 20px 0 10px;
+  color: #454545;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.assignment-role-list {
+  margin: 0;
+  border: 1px solid #ECECEC;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.assignment-role-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  border-bottom: 1px solid #F2F2F2;
+}
+
+.assignment-role-row:last-child {
+  border-bottom: 0;
+}
+
+.assignment-role-row dt {
+  padding: 10px 12px;
+  color: #888888;
+  background: #FAFAFA;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.assignment-role-row dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 10px 12px;
+  color: #454545;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.assignment-role-row dd .is-duplicate {
+  color: #B3261E;
+}
+
+.assignment-role-row dd small {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.assignment-note-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #666666;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* =======================================
+   6-2. 교구재 보관함 (20261126 추가)
+   지역별 선반 + 5열 품목 칸, 상세 창은 MonthlyCalendarPage.css 모달 사용
+======================================= */
+.material-shelf {
+  padding: 18px 20px 20px;
+}
+
+.material-shelf-empty {
+  margin: 0;
+  padding: 26px 12px;
+  border: 1px dashed #E4E4E4;
+  border-radius: 9px;
+  color: #AAAAAA;
+  font-size: 12px;
+  text-align: center;
+}
+
+.material-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr)); /* 20261126 수정: 3열 → 5열 */
+  gap: 10px;
+}
+
+.material-tile {
+  display: flex;
+  min-height: 92px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 7px;
+  padding: 16px 18px;
+  border: 1px solid #ECECEC;
+  border-radius: 10px;
+  color: #454545;
+  background: #FAFAFA;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.material-tile:hover {
+  border-color: #D0D0D0;
+  background: #FFFFFF;
+  box-shadow: 0 3px 10px rgba(43, 43, 43, 0.05);
+}
+
+.material-tile:focus-visible {
+  outline: 2px solid #454545;
+  outline-offset: 2px;
+}
+
+.material-tile strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: #2B2B2B;
+  font-size: 14px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.material-tile-quantity {
+  color: #888888;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.material-tile-quantity b {
+  color: #454545;
+  font-weight: 750;
+}
+
+/* 20261126 수정: 고장·분실 표시 강조 (굵은 글씨, 진한 색, 두꺼운 테두리) */
+.material-tile-alert {
+  padding: 4px 8px;
+  border-radius: 5px;
+  color: #6B3F00;
+  background: #FFD98A;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.material-tile.has-problem {
+  border: 2px solid #E08A00;
+  padding: 15px 17px; /* 테두리가 1px 두꺼워진 만큼 안쪽 여백 보정 */
+  background: #FFFBF2;
+}
+
+.material-tile.has-problem:hover {
+  border-color: #C77700;
+  background: #FFFFFF;
+}
+
+.material-modal-alert {
+  margin-bottom: 14px;
+}
+
+.material-quantity-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.material-quantity-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid #ECECEC;
+  border-radius: 7px;
+}
+
+.material-quantity-grid span {
+  color: #888888;
+  font-size: 10px;
+}
+
+.material-quantity-grid strong {
+  color: #454545;
+  font-size: 17px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.material-quantity-grid .is-primary {
+  border-color: #2B2B2B;
+}
+
+.material-quantity-grid .is-primary strong {
+  color: #2B2B2B;
+}
+
+/* =======================================
+   6-3. 운영 인력 표 + 상세 패널 (20261126 추가)
+======================================= */
+.staff-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 16px;
+}
+
+.staff-detail {
+  position: sticky;
+  top: 86px;
+  padding: 18px 20px;
+}
+
+.staff-detail-empty {
+  padding: 40px 22px;
+  color: #AAAAAA;
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.staff-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #ECECEC;
+}
+
+.staff-detail-header h2 {
+  margin: 0;
+  color: #2B2B2B;
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.staff-detail-header p {
+  margin: 5px 0 0;
+  color: #888888;
+  font-size: 12px;
+}
+
+.staff-detail-alert {
+  margin-top: 14px;
+}
+
+.staff-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid #ECECEC;
+}
+
+.staff-detail-row {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+  font-size: 12px;
+}
+
+.staff-detail-row dt {
+  color: #888888;
+}
+
+.staff-detail-row dd {
+  margin: 0;
+  color: #454545;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.staff-detail-note {
+  margin: 12px 0 0;
+  color: #AAAAAA;
+  font-size: 11px;
+}
+
+/* =======================================
+   7. 반응형
+======================================= */
+@media (max-width: 1100px) {
+  .ops-two-column {
+    grid-template-columns: 1fr;
+  }
+
+  /* 20261126 추가: 좁은 화면에서는 상세 패널을 표 위로 */
+  .staff-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-detail {
+    position: static;
+    order: -1;
+  }
+
+  .staff-detail-empty {
+    display: none;
+  }
+
+  /* 20261126 추가: 교구재 칸 - 중간 화면 3열 */
+  .material-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  /* 20261126 추가: 교구재 보관함 */
+  .material-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .material-quantity-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ops-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ops-field,
+  .ops-field-wide {
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 140px;
+  }
+
+  .ops-toolbar-actions {
+    justify-content: flex-end;
+  }
+
+  .ops-table-scroll {
+    max-height: none;
+  }
+}
