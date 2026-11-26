@@ -1,7 +1,7 @@
 /**
  * @file ApiClient.ts
  * @created 2026-11-20
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description 프론트엔드 API 요청, 응답 검증, 타임아웃 및 네트워크 오류 처리를 공통화.
  * 
  * 주요 기능:
@@ -12,6 +12,8 @@
  * - 응답 데이터 검증하기
  * - 요청 시간 초과 처리하기
  * - 네트워크 오류 처리하기
+ *
+ * 20261126 추가: 서버 캐시 데이터의 조회 시각(meta.fetchedAt)을 함께 반환하는 requestApiDataWithMeta
  */
 
 
@@ -38,10 +40,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 // =======================================
 // 3. 공통 API 요청 함수
 // =======================================
+// 20261126 추가: 데이터와 서버 조회 시각을 함께 반환
+export type ApiDataWithMeta<T> = {
+  data: T
+  fetchedAt: string | null // 서버가 시트를 조회한 시각 (ISO 문자열)
+}
+
 export async function requestApiData<T>(
   url: URL,
   options: ApiClientOptions,
 ): Promise<T> {
+  const { data } = await requestApiDataWithMeta<T>(url, options)
+  return data
+}
+
+export async function requestApiDataWithMeta<T>(
+  url: URL,
+  options: ApiClientOptions,
+): Promise<ApiDataWithMeta<T>> {
   const {
     timeoutMs,
     timeoutMessage,
@@ -92,7 +108,13 @@ export async function requestApiData<T>(
     }
 
     // 3-8. 정상 응답 데이터 반환
-    return payload.data as T
+    // 20261126 수정: 서버 캐시 메타 정보(조회 시각) 함께 반환
+    const meta = isRecord(payload.meta) ? payload.meta : null
+
+    return {
+      data: payload.data as T,
+      fetchedAt: meta && typeof meta.fetchedAt === 'string' ? meta.fetchedAt : null,
+    }
   } catch (error) {
     // 20261125 추가: 원래 오류를 브라우저 콘솔에 남김 (화면에는 안내 메시지만 표시되므로)
     console.error(`[ApiClient] ${requestOptions.method ?? 'GET'} ${url.toString()} 요청 실패:`, error)

@@ -2,12 +2,13 @@
  * @file api.ts
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description 프론트엔드 API 주소 및 요청 설정.
  * 
  * EducationService.ts / LogService.ts / DispatchService.ts에 API 주소 전달
  * 20261124 수정: 로그 조회 및 개별 로그 수정 경로 지원
  * 20261125 추가: 교육 실적 현황 API
+ * 20261126 추가: 발송 로그 조회 새로고침(refresh) 파라미터
  */
 
 // 교육 사업 유형 타입 가져오기
@@ -67,12 +68,19 @@ export function createEducationApiUrl(
 // =============================================================
 // 4. 발송 로그 API URL 생성
 // 20261124 수정: 로그 조회 및 개별 로그 수정 경로 지원
+// 20261126 수정: refresh=true 이면 서버 캐시를 무시하고 다시 조회
 // =============================================================
-export function createLogApiUrl(path = ''): URL {
-  return new URL(
+export function createLogApiUrl(path = '', refresh = false): URL {
+  const url = new URL(
     `${API_CONFIG.LOG_ENDPOINT}${path}`,
     getApiBaseUrl(),
   )
+
+  if (refresh) {
+    url.searchParams.set('refresh', '1')
+  }
+
+  return url
 }
 
 // =============================================================

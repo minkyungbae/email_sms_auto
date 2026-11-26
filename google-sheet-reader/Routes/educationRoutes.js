@@ -2,6 +2,7 @@
  * @file educationRoutes.js
  * @author 배민경
  * @created 2026-11-18
+ * @updated 2026-11-26
  * @description
  * GW·DS 교육 데이터 조회 API 라우터
  *
@@ -10,15 +11,20 @@
  * - 특정 날짜 교육 데이터 조회
  * - 날짜 범위 교육 데이터 조회
  * - API 응답 형식 통일
+ *
+ * 20261126 추가: 서버 캐시 적용 (DataQueryService)
+ * - ?refresh=1 이면 캐시를 무시하고 시트를 다시 조회
+ * - 응답에 meta.fetchedAt(데이터 조회 시각), meta.cached(캐시 사용 여부) 추가
  */
 
 const express = require("express");
 const router = express.Router();
 
+// 20261126 수정: SheetService 직접 호출 → 캐시 적용 조회 서비스 사용
 const {
-    getRowsByDate,
-    getRowsByDateRange,
-} = require("../src/Services/SheetService.js");
+    getEducationDate,
+    getEducationRange,
+} = require("../src/Services/DataQueryService.js");
 
 
 // =============================================================
@@ -88,6 +94,9 @@ router.get("/:businessType", async (req, res) => {
         endDate,
     } = req.query;
 
+    // 20261126 추가: 새로고침 요청 여부 (캐시 무시)
+    const refresh = ["1", "true"].includes(String(req.query.refresh ?? ""));
+
 
     // ---------------------------------------------------------
     // 4-1. 사업 유형 검증
@@ -125,6 +134,7 @@ router.get("/:businessType", async (req, res) => {
     try {
 
         let data = [];
+        let meta = null; // 20261126 추가: { fetchedAt, cached }
 
         // =====================================================
         // 5. 특정 날짜 조회
@@ -148,10 +158,11 @@ router.get("/:businessType", async (req, res) => {
             console.log(`조회 날짜: ${date}`);
             console.log("========================================");
 
-            data = await getRowsByDate(
-                date,
-                businessType
-            );
+            // 20261126 수정: 캐시 적용
+            const result = await getEducationDate(businessType, date, { refresh });
+
+            data = result.value;
+            meta = { fetchedAt: result.fetchedAt, cached: result.cached };
         }
 
 
@@ -188,11 +199,11 @@ router.get("/:businessType", async (req, res) => {
             console.log(`조회 기간: ${startDate} ~ ${endDate}`);
             console.log("========================================");
 
-            data = await getRowsByDateRange(
-                startDate,
-                endDate,
-                businessType
-            );
+            // 20261126 수정: 캐시 적용
+            const result = await getEducationRange(businessType, startDate, endDate, { refresh });
+
+            data = result.value;
+            meta = { fetchedAt: result.fetchedAt, cached: result.cached };
         }
 
 
@@ -213,15 +224,16 @@ router.get("/:businessType", async (req, res) => {
         // =====================================================
         // 8. 조회 성공 응답
         // =====================================================
-        console.log(`[educationRoutes.js] API: ${businessType} 조회 완료: ${data.length}건`);
+        console.log(`[educationRoutes.js] API: ${businessType} 조회 완료: ${data.length}건${meta?.cached ? " (캐시)" : ""}`);
 
-        return res.status(200).json(
-            createResponse(
+        return res.status(200).json({
+            ...createResponse(
                 true,
                 data,
                 null
-            )
-        );
+            ),
+            meta, // 20261126 추가
+        });
     } catch (error) {
 
         // =====================================================

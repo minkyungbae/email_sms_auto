@@ -16,13 +16,14 @@
  * 20261126 수정:
  * - 워크스페이스(GW / DS)별 화면 분리: 전달받은 사업 데이터만 조회
  * - 사업 구분 필터 삭제
+ * - 서버 캐시 사용, 새로고침 버튼은 캐시 무시 후 시트 재조회, 데이터 기준 시각 표시
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Icon } from '../Components/DashboardUI'
-import { getEducationByDateRange } from '../Services/EducationService'
-import { formatIsoDate, normalizeDateValue } from '../Utils/date'
+import { getEducationByDateRangeWithMeta } from '../Services/EducationService'
+import { formatFetchedTime, formatIsoDate, normalizeDateValue } from '../Utils/date'
 import type {
   BusinessType,
   EducationRecord,
@@ -409,6 +410,10 @@ function MonthlyCalendarPage({ businessType }: { businessType: BusinessType }) {
   const [yearMonth, setYearMonth] = useState<YearMonth>(getCurrentYearMonth)
   const [reloadToken, setReloadToken] = useState(0)
 
+  // 20261126 추가: 새로고침 버튼으로 요청한 조회인지 여부 (서버 캐시 무시)
+  // 월 이동 등 일반 조회는 캐시 사용
+  const forceRefreshRef = useRef(false)
+
   // ---------------------------------------
   // 6-2. 조회 결과 및 모달 상태
   // ---------------------------------------
@@ -426,18 +431,28 @@ function MonthlyCalendarPage({ businessType }: { businessType: BusinessType }) {
     let isActive = true
     const { startDate, endDate } = getMonthRange(yearMonth)
 
-    getEducationByDateRange({ businessType, startDate, endDate })
+    getEducationByDateRangeWithMeta(
+      { businessType, startDate, endDate },
+      { refresh: forceRefreshRef.current }, // 20261126 추가
+    )
       .then(
-        (records): { records: EducationRecord[]; errors: string[] } => ({ records, errors: [] }),
+        (result): { records: EducationRecord[]; errors: string[]; fetchedAt: string | null } => ({
+          records: result.records,
+          errors: [],
+          fetchedAt: result.fetchedAt,
+        }),
         (error: unknown) => ({
           records: [],
+          fetchedAt: null,
           errors: [
             `${businessType} 데이터 조회 실패: ${error instanceof Error ? error.message : '조회 실패'}`,
           ],
         }),
       )
-      .then(({ records, errors }) => {
+      .then(({ records, errors, fetchedAt }) => {
         if (!isActive) return
+
+        forceRefreshRef.current = false // 20261126 추가: 새로고침 요청 처리 완료
 
         const events = records
           .map(toCalendarEvent)
@@ -448,11 +463,7 @@ function MonthlyCalendarPage({ businessType }: { businessType: BusinessType }) {
           requestKey: `${businessType}#${toMonthValue(yearMonth)}#${reloadToken}`,
           events,
           errors,
-          loadedAt: new Intl.DateTimeFormat('ko-KR', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          }).format(new Date()),
+          loadedAt: formatFetchedTime(fetchedAt), // 20261126 수정: 서버 데이터 조회 시각
         })
       })
 
@@ -530,9 +541,12 @@ function MonthlyCalendarPage({ businessType }: { businessType: BusinessType }) {
         <button
           className="refresh-button"
           type="button"
-          onClick={() => setReloadToken((token) => token + 1)}
+          onClick={() => {
+            forceRefreshRef.current = true // 20261126 추가: 서버 캐시 무시
+            setReloadToken((token) => token + 1)
+          }}
           disabled={isLoading}
-          title="선택한 월의 교육 일정을 다시 조회합니다."
+          title="선택한 월의 교육 일정을 시트에서 다시 조회합니다."
         >
           <Icon name="refresh" size={16} />
           {isLoading ? '조회 중...' : '새로고침'}
@@ -610,7 +624,7 @@ function MonthlyCalendarPage({ businessType }: { businessType: BusinessType }) {
           <strong>{isLoading ? '-' : `${maxDailyCount}건`}</strong>
         </div>
         <p className="calendar-summary-updated">
-          {monthData && !isLoading ? `마지막 조회 ${monthData.loadedAt}` : ''}
+          {monthData && !isLoading && monthData.loadedAt ? `${monthData.loadedAt} 기준 데이터` : ''}
         </p>
       </section>
 

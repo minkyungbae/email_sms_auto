@@ -2,7 +2,7 @@
  * @file LogService.ts
  * @author 배민경
  * @created 2026-11-19
- * @updated 2026-11-24
+ * @updated 2026-11-26
  * @description 문자 및 이메일 발송 로그 조회
  *
  * 주요 기능:
@@ -13,10 +13,11 @@
  * 
  * 20261120 수정: 공통 ApiClient 활용 및 필드값 정규화 보완
  * 20261124 추가: 수동 발송 확인 상태 Update 기능
+ * 20261126 추가: 서버 캐시 대응 (refresh=true 이면 캐시 무시, 서버 조회 시각 함께 반환)
  */
 
 import { API_CONFIG, createLogApiUrl } from '../Configs/api'
-import { requestApiData } from './ApiClient'
+import { requestApiData, requestApiDataWithMeta } from './ApiClient'
 
 // =======================================
 // 1. 발송 로그 한 건의 데이터 타입
@@ -144,8 +145,16 @@ function normalizeLogRecord(value: unknown): LogRecord {
 // =======================================
 // 7. 전체 발송 로그 조회
 // =======================================
-export async function getLogs(): Promise<LogRecord[]> {
-  const data = await requestApiData<unknown>(createLogApiUrl(), {
+// 20261126 수정: refresh 옵션 추가, 서버 조회 시각(fetchedAt) 함께 반환
+export type LogQueryResult = {
+  records: LogRecord[]
+  fetchedAt: string | null
+}
+
+export async function getLogs(
+  { refresh = false }: { refresh?: boolean } = {},
+): Promise<LogQueryResult> {
+  const { data, fetchedAt } = await requestApiDataWithMeta<unknown>(createLogApiUrl('', refresh), {
     method: 'GET',
     headers: { Accept: 'application/json' },
     timeoutMs: API_CONFIG.LOG_TIMEOUT_MS,
@@ -160,7 +169,7 @@ export async function getLogs(): Promise<LogRecord[]> {
     throw new Error('발송 로그 API 응답의 data가 배열 형태가 아닙니다.')
   }
 
-  return data.map(normalizeLogRecord)
+  return { records: data.map(normalizeLogRecord), fetchedAt }
 }
 
 

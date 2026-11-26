@@ -2,7 +2,7 @@
  * @file LogService.js
  * @author 배민경
  * @created 2026-10-28
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description
  * 문자/이메일 발송 결과를 Google Sheets 로그 시트에 기록
  *
@@ -20,6 +20,7 @@
  * 
  * 20261117 수정: 불필요한 로그 삭제 작업함
  * 20261125 추가: 발송 로그 화면 개별 발송 로그 생성(BuildManualRecord)
+ * 20261126 추가: 로그 저장 후 웹 화면용 발송 로그 캐시 비우고 다시 불러오기
  */
 
 require("dotenv").config();
@@ -31,6 +32,7 @@ const CONFIG = require("../Configs/Config");
 const EMAIL_CONFIG = require("../Configs/GmailConfig");
 const MESSAGE_CONFIG = require("../Configs/MessageConfig");
 const TemplateService = require("./TemplateService");
+const DataQueryService = require("./DataQueryService"); // 20261126 추가: 발송 로그 캐시 갱신
 
 
 // 상수
@@ -925,6 +927,9 @@ async function AppendLogs(records) {
             responseData.message || `로그 저장 실패: HTTP ${response.status}`
         );
     }
+
+    // 20261126 추가: 새 로그가 화면에 바로 보이도록 발송 로그 캐시 비우고 다시 불러오기
+    DataQueryService.invalidateLogRecords();
     
     return "success";
 

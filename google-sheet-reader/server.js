@@ -2,7 +2,7 @@
  * @file server.js
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-24
+ * @updated 2026-11-26
  * @description
  * Node.js Express 서버 실행 및 관리
  *
@@ -15,6 +15,7 @@
  * - 20261124 수정: 발송 로그 수동 확인 상태 변경 PATCH 요청 허용
  * - 20261125 추가: 교육 실적 현황(수료 실적) API 라우터 연결
  * - 20261125 추가: 요청 로그(소요 시간·중단 감지), 처리되지 않은 오류 로그
+ * - 20261126 추가: 자주 쓰는 데이터 미리 불러오기 시작 (PrefetchService, 설정: CacheConfig.js)
  */
 
 require("dotenv").config();
@@ -26,6 +27,7 @@ const educationRoutes = require("./Routes/educationRoutes.js");
 const logRoutes = require("./Routes/logRoutes.js"); // 20261119 추가: 발송 로그 API
 const dispatchRoutes = require("./Routes/dispatchRoutes.js"); // 20261119 추가: 발송 자동화 API
 const performanceRoutes = require("./Routes/performanceRoutes.js"); // 20261125 추가: 교육 실적 현황 API
+const { startPrefetch } = require("./src/Services/PrefetchService.js"); // 20261126 추가: 데이터 미리 불러오기
 const app = express();
 
 
@@ -159,6 +161,9 @@ if (require.main === module) {
         console.log(`PERFORMANCE_APPS_SCRIPT_URL: ${process.env.PERFORMANCE_APPS_SCRIPT_URL ? "설정됨" : "없음"}`);
         console.log(`PERFORMANCE_API_TOKEN: ${process.env.PERFORMANCE_API_TOKEN ? "설정됨" : "없음"}`);
         console.log("");
+
+        // 20261126 추가: 자주 쓰는 데이터 미리 불러오기 시작
+        startPrefetch();
     });
 
     server.on("error", (error) => {

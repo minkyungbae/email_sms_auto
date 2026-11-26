@@ -2,11 +2,12 @@
  * @file performanceRoutes.js
  * @author 배민경
  * @created 2026-11-25
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description
  * 교육 실적 현황(수료실적_RAW) 조회 API 라우터
  *
- * GET /api/performance           : 수료 실적 전체 조회 (1분 캐시)
+ * GET /api/performance           : 수료 실적 전체 조회 (서버 캐시, CacheConfig.TTL_MINUTES)
+ *                                  20261126 수정: 1분 → 공통 캐시 시간
  * GET /api/performance?refresh=1 : 캐시 무시 후 다시 조회
  */
 

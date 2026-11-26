@@ -12,6 +12,7 @@
  * 주요 기능:
  * - GW 핵심 지표 (최근 30일): 교육 건수 / 수요처 수 / 참여 강사 수 / 데이터 연결 상태
  * - 서비스 소개 및 주요 기능 바로가기
+ * - 20261126 추가: 서버 캐시 사용, 새로고침 버튼은 캐시 무시 후 시트 재조회, 데이터 기준 시각 표시
  */
 
 // =======================================
@@ -118,7 +119,7 @@ const CONTENT: {
       icon: 'book',
       overline: 'EDUCATION PERFORMANCE',
       title: '교육 실적 현황',
-      description: '수료 실적을 그래프와 집계 표로 확인하고, GW 교육 일정 데이터를 조회합니다.',
+      description: 'GW 수료 실적을 그래프와 집계 표로 확인합니다.',
       action: '교육 실적 보기',
     },
     {
@@ -194,9 +195,9 @@ function BusinessOverviewPage({
           <button
             className="refresh-button"
             type="button"
-            onClick={() => void loadEducationData()}
+            onClick={() => void loadEducationData(true)} // 20261126 수정: 캐시 무시
             disabled={isLoading}
-            title={`${businessType} 교육 데이터를 다시 조회합니다.`}
+            title={`${businessType} 교육 데이터를 시트에서 다시 조회합니다.`}
           >
             <Icon name="refresh" size={16} />
             {isLoading ? '조회 중...' : '데이터 새로고침'}
@@ -242,7 +243,7 @@ function BusinessOverviewPage({
               status === 'error' && error
                 ? error
                 : lastUpdated
-                  ? `마지막 조회 ${lastUpdated}`
+                  ? `${lastUpdated} 기준 데이터`
                   : '조회 결과 대기 중'
             }
             icon="database"

@@ -2,7 +2,7 @@
  * @file PerformanceOverview.tsx
  * @author 배민경
  * @created 2026-11-25
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description
  * 교육 실적 현황 화면의 그래프(상단)와 집계 표(중단)
  *
@@ -21,6 +21,7 @@
  * - 연간 교육 유형별 (총 누적 / 월 누적)
  * - 연간 교육 차시별 (총 누적 / 월 누적 / 월별)
  * - 월별 전체 (목표 달성 / 교육 유형별 월×지역)
+ * 20261126 수정: 조회 시각 문구 통일 ("마지막 조회" → "기준 데이터")
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -296,7 +297,7 @@ function PerformanceOverview() {
           <h2>수료 실적</h2>
           <p>
             수료실적_RAW 시트 기준
-            {fetchedAt && ` · 마지막 조회 ${fetchedAt}`}
+            {fetchedAt && ` · ${fetchedAt} 기준 데이터`}{/* 20261126 수정: 표시 문구 통일 */}
             {hasData && ` · ${formatNumber(rows.length)}건`}
           </p>
         </div>

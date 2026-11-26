@@ -2,8 +2,10 @@
  * @file date.ts
  * @author 배민경
  * @created 2026-11-20
- * @updated 2026-11-20
+ * @updated 2026-11-26
  * @description 화면과 API에서 공통으로 사용하는 날짜 유틸리티.
+ *
+ * 20261126 추가: 서버 데이터 조회 시각 표시 형식(formatFetchedTime)
  */
 
 // 날짜 조회 기간의 시작일과 종료일 타입
@@ -69,4 +71,20 @@ export function normalizeDateValue(
   }
 
   return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`
+}
+
+
+// 20261126 추가: 서버 데이터 조회 시각(ISO)을 "오후 03:20:15" 형식으로 변환 (없으면 빈 문자열)
+export function formatFetchedTime(isoValue: string | null | undefined): string {
+  if (!isoValue) return ''
+
+  const date = new Date(isoValue)
+
+  if (Number.isNaN(date.getTime())) return ''
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(date)
 }

@@ -42,6 +42,7 @@
  * - 발송 실행 시 선택한 사업만 자동 발송
  * - 새 메시지 작성 시 선택한 사업을 기본 사업 구분으로 사용
  * - 발송 기준일을 사업별로 조회·저장
+ * - 서버 캐시 사용: 첫 조회는 캐시, 새로고침·발송 후 조회는 캐시 무시, 데이터 기준 시각 표시
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -75,6 +76,7 @@ import {
 } from '../Utils/messageDraft'
 import type { MessageDraft } from '../Utils/messageDraft'
 import type { BusinessType } from '../Types/education' // 20261126 추가: 워크스페이스 사업 구분
+import { formatFetchedTime } from '../Utils/date' // 20261126 추가: 서버 데이터 조회 시각
 
 // 20261126 추가: 사업별 화면 표시 이름
 const BUSINESS_LABELS: Record<BusinessType, string> = {
@@ -495,10 +497,16 @@ function LogDataPage({ businessType }: { businessType: BusinessType }) {
    * - useEffect와 새로고침 이벤트에서 공통 사용
    */
   // 20261126 수정: 공통 로그 시트에서 현재 사업 로그만 사용
-  const fetchLogs = useCallback(async (): Promise<LogRecord[]> => {
-    const result = await getLogs()
+  // 20261126 수정: refresh=true 이면 서버 캐시 무시, 서버 조회 시각 함께 반환
+  const fetchLogs = useCallback(async (
+    refresh = false,
+  ): Promise<{ records: LogRecord[]; fetchedTime: string }> => {
+    const result = await getLogs({ refresh })
 
-    return result.filter((record) => inferBusinessType(record) === businessType)
+    return {
+      records: result.records.filter((record) => inferBusinessType(record) === businessType),
+      fetchedTime: formatFetchedTime(result.fetchedAt) || getCurrentTime(),
+    }
   }, [businessType])
 
   // ---------------------------------------
@@ -514,9 +522,9 @@ function LogDataPage({ businessType }: { businessType: BusinessType }) {
       .then((result) => {
         if (!isActive || requestId !== requestSequenceRef.current) return
 
-        setLogs(result)
+        setLogs(result.records)
         setError('')
-        setLastUpdated(getCurrentTime())
+        setLastUpdated(result.fetchedTime) // 20261126 수정: 서버 데이터 조회 시각
       })
       .catch((loadError: unknown) => {
         if (!isActive || requestId !== requestSequenceRef.current) return
@@ -578,12 +586,13 @@ function LogDataPage({ businessType }: { businessType: BusinessType }) {
     setValidationError('')
 
     try {
-      const result = await fetchLogs()
+      // 20261126 수정: 새로고침·발송 완료 후 조회는 서버 캐시 무시
+      const result = await fetchLogs(true)
 
       if (requestId !== requestSequenceRef.current) return
 
-      setLogs(result)
-      setLastUpdated(getCurrentTime())
+      setLogs(result.records)
+      setLastUpdated(result.fetchedTime)
       setCurrentPage(1)
     } catch (loadError: unknown) {
       if (requestId !== requestSequenceRef.current) return
@@ -1297,9 +1306,9 @@ function LogDataPage({ businessType }: { businessType: BusinessType }) {
         </article>
 
         <article className="log-metric-card log-metric-update">
-          <span>마지막 조회</span>
+          <span>데이터 기준</span>
           <strong>{lastUpdated || '-'}</strong>
-          <small>조회 버튼으로 갱신 가능</small>
+          <small>새로고침 버튼으로 시트에서 다시 조회</small>
         </article>
       </section>
 

@@ -7,6 +7,9 @@
  *
  * 20261126 수정: GW / DS 완전 분리
  * - 워크스페이스 사업 하나의 데이터만 조회하도록 변경 (gwData·dsData → data)
+ * 20261126 추가: 서버 캐시 대응
+ * - loadEducationData(true): 새로고침 버튼 → 서버 캐시 무시
+ * - lastUpdated: 서버가 시트를 조회한 시각 (캐시 데이터면 캐시 저장 시각)
  */
 
 
@@ -15,7 +18,8 @@
 // =======================================
 import { useCallback, useState } from 'react'
 
-import { getEducationByDateRange } from '../Services/EducationService'
+import { getEducationByDateRangeWithMeta } from '../Services/EducationService'
+import { formatFetchedTime } from '../Utils/date'
 import type { BusinessType, EducationRecord } from '../Types/education'
 
 
@@ -59,7 +63,8 @@ export function useDashboardData(businessType: BusinessType) {
   // =======================================
   // 5. 교육 데이터 조회 (최근 30일)
   // =======================================
-  const loadEducationData = useCallback(async () => {
+  // 20261126 수정: refresh=true 이면 서버 캐시 무시
+  const loadEducationData = useCallback(async (refresh = false) => {
     setIsLoading(true)
     setStatus('loading')
     setError('')
@@ -70,14 +75,18 @@ export function useDashboardData(businessType: BusinessType) {
     startDate.setDate(startDate.getDate() - 29)
 
     try {
-      const result = await getEducationByDateRange({
-        businessType,
-        startDate: formatIsoDate(startDate),
-        endDate: formatIsoDate(endDate),
-      })
+      const result = await getEducationByDateRangeWithMeta(
+        {
+          businessType,
+          startDate: formatIsoDate(startDate),
+          endDate: formatIsoDate(endDate),
+        },
+        { refresh },
+      )
 
-      setData(result)
+      setData(result.records)
       setStatus('connected')
+      setLastUpdated(formatFetchedTime(result.fetchedAt)) // 20261126 수정: 서버 데이터 조회 시각
     } catch (loadError) {
       setData([])
       setStatus('error')
@@ -87,13 +96,6 @@ export function useDashboardData(businessType: BusinessType) {
           : `${businessType} 데이터 조회 실패`,
       )
     } finally {
-      setLastUpdated(
-        new Intl.DateTimeFormat('ko-KR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }).format(new Date()),
-      )
       setIsLoading(false)
     }
   }, [businessType])
