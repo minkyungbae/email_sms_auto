@@ -2,6 +2,7 @@
  * @file 02_Scheduler.js
  * @author 배민경
  * @created 2026-11-23
+ * @updated 2026-11-26
  * @description
  * 설정된 발송 기준일에 따라 매일 오전 10시 자동 발송 실행
  *
@@ -11,6 +12,11 @@
  * - Express 발송 API 호출
  * - DAYS_BEFORE 설정 기반 교육일 확인
  * - 중복 실행 및 API 오류 처리
+ *
+ * 20261126 수정: GW / DS 완전 분리
+ * - 사업별 발송 기준일로 각각 대상 교육일 계산
+ * - 사업마다 별도 발송 작업으로 순서대로 실행 (앞 사업 작업 완료 후 다음 사업 실행)
+ * - 한 사업 실패해도 다음 사업은 계속 실행
  */
 
 
@@ -70,8 +76,110 @@ async function parseApiResponse(response, apiName) {
 }
 
 
+// 20261126 추가: 사업별 작업 완료 대기 설정
+const JOB_POLL_INTERVAL_MS = 3000;
+const JOB_WAIT_TIMEOUT_MS = 60 * 60 * 1000; // 최대 1시간
+
+function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+
+// =======================================
+// 5-1. 발송 작업 완료 대기
+// 20261126 추가: 다음 사업 실행 전 이전 사업 작업 완료 확인
+// =======================================
+async function waitForJob(jobId) {
+
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < JOB_WAIT_TIMEOUT_MS) {
+
+        await wait(JOB_POLL_INTERVAL_MS);
+
+        const response = await fetch(
+            `${API_BASE_URL}/api/dispatch/status/${encodeURIComponent(jobId)}`
+        );
+
+        const data = await parseApiResponse(response, "발송 상태 조회");
+
+        if (!response.ok || data.success !== true || !data.data) {
+            throw new Error(data.message || "발송 작업 상태 조회에 실패했습니다.");
+        }
+
+        const { status, result, error } = data.data;
+
+        if (status === "succeeded") return result;
+        if (status === "failed") throw new Error(error || "발송 작업이 실패했습니다.");
+    }
+
+    throw new Error("발송 작업 완료 대기 시간이 초과되었습니다.");
+}
+
+
+// =======================================
+// 5-2. 사업 한 곳 예약 발송 실행
+// 20261126 추가
+// =======================================
+async function requestBusinessDispatch(businessType, businessSettings) {
+
+    const { targetDate, daysBefore } = businessSettings || {};
+
+    if (!targetDate) {
+        throw new Error(`[${businessType}] 발송 대상 교육일이 설정되지 않았습니다.`);
+    }
+
+    console.log(`[Scheduler][${businessType}] 발송 기준: 수업일 ${daysBefore}일 전`);
+    console.log(`[Scheduler][${businessType}] 교육일: ${targetDate}`);
+
+    const dispatchResponse = await fetch(
+        `${API_BASE_URL}/api/dispatch/run`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                confirm: true,
+                businessType,
+                targetDate,
+            }),
+        }
+    );
+
+    const dispatchData = await parseApiResponse(
+        dispatchResponse,
+        "발송 실행"
+    );
+
+    // 중복 실행 및 요청 오류 확인
+    if (dispatchResponse.status === 409) {
+        throw new Error(`발송 실행이 거부되었습니다: ${dispatchData.message}`);
+    }
+
+    if (!dispatchResponse.ok || dispatchData.success !== true) {
+        throw new Error(dispatchData.message || "예약 발송 요청에 실패했습니다.");
+    }
+
+    const { jobId } = dispatchData.data || {};
+
+    if (!jobId) {
+        throw new Error("발송 작업 ID를 확인할 수 없습니다.");
+    }
+
+    console.log(`[Scheduler][${businessType}] 작업 등록: ${jobId}`);
+
+    const result = await waitForJob(jobId);
+
+    console.log(
+        `[Scheduler][${businessType}] 발송 완료 · 로그 ${result?.logCount ?? 0}건`
+    );
+}
+
+
 // =======================================
 // 5. 예약 발송 실행
+// 20261126 수정: 사업별로 분리하여 순서대로 실행
 // =======================================
 async function requestScheduledDispatch() {
 
@@ -90,7 +198,7 @@ async function requestScheduledDispatch() {
         console.log("=======================================");
 
         // -----------------------------------
-        // 5-1. 발송 설정 조회
+        // 5-3. 발송 설정 조회
         // -----------------------------------
         const settingsResponse = await fetch(
             `${API_BASE_URL}/api/dispatch/settings`
@@ -110,79 +218,23 @@ async function requestScheduledDispatch() {
                 settingsData.message || "발송 설정 조회에 실패했습니다."
             );
         }
-        const {
-            targetDate,
-            daysBefore,
-            businessTypes,
-        } = settingsData.data;
 
-        if (!targetDate) {
-            throw new Error("발송 대상 교육일이 설정되지 않았습니다.");
-        }
+        const { businessTypes, businesses } = settingsData.data;
 
         console.log(`[Scheduler] 실행 사업: ${businessTypes.join(", ")}`);
-        console.log(`[Scheduler] 발송 기준: 수업일 ${daysBefore}일 전`);
-        console.log(`[Scheduler] 교육일: ${targetDate}`);
-
 
         // -----------------------------------
-        // 5-2. 발송 자동화 API 호출
+        // 5-4. 사업별 발송 (한 사업 실패해도 다음 사업 진행)
         // -----------------------------------
-        const dispatchResponse = await fetch(
-            `${API_BASE_URL}/api/dispatch/run`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    confirm: true,
-                    targetDate,
-                }),
+        for (const businessType of businessTypes) {
+            try {
+                await requestBusinessDispatch(businessType, businesses?.[businessType]);
+
+            } catch (error) {
+                console.error(`[Scheduler][${businessType}] 예약 발송 실패`);
+                console.error(error.message);
             }
-        );
-
-        const dispatchData = await parseApiResponse(
-            dispatchResponse,
-            "발송 실행"
-        );
-
-
-        // -----------------------------------
-        // 5-3. 중복 실행 및 요청 오류 확인
-        // -----------------------------------
-        if (dispatchResponse.status === 409) {
-
-            console.warn(
-                `[Scheduler] 발송 실행이 거부되었습니다: ${dispatchData.message}`
-            );
-
-            return;
         }
-
-        if (
-            !dispatchResponse.ok ||
-            dispatchData.success !== true
-        ) {
-            throw new Error(
-                dispatchData.message || "예약 발송 요청에 실패했습니다."
-            );
-        }
-
-
-        // -----------------------------------
-        // 5-4. 발송 작업 등록 결과
-        // -----------------------------------
-        const { jobId, status } = dispatchData.data;
-
-        if (!jobId) {
-            throw new Error("발송 작업 ID를 확인할 수 없습니다.");
-        }
-
-        console.log("[Scheduler] 예약 발송 요청 완료");
-        console.log(`[Scheduler] 작업 ID: ${jobId}`);
-        console.log(`[Scheduler] 작업 상태: ${status}`);
-        console.log(`[Scheduler] 대상 교육일: ${targetDate}`);
 
     } catch (error) {
 

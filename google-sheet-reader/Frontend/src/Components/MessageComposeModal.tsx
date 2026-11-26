@@ -2,7 +2,7 @@
  * @file MessageComposeModal.tsx
  * @author 배민경
  * @created 2026-11-25
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description
  * 발송 로그 화면의 문자·이메일 개별 발송 작성 모달
  *
@@ -15,6 +15,8 @@
  * - 문자 바이트 수 및 SMS / LMS 구분 표시
  * - 현재 테스트 발송 설정 안내 및 발송 전 최종 확인
  * - 발송 진행 상태 및 수신자별 발송 결과 표시
+ *
+ * 20261126 수정: GW / DS 완전 분리 - 사업 구분(문자 발송인)을 워크스페이스 사업으로 고정
  */
 
 import { useMemo, useState } from 'react'
@@ -24,6 +26,7 @@ import type {
   ManualChannelResult,
   ManualSendJobResult,
   ManualSendMessage,
+  ManualBusinessType, // 20261126 추가
 } from '../Services/DispatchService'
 
 import {
@@ -43,6 +46,7 @@ import type { MessageDraft } from '../Utils/messageDraft'
 // 1. 컴포넌트 속성 타입
 // =======================================
 type MessageComposeModalProps = {
+  businessType: ManualBusinessType // 20261126 추가: 워크스페이스 사업 (발송인 고정)
   initialDrafts: MessageDraft[]
   settings: DispatchSettings | null
   isBlocked: boolean // 자동 발송 진행 중 여부
@@ -119,6 +123,7 @@ function getContactSummary(draft: MessageDraft): string {
 // 3. 개별 발송 작성 모달
 // =======================================
 function MessageComposeModal({
+  businessType,
   initialDrafts,
   settings,
   isBlocked,
@@ -128,8 +133,11 @@ function MessageComposeModal({
   // ---------------------------------------
   // 3-1. 작성 및 발송 상태
   // ---------------------------------------
+  // 20261126 수정: 모든 수신자의 사업 구분을 워크스페이스 사업으로 고정
   const [drafts, setDrafts] = useState<MessageDraft[]>(() =>
-    initialDrafts.length > 0 ? initialDrafts : [createEmptyDraft()],
+    initialDrafts.length > 0
+      ? initialDrafts.map((draft) => ({ ...draft, businessType }))
+      : [createEmptyDraft(businessType)],
   )
 
   const [activeKey, setActiveKey] = useState(
@@ -188,7 +196,7 @@ function MessageComposeModal({
       return
     }
 
-    const nextDraft = createEmptyDraft()
+    const nextDraft = createEmptyDraft(businessType) // 20261126 수정: 워크스페이스 사업
 
     // 직접 추가한 수신자에게 현재 작성 중인 내용 복사
     nextDraft.smsSubject = activeDraft.smsSubject
@@ -197,7 +205,6 @@ function MessageComposeModal({
     nextDraft.emailBody = activeDraft.emailBody
     nextDraft.smsEnabled = activeDraft.smsEnabled
     nextDraft.emailEnabled = activeDraft.emailEnabled
-    nextDraft.businessType = activeDraft.businessType
 
     setDrafts((current) => [...current, nextDraft])
     setActiveKey(nextDraft.key)
@@ -563,20 +570,15 @@ function MessageComposeModal({
                     />
                   </label>
 
+                  {/* 20261126 수정: 워크스페이스 사업으로 고정 (선택 불가) */}
                   <label className="compose-field">
                     <span>사업 구분 (문자 발송인)</span>
-                    <select
-                      value={activeDraft.businessType}
-                      onChange={(event) =>
-                        updateActiveDraft({
-                          businessType: event.target.value === 'DS' ? 'DS' : 'GW',
-                        })
-                      }
-                      disabled={isSending}
-                    >
-                      <option value="GW">GW · 강원SW미래채움</option>
-                      <option value="DS">DS · 디지털새싹</option>
-                    </select>
+                    <input
+                      type="text"
+                      value={businessType === 'DS' ? 'DS · 디지털새싹' : 'GW · 강원SW미래채움'}
+                      readOnly
+                      disabled
+                    />
                   </label>
                 </div>
               </section>

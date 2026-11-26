@@ -2,7 +2,7 @@
  * @file dispatchRoutes.js
  * @author 배민경
  * @created 2026-11-19
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description
  * 이메일 및 문자 발송 자동화 실행 API 라우터
  *
@@ -15,6 +15,10 @@
  * 20261124 추가: 웹에서 발송 기준일 변경 기능 추가
  * 20261125 추가: 발송 로그 화면 개별 발송(선택 수신자 / 직접 입력) API 추가
  *               - 자동 발송과 같은 작업 ID / 상태 조회 / 중복 실행 방지 구조 사용
+ * 20261126 추가: 발송 자동화 실행 시 사업(businessType: GW / DS) 지정 가능
+ * 20261126 수정: GW / DS 완전 분리
+ *               - 발송 기준일 설정을 사업별로 저장 (PATCH body에 businessType 필수)
+ *               - 발송 실행은 한 번에 한 사업만 (POST /run body에 businessType 필수)
  */
 
 
@@ -152,7 +156,18 @@ router.get("/settings", (req, res) => {
 // =============================================================
 router.patch("/settings", (req, res) => {
 
-    const { daysBefore } = req.body || {};
+    const { daysBefore, businessType } = req.body || {}; // 20261126 수정: 사업 구분 추가
+
+    // 20261126 추가: 사업 구분 검증
+    if (businessType !== "GW" && businessType !== "DS") {
+        return res.status(400).json(
+            createResponse(
+                false,
+                null,
+                "발송 기준일을 저장할 사업(GW / DS)을 지정해야 합니다."
+            )
+        );
+    }
 
     // 발송 기준일 입력값 검증
     if (!Number.isInteger(daysBefore) || daysBefore < 0) {
@@ -178,7 +193,7 @@ router.patch("/settings", (req, res) => {
 
     try {
         // 발송 기준일 저장 및 변경된 설정 반환
-        const settings = updateDispatchSettings(daysBefore);
+        const settings = updateDispatchSettings(businessType, daysBefore); // 20261126 수정: 사업별 저장
 
         return res.status(200).json(
             createResponse(
@@ -264,8 +279,29 @@ router.post("/run", (req, res) => {
         );
     }
 
-    // 화면에서 확인한 교육일과 현재 설정 비교
-    if (req.body?.targetDate !== settings.targetDate) {
+    // ---------------------------------------------------------
+    // 5-3-1. 실행 사업 확인
+    // 20261126 수정: GW / DS 완전 분리 - 한 번에 한 사업만 실행 (businessType 필수)
+    // ---------------------------------------------------------
+    const businessType = String(req.body?.businessType || "").trim().toUpperCase();
+
+    if (!settings.businessTypes.includes(businessType)) {
+        return res.status(400).json(
+            createResponse(
+                false,
+                settings,
+                businessType
+                    ? `발송 설정(BUSINESS_TYPE)에 없는 사업입니다: ${businessType}`
+                    : "발송할 사업(GW / DS)을 지정해야 합니다."
+            )
+        );
+    }
+
+    const runBusinessTypes = [businessType];
+    const businessSettings = settings.businesses[businessType];
+
+    // 화면에서 확인한 교육일과 현재 사업 설정 비교
+    if (req.body?.targetDate !== businessSettings.targetDate) {
 
         return res.status(409).json(
             createResponse(
@@ -286,7 +322,13 @@ router.post("/run", (req, res) => {
         id: jobId,
         type: "auto", // 20261125 추가: 작업 유형
         status: "queued",
-        settings,
+        settings: { // 20261126 수정: 실제 실행 사업 설정만 기록
+            businessType,
+            businessTypes: runBusinessTypes,
+            daysBefore: businessSettings.daysBefore,
+            targetDate: businessSettings.targetDate,
+            modes: settings.modes,
+        },
         result: null,
         error: null,
         createdAt: new Date().toISOString(),
@@ -302,11 +344,12 @@ router.post("/run", (req, res) => {
     // ---------------------------------------------------------
     // 5-5. 발송 자동화 비동기 실행
     // ---------------------------------------------------------
+    // 20261126 수정: 요청한 사업만 실행
     setImmediate(() => {
-        void executeDispatch(job);
+        void executeDispatch(job, () => runDispatch({ businessTypes: runBusinessTypes }));
     });
 
-    console.log(`[dispatchRoutes.js] 발송 작업 등록: ${jobId}`);
+    console.log(`[dispatchRoutes.js] 발송 작업 등록: ${jobId} (${runBusinessTypes.join(", ")})`);
 
     // 작업 ID를 먼저 반환
     return res.status(202).json(

@@ -2,8 +2,11 @@
  * @file useDashboardData.ts
  * @author 배민경
  * @created 2026-11-23
- * @updated 2026-11-23
+ * @updated 2026-11-26
  * @description 대시보드의 교육 데이터 조회와 관련된 상태 및 함수를 관리
+ *
+ * 20261126 수정: GW / DS 완전 분리
+ * - 워크스페이스 사업 하나의 데이터만 조회하도록 변경 (gwData·dsData → data)
  */
 
 
@@ -13,7 +16,7 @@
 import { useCallback, useState } from 'react'
 
 import { getEducationByDateRange } from '../Services/EducationService'
-import type { EducationRecord } from '../Types/education'
+import type { BusinessType, EducationRecord } from '../Types/education'
 
 
 // =======================================
@@ -36,106 +39,54 @@ function formatIsoDate(date: Date): string {
 
 // =======================================
 // 4. 대시보드 교육 데이터 관리 훅
+// 20261126 수정: 사업 구분을 전달받아 해당 사업만 조회
 // =======================================
-export function useDashboardData() {
+export function useDashboardData(businessType: BusinessType) {
   // ---------------------------------------
-  // 4-1. 교육 데이터 상태
+  // 4-1. 교육 데이터 및 API 연결 상태
   // ---------------------------------------
-  const [gwData, setGwData] = useState<EducationRecord[]>([])
-  const [dsData, setDsData] = useState<EducationRecord[]>([])
+  const [data, setData] = useState<EducationRecord[]>([])
+  const [status, setStatus] = useState<ApiStatus>('loading')
 
   // ---------------------------------------
-  // 4-2. API 연결 상태
-  // ---------------------------------------
-  const [gwStatus, setGwStatus] = useState<ApiStatus>('loading')
-  const [dsStatus, setDsStatus] = useState<ApiStatus>('loading')
-
-  // ---------------------------------------
-  // 4-3. 로딩 및 오류 상태
+  // 4-2. 로딩 및 오류 상태
   // ---------------------------------------
   const [isLoading, setIsLoading] = useState(false)
-  const [gwError, setGwError] = useState('')
-  const [dsError, setDsError] = useState('')
+  const [error, setError] = useState('')
   const [lastUpdated, setLastUpdated] = useState('')
 
 
   // =======================================
-  // 5. GW·DS 교육 데이터 조회
+  // 5. 교육 데이터 조회 (최근 30일)
   // =======================================
   const loadEducationData = useCallback(async () => {
     setIsLoading(true)
+    setStatus('loading')
+    setError('')
 
-    setGwStatus('loading')
-    setDsStatus('loading')
-
-    setGwError('')
-    setDsError('')
-
-    // ---------------------------------------
-    // 5-1. 최근 30일 조회 날짜 설정
-    // ---------------------------------------
     const endDate = new Date()
     const startDate = new Date(endDate)
 
     startDate.setDate(startDate.getDate() - 29)
 
-    const params = {
-      startDate: formatIsoDate(startDate),
-      endDate: formatIsoDate(endDate),
-    }
-
     try {
-      // ---------------------------------------
-      // 5-2. GW·DS 데이터 동시 조회
-      // ---------------------------------------
-      const results = await Promise.allSettled([
-        getEducationByDateRange({
-          businessType: 'GW',
-          ...params,
-        }),
-        getEducationByDateRange({
-          businessType: 'DS',
-          ...params,
-        }),
-      ])
+      const result = await getEducationByDateRange({
+        businessType,
+        startDate: formatIsoDate(startDate),
+        endDate: formatIsoDate(endDate),
+      })
 
-      // ---------------------------------------
-      // 5-3. GW 조회 결과 처리
-      // ---------------------------------------
-      if (results[0].status === 'fulfilled') {
-        setGwData(results[0].value)
-        setGwStatus('connected')
-      } else {
-        setGwData([])
-        setGwStatus('error')
-
-        setGwError(
-          results[0].reason instanceof Error
-            ? results[0].reason.message
-            : 'GW 데이터 조회 실패',
-        )
-      }
-
-      // ---------------------------------------
-      // 5-4. DS 조회 결과 처리
-      // ---------------------------------------
-      if (results[1].status === 'fulfilled') {
-        setDsData(results[1].value)
-        setDsStatus('connected')
-      } else {
-        setDsData([])
-        setDsStatus('error')
-
-        setDsError(
-          results[1].reason instanceof Error
-            ? results[1].reason.message
-            : 'DS 데이터 조회 실패',
-        )
-      }
-
-      // ---------------------------------------
-      // 5-5. 마지막 조회 시간 기록
-      // ---------------------------------------
+      setData(result)
+      setStatus('connected')
+    } catch (loadError) {
+      setData([])
+      setStatus('error')
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : `${businessType} 데이터 조회 실패`,
+      )
+    } finally {
       setLastUpdated(
         new Intl.DateTimeFormat('ko-KR', {
           hour: '2-digit',
@@ -143,23 +94,19 @@ export function useDashboardData() {
           second: '2-digit',
         }).format(new Date()),
       )
-    } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [businessType])
 
 
   // =======================================
   // 6. 외부 반환
   // =======================================
   return {
-    gwData,
-    dsData,
-    gwStatus,
-    dsStatus,
+    data,
+    status,
+    error,
     isLoading,
-    gwError,
-    dsError,
     lastUpdated,
     loadEducationData,
   }

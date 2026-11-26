@@ -72,8 +72,9 @@ function createDraftKey(prefix: string): string {
 // =======================================
 // 3. 역할 / 과정명으로 사업 구분 추정
 // GW: 강사 / DS: 담당교사·주강사·보조강사
+// 20261126 수정: 교육 안내 발송 화면의 사업별 로그 분리에 사용하도록 export
 // =======================================
-function inferBusinessType(record: LogRecord): ManualBusinessType {
+export function inferBusinessType(record: LogRecord): ManualBusinessType {
   const role = record.역할.trim()
 
   if (['담당교사', '주강사', '보조강사'].includes(role)) return 'DS'
@@ -140,12 +141,15 @@ export function createDraftFromRecord(record: LogRecord): MessageDraft {
 // =======================================
 // 5. 직접 입력용 빈 작성 데이터
 // =======================================
-export function createEmptyDraft(): MessageDraft {
+// 20261126 수정: 현재 워크스페이스 사업을 기본 사업 구분으로 사용
+export function createEmptyDraft(
+  businessType: ManualBusinessType = 'GW',
+): MessageDraft {
   return {
     key: createDraftKey('direct'),
     sourceLogId: '',
     isDirect: true,
-    businessType: 'GW',
+    businessType,
 
     name: '',
     role: '',

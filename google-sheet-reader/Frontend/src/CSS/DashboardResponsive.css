@@ -54,7 +54,7 @@
 
 /* [반응형 워크스페이스 선택 영역] */
   .brand-name,
-  .workspace-switcher,
+  .workspace-switcher-wrap, /* 20261126 수정: 토글 묶음 전체 숨김 */
   .nav-caption,
   .nav-item span,
   .business-nav-item span:not(.business-nav-dot),

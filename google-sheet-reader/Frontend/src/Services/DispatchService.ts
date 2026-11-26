@@ -2,7 +2,7 @@
  * @file DispatchService.ts
  * @author 배민경
  * @created 2026-11-19
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description React에서 Node.js 발송 자동화 API를 호출하고 응답을 검증
  *
  * 주요 기능:
@@ -14,6 +14,8 @@
  * 20261120 수정: 공통 ApiClient 활용 및 타입·검증 함수 구조 정리
  * 20261124 추가: 웹에서 발송 기준일 변경 기능 추가
  * 20261125 추가: 발송 로그 화면 개별 발송(선택 수신자 / 직접 입력) 요청 및 상태 조회
+ * 20261126 추가: 발송 자동화 실행 시 사업(GW / DS) 지정
+ * 20261126 수정: GW / DS 완전 분리 - 발송 기준일 조회·저장·실행 모두 사업별로 처리
  */
 
 import { API_CONFIG, createDispatchApiUrl } from '../Configs/api'
@@ -26,9 +28,11 @@ import { requestApiData } from './ApiClient'
 type DispatchRunRequestBody = {
   confirm: true
   targetDate: string
+  businessType: ManualBusinessType // 20261126 수정: 실행할 사업 (필수)
 }
 
 type DispatchSettingsRequestBody = {
+  businessType: ManualBusinessType // 20261126 추가: 저장할 사업
   daysBefore: number
 }
 
@@ -130,7 +134,9 @@ type DispatchModes = {
 // =======================================
 // 3. 발송 설정 타입
 // =======================================
+// 20261126 수정: 한 사업 기준 설정 (daysBefore / targetDate는 해당 사업 값)
 export type DispatchSettings = {
+  businessType: ManualBusinessType
   businessTypes: string[]
   daysBefore: number
   targetDate: string
@@ -227,16 +233,33 @@ function requestDispatchApi(
   })
 }
 
-function parseDispatchSettings(data: unknown): DispatchSettings {
+// 20261126 수정: 서버의 사업별 설정(businesses)에서 요청한 사업 설정만 추출
+function parseDispatchSettings(
+  data: unknown,
+  businessType: ManualBusinessType,
+): DispatchSettings {
   if (
     !isRecord(data) ||
     !isStringArray(data.businessTypes) ||
-    typeof data.daysBefore !== 'number' ||
-    !Number.isInteger(data.daysBefore) ||
-    data.daysBefore < 0 ||
-    typeof data.targetDate !== 'string'
+    !isRecord(data.businesses)
   ) {
     throw new Error('발송 설정 데이터 형식이 올바르지 않습니다.')
+  }
+
+  if (!data.businessTypes.includes(businessType)) {
+    throw new Error(`서버 발송 설정(BUSINESS_TYPE)에 ${businessType} 사업이 포함되어 있지 않습니다.`)
+  }
+
+  const businessSettings = data.businesses[businessType]
+
+  if (
+    !isRecord(businessSettings) ||
+    typeof businessSettings.daysBefore !== 'number' ||
+    !Number.isInteger(businessSettings.daysBefore) ||
+    businessSettings.daysBefore < 0 ||
+    typeof businessSettings.targetDate !== 'string'
+  ) {
+    throw new Error(`${businessType} 발송 설정 데이터 형식이 올바르지 않습니다.`)
   }
 
   if (!isDispatchModes(data.modes)) {
@@ -244,9 +267,10 @@ function parseDispatchSettings(data: unknown): DispatchSettings {
   }
 
   return {
+    businessType,
     businessTypes: data.businessTypes,
-    daysBefore: data.daysBefore,
-    targetDate: data.targetDate,
+    daysBefore: businessSettings.daysBefore,
+    targetDate: businessSettings.targetDate,
     modes: data.modes,
   }
 }
@@ -255,10 +279,13 @@ function parseDispatchSettings(data: unknown): DispatchSettings {
 // 12-1. 발송 설정 조회
 // GET /api/dispatch/settings
 // =======================================
-export async function getDispatchSettings(): Promise<DispatchSettings> {
+// 20261126 수정: 사업별 설정 조회
+export async function getDispatchSettings(
+  businessType: ManualBusinessType,
+): Promise<DispatchSettings> {
   const data = await requestDispatchApi('/settings')
 
-  return parseDispatchSettings(data)
+  return parseDispatchSettings(data, businessType)
 }
 
 // =======================================
@@ -266,16 +293,21 @@ export async function getDispatchSettings(): Promise<DispatchSettings> {
 // PATCH /api/dispatch/settings
 // 20261124 추가
 // =======================================
+// 20261126 수정: 사업별 저장
 export async function updateDispatchSettings(
+  businessType: ManualBusinessType,
   daysBefore: number,
 ): Promise<DispatchSettings> {
   if (!Number.isInteger(daysBefore) || daysBefore < 0) {
     throw new Error('발송 기준일은 0 이상의 정수로 입력해야 합니다.')
   }
 
-  const data = await requestDispatchApi('/settings', 'PATCH', { daysBefore })
+  const data = await requestDispatchApi('/settings', 'PATCH', {
+    businessType,
+    daysBefore,
+  })
 
-  return parseDispatchSettings(data)
+  return parseDispatchSettings(data, businessType)
 }
 
 
@@ -283,10 +315,15 @@ export async function updateDispatchSettings(
 // 13. 발송 자동화 실행
 // POST /api/dispatch/run
 // =======================================
-export async function startDispatch(targetDate: string): Promise<string> {
+// 20261126 수정: 지정한 사업만 발송 (사업 필수)
+export async function startDispatch(
+  targetDate: string,
+  businessType: ManualBusinessType,
+): Promise<string> {
   const data = await requestDispatchApi('/run', 'POST', {
     confirm: true,
     targetDate,
+    businessType,
   })
 
   if (!isRecord(data) || typeof data.jobId !== 'string') {

@@ -2,7 +2,7 @@
  * @file 01_Main.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description
  * 설정된 발송 기준일의 교육 데이터를 조회하여 사업별 그룹화, 발송 대상 선정 및 통합 알림 발송 수행
  *
@@ -19,6 +19,8 @@
  * 20261123 수정: 한국 시간 기준 날짜 계산 (트리거를 위해서)
  * 20261124 추가: 웹에서 발송 기준일 변경 기능 추가
  * 20261125 추가: 발송 로그 화면 개별 발송(runManualSend) 기능 추가
+ * 20261126 추가: runDispatch에 사업(businessTypes) 지정 옵션 추가 (웹 GW / DS 워크스페이스 분리)
+ * 20261126 수정: 발송 기준일(DAYS_BEFORE)을 사업별(GW / DS)로 분리하여 저장·적용
  */
 
 
@@ -98,40 +100,78 @@ function getTargetDate(daysBefore) {
 
 
 // =======================================
-// 2-1. 저장된 발송 기준일 조회
+// 2-1. 발송 기준일 설정 파일 읽기
 // 20261124 추가
+// 20261126 수정: 사업별 설정 구조로 변경
+//   { "businesses": { "GW": { "daysBefore": 1, "updatedAt": "..." }, "DS": { ... } } }
+//   기존 형식 { "daysBefore": 1 }은 모든 사업의 기본값으로 계속 인식
 // =======================================
-function getDaysBefore() {
+function readDispatchSettingsFile() {
 
-    // 웹에서 저장한 설정 파일이 있으면 해당 값을 우선 적용
-    if (fs.existsSync(DISPATCH_SETTINGS_PATH)) {
+    if (!fs.existsSync(DISPATCH_SETTINGS_PATH)) {
+        return { legacyDaysBefore: null, businesses: {} };
+    }
 
-        try {
-            const savedSettings = JSON.parse(
-                fs.readFileSync(DISPATCH_SETTINGS_PATH, "utf8")
-            );
+    try {
+        const savedSettings = JSON.parse(
+            fs.readFileSync(DISPATCH_SETTINGS_PATH, "utf8")
+        );
 
-            const savedDaysBefore = savedSettings.daysBefore;
+        const businesses = savedSettings && typeof savedSettings.businesses === "object"
+            && savedSettings.businesses !== null
+            ? savedSettings.businesses
+            : {};
 
-            if (!Number.isInteger(savedDaysBefore) || savedDaysBefore < 0) {
-                throw new Error("저장된 발송 기준일은 0 이상의 정수여야 합니다.");
-            }
+        const legacyDaysBefore = Number.isInteger(savedSettings?.daysBefore)
+            ? savedSettings.daysBefore
+            : null;
 
-            return savedDaysBefore;
+        return { legacyDaysBefore, businesses };
 
-        } catch (error) {
-            throw new Error(
-                `발송 기준 설정 파일을 읽지 못했습니다: ${error.message}`
-            );
+    } catch (error) {
+        throw new Error(
+            `발송 기준 설정 파일을 읽지 못했습니다: ${error.message}`
+        );
+    }
+}
+
+
+// =======================================
+// 2-2. 사업별 저장된 발송 기준일 조회
+// 20261124 추가
+// 20261126 수정: 사업별 조회
+// 우선순위: 사업별 저장값 → 기존(공통) 저장값 → Config.js DAYS_BEFORE
+//          (Config.js는 숫자 또는 { GW: 1, DS: 2 } 형식 모두 지원)
+// =======================================
+function getDaysBefore(businessType) {
+
+    const type = String(businessType || "").trim().toUpperCase();
+    const { legacyDaysBefore, businesses } = readDispatchSettingsFile();
+
+    const savedDaysBefore = businesses[type]?.daysBefore;
+
+    if (savedDaysBefore !== undefined) {
+
+        if (!Number.isInteger(savedDaysBefore) || savedDaysBefore < 0) {
+            throw new Error(`저장된 ${type} 발송 기준일은 0 이상의 정수여야 합니다.`);
         }
+
+        return savedDaysBefore;
+    }
+
+    if (legacyDaysBefore !== null) {
+        return legacyDaysBefore;
     }
 
     // 저장된 설정이 없으면 Config.js의 기본값 사용
-    const defaultDaysBefore = CONFIG.DAYS_BEFORE;
+    const configured = CONFIG.DAYS_BEFORE;
+    const defaultDaysBefore = configured !== null && typeof configured === "object"
+        ? configured[type]
+        : configured;
 
     if (!Number.isInteger(defaultDaysBefore) || defaultDaysBefore < 0) {
         throw new Error(
-            "Config.js의 DAYS_BEFORE는 0 이상의 정수로 설정해야 합니다."
+            `Config.js의 DAYS_BEFORE(${type})는 0 이상의 정수로 설정해야 합니다.`
         );
     }
 
@@ -140,31 +180,47 @@ function getDaysBefore() {
 
 
 // =======================================
-// 2-2. 발송 기준일 설정 저장
+// 2-3. 사업별 발송 기준일 설정 저장
 // 20261124 추가
+// 20261126 수정: 사업별 저장 (다른 사업 설정은 유지)
 // =======================================
-function updateDispatchSettings(daysBefore) {
+function updateDispatchSettings(businessType, daysBefore) {
+
+    const type = String(businessType || "").trim().toUpperCase();
+
+    if (!getBusinessTypes().includes(type)) {
+        throw new Error(`발송 설정(BUSINESS_TYPE)에 없는 사업입니다: ${type || "(빈 값)"}`);
+    }
 
     if (!Number.isInteger(daysBefore) || daysBefore < 0) {
         throw new Error("발송 기준일은 0 이상의 정수로 입력해야 합니다.");
     }
+
+    // 기존 공통 설정이 있으면 다른 사업 값으로 옮겨서 유지
+    const { legacyDaysBefore, businesses } = readDispatchSettingsFile();
+    const nextBusinesses = { ...businesses };
+
+    if (legacyDaysBefore !== null) {
+        getBusinessTypes().forEach((otherType) => {
+            if (!nextBusinesses[otherType]) {
+                nextBusinesses[otherType] = { daysBefore: legacyDaysBefore };
+            }
+        });
+    }
+
+    nextBusinesses[type] = {
+        daysBefore,
+        updatedAt: new Date().toISOString(),
+    };
 
     const settingsDirectory = path.dirname(DISPATCH_SETTINGS_PATH);
 
     // 설정 폴더가 없는 경우 생성
     fs.mkdirSync(settingsDirectory, { recursive: true });
 
-    // 변경된 발송 기준일과 저장 시각 기록
     fs.writeFileSync(
         DISPATCH_SETTINGS_PATH,
-        JSON.stringify(
-            {
-                daysBefore,
-                updatedAt: new Date().toISOString(),
-            },
-            null,
-            2
-        ),
+        JSON.stringify({ businesses: nextBusinesses }, null, 2),
         "utf8"
     );
 
@@ -198,6 +254,37 @@ function getBusinessTypes() {
 
     // 중복 사업 유형 제거
     return [...new Set(selectedTypes)];
+}
+
+
+// =============================================================
+// 3-1. 요청한 사업 유형만 선택
+// 20261126 추가: 웹 워크스페이스(GW / DS)별 발송 실행
+// requested가 없으면 Config 설정 전체 사용
+// =============================================================
+function filterBusinessTypes(configuredTypes, requested) {
+
+    if (requested === undefined || requested === null) {
+        return configuredTypes;
+    }
+
+    const requestedTypes = (Array.isArray(requested) ? requested : [requested])
+        .map(type => String(type).trim().toUpperCase())
+        .filter(Boolean);
+
+    const notConfigured = requestedTypes.filter(type => !configuredTypes.includes(type));
+
+    if (notConfigured.length > 0) {
+        throw new Error(
+            `발송 설정(BUSINESS_TYPE)에 없는 사업입니다: ${notConfigured.join(", ")}`
+        );
+    }
+
+    if (requestedTypes.length === 0) {
+        throw new Error("실행할 사업 유형이 지정되지 않았습니다.");
+    }
+
+    return [...new Set(requestedTypes)];
 }
 
 
@@ -250,16 +337,27 @@ function getTestOptions(selectedBusinessTypes) {
 // 4-1. 웹 화면용 발송 설정 조회
 // 20261119 추가
 // =============================================================
+// 20261126 수정: 사업별 발송 기준일 / 대상 교육일 반환
+//   businesses: { GW: { daysBefore, targetDate }, DS: { daysBefore, targetDate } }
 function getDispatchSettings() {
 
     const businessTypes = getBusinessTypes();
-    const daysBefore = getDaysBefore(); // 20261124 수정: 웹 저장 설정 우선 적용
     const testOptions = getTestOptions(businessTypes);
+
+    const businesses = {};
+
+    businessTypes.forEach((type) => {
+        const daysBefore = getDaysBefore(type);
+
+        businesses[type] = {
+            daysBefore,
+            targetDate: getTargetDate(daysBefore),
+        };
+    });
 
     return {
         businessTypes,
-        daysBefore,
-        targetDate: getTargetDate(daysBefore),
+        businesses,
 
         // 20261119 추가: 수신자 정보는 제외하고 테스트 설정만 반환
         modes: {
@@ -524,8 +622,10 @@ async function processGwTargets({
 // =============================================================
 // 11. 메인 함수
 // 20261119 수정: 웹 API에서도 호출할 수 있도록 함수명 변경
+// 20261126 수정: options.businessTypes 지정 시 Config 설정 중 해당 사업만 실행
+//               (웹 워크스페이스 GW / DS 분리용, 미지정 시 기존과 동일)
 // =============================================================
-async function runDispatch() {
+async function runDispatch(options = {}) {
 
     // 사업별 발송 로그 누적 배열
     const pendingLogRecords = [];
@@ -534,6 +634,7 @@ async function runDispatch() {
     const runSummary = {
         businessTypes: [],
         targetDate: "",
+        targetDates: {}, // 20261126 추가: 사업별 대상 교육일
         logCount: 0,
     };
 
@@ -545,21 +646,39 @@ async function runDispatch() {
         // -----------------------------------------------------
         // 11-1. 실행 설정
         // -----------------------------------------------------
-        const selectedBusinessTypes = getBusinessTypes();
-        const daysBefore = getDaysBefore(); // 20261124 수정: 웹 저장 설정 우선 적용
-        const targetDate = getTargetDate(daysBefore);
+        const selectedBusinessTypes = filterBusinessTypes(
+            getBusinessTypes(),
+            options.businessTypes,
+        ); // 20261126 수정: 요청한 사업만 실행
+
+        // 20261126 수정: 사업별 발송 기준일 / 대상 교육일 계산
+        const businessPlans = selectedBusinessTypes.map((businessType) => {
+            const daysBefore = getDaysBefore(businessType);
+
+            return {
+                businessType,
+                daysBefore,
+                targetDate: getTargetDate(daysBefore),
+            };
+        });
 
         // 20261119 추가: 웹 API에 전달할 실행 정보
         runSummary.businessTypes = selectedBusinessTypes;
-        runSummary.targetDate = targetDate;
+        businessPlans.forEach((plan) => {
+            runSummary.targetDates[plan.businessType] = plan.targetDate;
+        });
+        runSummary.targetDate = [...new Set(businessPlans.map(plan => plan.targetDate))].join(", ");
 
         const testOptions = getTestOptions(selectedBusinessTypes);
 
         logSection("프로그램 실행 설정");
 
         console.log(`실행 사업: ${selectedBusinessTypes.join(", ")}`);
-        console.log(`발송 기준: 수업일 ${daysBefore}일 전`);
-        console.log(`조회 대상 교육일: ${targetDate}`);
+        businessPlans.forEach((plan) => {
+            console.log(
+                `[${plan.businessType}] 발송 기준: 수업일 ${plan.daysBefore}일 전 / 조회 대상 교육일: ${plan.targetDate}`
+            );
+        });
 
         console.log( // 20261113 수정
             `이메일 미리보기 모드: ${testOptions.emailTestMode} / ` +
@@ -572,7 +691,7 @@ async function runDispatch() {
         // -----------------------------------------------------
         // 11-2. 사업별 처리
         // -----------------------------------------------------
-        for (const businessType of selectedBusinessTypes) {
+        for (const { businessType, targetDate } of businessPlans) { // 20261126 수정: 사업별 대상 교육일
 
             // 교육 데이터 조회
             console.log(`[${businessType}] ${targetDate} 교육 데이터 조회`);

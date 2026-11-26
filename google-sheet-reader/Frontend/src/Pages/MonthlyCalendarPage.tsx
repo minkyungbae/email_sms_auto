@@ -2,17 +2,20 @@
  * @file MonthlyCalendarPage.tsx
  * @author 배민경
  * @created 2026-11-25
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description
  * 월별 교육 일정을 달력 형태로 조회하는 화면
  *
  * 주요 기능:
- * - 선택한 월의 GW·DS 교육 일정을 달력에 표시
+ * - 선택한 월의 워크스페이스 사업(GW 또는 DS) 교육 일정을 달력에 표시
  * - 이전 달 / 다음 달 / 이번 달 이동 및 연월 직접 선택
- * - 사업 구분(전체 / GW / DS) 필터
  * - 일자별 교육 건수 및 일정 요약 표시
  * - 일정 클릭 시 교육 상세 정보 조회
  * - 하루 일정이 많을 때 "더보기"로 해당 일자 전체 목록 조회
+ *
+ * 20261126 수정:
+ * - 워크스페이스(GW / DS)별 화면 분리: 전달받은 사업 데이터만 조회
+ * - 사업 구분 필터 삭제
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -32,7 +35,11 @@ import type {
 const MAX_VISIBLE_EVENTS = 3 // 달력 칸에 표시할 최대 일정 수
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
-type BusinessFilter = 'ALL' | BusinessType
+// 20261126 추가: 사업별 화면 표시 이름
+const BUSINESS_LABELS: Record<BusinessType, string> = {
+  GW: 'GW · 강원SW미래채움',
+  DS: 'DS · 디지털새싹',
+}
 
 type YearMonth = {
   year: number
@@ -321,7 +328,7 @@ function CalendarModal({
               <div className="calendar-detail-badges">
                 <span className={`calendar-business-badge calendar-business-${state.event.business.toLowerCase()}`}>
                   <i aria-hidden="true" />
-                  {state.event.business === 'GW' ? 'GW · 강원SW미래채움' : 'DS · 디지털새싹'}
+                  {BUSINESS_LABELS[state.event.business]}
                 </span>
               </div>
 
@@ -394,12 +401,12 @@ function CalendarModal({
 // =======================================
 // 6. 월별 캘린더 페이지
 // =======================================
-function MonthlyCalendarPage() {
+// 20261126 수정: 워크스페이스 사업 구분을 전달받아 해당 사업 일정만 표시
+function MonthlyCalendarPage({ businessType }: { businessType: BusinessType }) {
   // ---------------------------------------
   // 6-1. 조회 조건 상태
   // ---------------------------------------
   const [yearMonth, setYearMonth] = useState<YearMonth>(getCurrentYearMonth)
-  const [businessFilter, setBusinessFilter] = useState<BusinessFilter>('ALL')
   const [reloadToken, setReloadToken] = useState(0)
 
   // ---------------------------------------
@@ -408,58 +415,51 @@ function MonthlyCalendarPage() {
   const [monthData, setMonthData] = useState<MonthData | null>(null)
   const [modalState, setModalState] = useState<ModalState | null>(null)
 
-  const requestKey = `${toMonthValue(yearMonth)}#${reloadToken}`
+  const requestKey = `${businessType}#${toMonthValue(yearMonth)}#${reloadToken}`
   const isLoading = monthData?.requestKey !== requestKey
 
   // ---------------------------------------
-  // 6-3. 선택한 월의 GW·DS 교육 데이터 조회
-  // 한 사업 조회가 실패해도 나머지 사업 일정은 표시
+  // 6-3. 선택한 월의 교육 데이터 조회
+  // 20261126 수정: 워크스페이스 사업 데이터만 조회
   // ---------------------------------------
   useEffect(() => {
     let isActive = true
     const { startDate, endDate } = getMonthRange(yearMonth)
-    const businessTypes: BusinessType[] = ['GW', 'DS']
 
-    Promise.allSettled(
-      businessTypes.map((businessType) =>
-        getEducationByDateRange({ businessType, startDate, endDate }),
-      ),
-    ).then((results) => {
-      if (!isActive) return
+    getEducationByDateRange({ businessType, startDate, endDate })
+      .then(
+        (records): { records: EducationRecord[]; errors: string[] } => ({ records, errors: [] }),
+        (error: unknown) => ({
+          records: [],
+          errors: [
+            `${businessType} 데이터 조회 실패: ${error instanceof Error ? error.message : '조회 실패'}`,
+          ],
+        }),
+      )
+      .then(({ records, errors }) => {
+        if (!isActive) return
 
-      const records: EducationRecord[] = []
-      const errors: string[] = []
+        const events = records
+          .map(toCalendarEvent)
+          .filter((event): event is CalendarEvent => event !== null)
+          .sort((first, second) => first.date.localeCompare(second.date) || compareEvents(first, second))
 
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          records.push(...result.value)
-        } else {
-          const reason = result.reason instanceof Error ? result.reason.message : '조회 실패'
-          errors.push(`${businessTypes[index]} 데이터 조회 실패: ${reason}`)
-        }
+        setMonthData({
+          requestKey: `${businessType}#${toMonthValue(yearMonth)}#${reloadToken}`,
+          events,
+          errors,
+          loadedAt: new Intl.DateTimeFormat('ko-KR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }).format(new Date()),
+        })
       })
-
-      const events = records
-        .map(toCalendarEvent)
-        .filter((event): event is CalendarEvent => event !== null)
-        .sort((first, second) => first.date.localeCompare(second.date) || compareEvents(first, second))
-
-      setMonthData({
-        requestKey: `${toMonthValue(yearMonth)}#${reloadToken}`,
-        events,
-        errors,
-        loadedAt: new Intl.DateTimeFormat('ko-KR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }).format(new Date()),
-      })
-    })
 
     return () => {
       isActive = false
     }
-  }, [yearMonth, reloadToken])
+  }, [yearMonth, reloadToken, businessType])
 
   // ---------------------------------------
   // 6-4. 화면 표시 데이터 계산
@@ -467,10 +467,9 @@ function MonthlyCalendarPage() {
   const visibleEvents = useMemo(() => {
     if (isLoading || !monthData) return []
 
-    return businessFilter === 'ALL'
-      ? monthData.events
-      : monthData.events.filter((event) => event.business === businessFilter)
-  }, [monthData, businessFilter, isLoading])
+    // 20261126 수정: 사업 필터 삭제, 현재 사업 일정만 표시
+    return monthData.events.filter((event) => event.business === businessType)
+  }, [monthData, businessType, isLoading])
 
   const eventsByDate = useMemo(() => {
     const grouped = new Map<string, CalendarEvent[]>()
@@ -486,10 +485,13 @@ function MonthlyCalendarPage() {
 
   const calendarDays = useMemo(() => getCalendarDays(yearMonth), [yearMonth])
 
-  const allEvents = isLoading ? [] : monthData?.events ?? []
-  const gwCount = allEvents.filter((event) => event.business === 'GW').length
-  const dsCount = allEvents.filter((event) => event.business === 'DS').length
   const activeDays = eventsByDate.size
+
+  // 20261126 추가: 하루 최다 교육 건수
+  const maxDailyCount = Math.max(
+    0,
+    ...Array.from(eventsByDate.values(), (events) => events.length),
+  )
 
   const todayDate = formatIsoDate(new Date())
   const isCurrentMonth = toMonthValue(yearMonth) === toMonthValue(getCurrentYearMonth())
@@ -521,7 +523,7 @@ function MonthlyCalendarPage() {
           <p className="eyebrow">MONTHLY CALENDAR</p>
           <h1>월별 캘린더</h1>
           <p className="page-subtitle">
-            월별 GW·DS 교육 일정을 달력으로 한눈에 확인하고, 일정을 눌러 상세 정보를 조회합니다.
+            {BUSINESS_LABELS[businessType]} 월별 교육 일정을 달력으로 한눈에 확인하고, 일정을 눌러 상세 정보를 조회합니다.
           </p>
         </div>
 
@@ -586,38 +588,26 @@ function MonthlyCalendarPage() {
               onChange={(event) => handleMonthInput(event.target.value)}
             />
           </label>
-
-          <label>
-            <span>사업 구분</span>
-            <select
-              value={businessFilter}
-              onChange={(event) => setBusinessFilter(event.target.value as BusinessFilter)}
-            >
-              <option value="ALL">전체 사업</option>
-              <option value="GW">GW · 강원SW미래채움</option>
-              <option value="DS">DS · 디지털새싹</option>
-            </select>
-          </label>
         </div>
       </section>
 
       {/* 7-3. 월간 요약 */}
       <section className="calendar-summary" aria-label="월간 교육 요약">
+        {/* 20261126 수정: 사업별 건수 → 현재 사업 기준 요약 */}
         <div>
-          <span>이번 달 교육</span>
-          <strong>{isLoading ? '조회 중' : `${allEvents.length.toLocaleString()}건`}</strong>
-        </div>
-        <div>
-          <span><i className="calendar-dot calendar-business-gw" />GW</span>
-          <strong>{isLoading ? '-' : `${gwCount.toLocaleString()}건`}</strong>
-        </div>
-        <div>
-          <span><i className="calendar-dot calendar-business-ds" />DS</span>
-          <strong>{isLoading ? '-' : `${dsCount.toLocaleString()}건`}</strong>
+          <span>
+            <i className={`calendar-dot calendar-business-${businessType.toLowerCase()}`} />
+            이번 달 {businessType} 교육
+          </span>
+          <strong>{isLoading ? '조회 중' : `${visibleEvents.length.toLocaleString()}건`}</strong>
         </div>
         <div>
           <span>교육 진행일</span>
           <strong>{isLoading ? '-' : `${activeDays}일`}</strong>
+        </div>
+        <div>
+          <span>하루 최다</span>
+          <strong>{isLoading ? '-' : `${maxDailyCount}건`}</strong>
         </div>
         <p className="calendar-summary-updated">
           {monthData && !isLoading ? `마지막 조회 ${monthData.loadedAt}` : ''}
@@ -731,8 +721,10 @@ function MonthlyCalendarPage() {
         )}
 
         <footer className="calendar-legend">
-          <span><i className="calendar-dot calendar-business-gw" />GW · 강원SW미래채움</span>
-          <span><i className="calendar-dot calendar-business-ds" />DS · 디지털새싹</span>
+          <span>
+            <i className={`calendar-dot calendar-business-${businessType.toLowerCase()}`} />
+            {BUSINESS_LABELS[businessType]}
+          </span>
           <span className="calendar-legend-hint">일정을 누르면 상세 정보를 볼 수 있습니다.</span>
         </footer>
       </section>

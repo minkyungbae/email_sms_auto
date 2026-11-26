@@ -134,7 +134,7 @@
 /* [카드 제목 영역] */
 .card-heading { align-items: center; }
 
-/* 20261125 삭제: 교육 운영 추이 차트 */
+/* 20261125 삭제: 교육 운영 추이 차트(.trend-card, .chart-*, .legend-*) 스타일 */
 
 /* [서비스 연결 현황 카드] */
 .connection-card {
@@ -385,6 +385,24 @@
 
 /* [사업 카드 하단 이동 영역] */
 .business-card-footer svg { color: #B5B5B5; }
+
+/* 20261126 이동: EducationDataPage.css 삭제로 사업 카드 하단 버튼 스타일을 이곳으로 이동 */
+/* [사업 카드 하단 이동 영역] */
+button.business-card-footer {
+  width: calc(100% + 36px);
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* [사업 카드 하단 이동 영역 (마우스를 올린 상태)] */
+button.business-card-footer:hover {
+  color: #888888;
+}
 
 /* [페이지 하단 푸터] */
 .page-footer {

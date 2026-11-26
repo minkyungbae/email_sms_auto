@@ -2,7 +2,7 @@
  * @file LogDataPage.tsx
  * @author 배민경
  * @created 2026-11-19
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description
  * 문자 및 이메일 교육 안내 발송 조회 화면
  *
@@ -35,6 +35,13 @@
  * - 발송 전 수신자별 문자·이메일 제목 및 본문 수정
  * - 상세 보기에서 해당 수신자에게 바로 발송
  * - 발송 로그 -> 교육 안내 발송 발송으로 수정
+ *
+ * 20261126 추가:
+ * - 워크스페이스(GW / DS)별 화면 분리
+ * - 선택한 사업의 발송 로그만 조회·통계·선택
+ * - 발송 실행 시 선택한 사업만 자동 발송
+ * - 새 메시지 작성 시 선택한 사업을 기본 사업 구분으로 사용
+ * - 발송 기준일을 사업별로 조회·저장
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -64,8 +71,16 @@ import {
   MESSAGE_LIMITS,
   createDraftFromRecord,
   createEmptyDraft,
+  inferBusinessType, // 20261126 추가: 로그 사업 구분
 } from '../Utils/messageDraft'
 import type { MessageDraft } from '../Utils/messageDraft'
+import type { BusinessType } from '../Types/education' // 20261126 추가: 워크스페이스 사업 구분
+
+// 20261126 추가: 사업별 화면 표시 이름
+const BUSINESS_LABELS: Record<BusinessType, string> = {
+  GW: 'GW · 강원SW미래채움',
+  DS: 'DS · 디지털새싹',
+}
 
 // =======================================
 // 1. 교육 안내 발송 화면 기본 설정 및 타입
@@ -412,7 +427,8 @@ function LogDetailModal({
 // =======================================
 // 5. 교육 안내 발송 페이지 컴포넌트
 // =======================================
-function LogDataPage() {
+// 20261126 수정: 워크스페이스 사업 구분을 전달받아 해당 사업 로그만 표시
+function LogDataPage({ businessType }: { businessType: BusinessType }) {
   // ---------------------------------------
   // 5-1. 교육 안내 발송 데이터 및 화면 상태
   // ---------------------------------------
@@ -478,9 +494,12 @@ function LogDataPage() {
    * - 내부에서 setState를 실행하지 않음
    * - useEffect와 새로고침 이벤트에서 공통 사용
    */
-  const fetchLogs = useCallback((): Promise<LogRecord[]> => {
-    return getLogs()
-  }, [])
+  // 20261126 수정: 공통 로그 시트에서 현재 사업 로그만 사용
+  const fetchLogs = useCallback(async (): Promise<LogRecord[]> => {
+    const result = await getLogs()
+
+    return result.filter((record) => inferBusinessType(record) === businessType)
+  }, [businessType])
 
   // ---------------------------------------
   // 5-4. 최초 교육 안내 발송 조회
@@ -523,7 +542,7 @@ function LogDataPage() {
   useEffect(() => {
     let isActive = true
 
-    getDispatchSettings()
+    getDispatchSettings(businessType)
       .then((settings) => {
         if (!isActive) return
 
@@ -544,7 +563,7 @@ function LogDataPage() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [businessType]) // 20261126 수정: 사업별 설정 조회
 
 
   // ---------------------------------------
@@ -603,13 +622,13 @@ function LogDataPage() {
     setDispatchSettingsMessage('발송 기준일 설정을 저장하고 있습니다...')
 
     try {
-      const updatedSettings = await updateDispatchSettings(daysBefore)
+      const updatedSettings = await updateDispatchSettings(businessType, daysBefore)
 
       setDispatchSettings(updatedSettings)
       setDaysBeforeInput(String(updatedSettings.daysBefore))
 
       setDispatchSettingsMessage(
-        `발송 기준이 수업일 ${updatedSettings.daysBefore}일 전으로 저장되었습니다. 조회 대상 교육일: ${updatedSettings.targetDate}`,
+        `${businessType} 발송 기준이 수업일 ${updatedSettings.daysBefore}일 전으로 저장되었습니다. 조회 대상 교육일: ${updatedSettings.targetDate}`,
       )
 
     } catch (saveError) {
@@ -640,7 +659,7 @@ function LogDataPage() {
       // ---------------------------------------
       // 5-6-1. 최신 발송 설정 조회
       // ---------------------------------------
-      const settings = await getDispatchSettings()
+      const settings = await getDispatchSettings(businessType)
 
       // ---------------------------------------
       // 5-6-2. 테스트 설정 확인 문구 생성
@@ -659,7 +678,7 @@ function LogDataPage() {
         [
           '아래 설정으로 발송 자동화를 실행할까요?',
           '',
-          `실행 사업: ${settings.businessTypes.join(', ')}`,
+          `실행 사업: ${BUSINESS_LABELS[businessType]}`, // 20261126 수정: 현재 사업만 실행
           `발송 기준: 수업일 ${settings.daysBefore}일 전`,
           `조회 대상 교육일: ${settings.targetDate}`,
           '',
@@ -678,7 +697,7 @@ function LogDataPage() {
       // ---------------------------------------
       // 5-6-4. 발송 실행 요청
       // ---------------------------------------
-      const jobId = await startDispatch(settings.targetDate)
+      const jobId = await startDispatch(settings.targetDate, businessType) // 20261126 수정: 사업 지정
 
       setDispatchMessage('발송 자동화가 시작되었습니다.')
 
@@ -814,11 +833,11 @@ function LogDataPage() {
     setComposeDrafts(
       records.length > 0
         ? records.map(createDraftFromRecord)
-        : [createEmptyDraft()],
+        : [createEmptyDraft(businessType)], // 20261126 수정: 현재 사업 기본값
     )
 
     // 테스트 설정 안내를 위해 최신 발송 설정 조회 (실패해도 작성은 계속 가능)
-    getDispatchSettings()
+    getDispatchSettings(businessType)
       .then((settings) => setDispatchSettings(settings))
       .catch(() => undefined)
   }
@@ -1094,7 +1113,7 @@ function LogDataPage() {
           <h1>교육 안내 발송</h1>
 
           <p className="page-subtitle">
-            문자 및 이메일 발송 결과와 상세 내용을 조회합니다.
+            {BUSINESS_LABELS[businessType]} 문자 및 이메일 발송 결과와 상세 내용을 조회합니다.
           </p>
 
           {/* 20261124 추가: 발송 자동화 진행 상태 및 결과 표시 */}
@@ -1149,9 +1168,9 @@ function LogDataPage() {
             type="button"
             onClick={() => void handleStartDispatch()}
             disabled={isDispatching || isManualSending || isLoading}
-            title="설정된 사업의 이메일 및 문자 발송 자동화를 실행합니다."
+            title={`${BUSINESS_LABELS[businessType]} 이메일 및 문자 발송 자동화를 실행합니다.`}
           >
-            {isDispatching ? '발송 진행 중...' : '발송 실행'}
+            {isDispatching ? '발송 진행 중...' : `${businessType} 발송 실행`}
           </button>
 
           {/* 20261125 추가: 수신자를 직접 입력하여 문자·이메일 발송 */}
@@ -1174,9 +1193,10 @@ function LogDataPage() {
       >
         <div className="dispatch-settings-heading">
           <div>
-            <h2 id="dispatch-settings-title">발송 기준 설정</h2>
+            <h2 id="dispatch-settings-title">{businessType} 발송 기준 설정</h2>
             <p>
               수업일을 기준으로 며칠 전에 안내 메시지를 발송할지 설정합니다.
+              {' '}({BUSINESS_LABELS[businessType]} 전용 설정)
             </p>
           </div>
 
@@ -1709,6 +1729,7 @@ function LogDataPage() {
       {/* 20261125 추가: 문자·이메일 개별 발송 작성 모달 */}
       {composeDrafts && (
         <MessageComposeModal
+          businessType={businessType} // 20261126 추가: 발송인 사업 고정
           initialDrafts={composeDrafts}
           settings={dispatchSettings}
           isBlocked={isDispatching}

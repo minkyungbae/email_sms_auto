@@ -20,35 +20,72 @@
  * - 2026-11-25: 교육 데이터 메뉴명을 교육 실적 현황으로 변경
  * - 2026-11-25: 발송 로그 -> 교육 안내로 수정
  * - 2026-11-26: 사업 현황 페이지 삭제
+ * - 2026-11-26: 워크스페이스 토글로 GW / DS 사업 화면 분리
+ *               (GW: 사업 소개·교육 실적 현황·월별 캘린더·교육 안내 발송 / DS: 월별 캘린더·교육 안내 발송)
+ * - 2026-11-26: GW / DS 완전 분리
+ *               사업 소개 화면을 BusinessOverviewPage로 분리하고 GW 전용 지표로 구성 (DS는 사업 소개 없음)
+ *               교육 실적 현황은 GW 데이터만 조회
  *
  * 주요 기능:
  * - 좌측 사이드바 및 메뉴
  * - 상단 날짜 및 관리자 영역
- * - GW·DS 사업 정보
- * - 전체 교육 건수 등 핵심 지표
- * - 웹 서비스 소개 및 주요 기능 바로가기
- * - 데이터 연결 상태
+ * - 워크스페이스(GW / DS) 전환 및 사업별 메뉴
+ * - 사업별 화면 전환 (사업 소개 / 교육 실적 현황 / 월별 캘린더 / 교육 안내 발송)
  */
 
 // =======================================
 // 1. 라이브러리 및 컴포넌트 import
 // =======================================
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import {
-  Icon,
-  MetricCard,
-} from '../Components/DashboardUI' // 20261123 수정: 공통 UI 컴포넌트 분리
+import { Icon } from '../Components/DashboardUI' // 20261123 수정: 공통 UI 컴포넌트 분리
 
 import type { IconName } from '../Components/DashboardUI' // 20261125 추가: 기능 소개 아이콘
 
 import EducationDataPage from './EducationDataPage' // 20261118 추가: 교육 데이터 조회 화면
 import LogDataPage from './LogDataPage' // 20261119 추가: 발송 로그 조회 화면
 import MonthlyCalendarPage from './MonthlyCalendarPage' // 20261125 추가: 월별 캘린더 화면
+import BusinessOverviewPage from './BusinessOverviewPage' // 20261126 추가: GW 사업 소개 화면
 
 import type { BusinessType } from '../Types/education' // 20261118 추가: 사업 구분 타입
 
-import { useDashboardData } from '../Hooks/useDashboardData' // 20261123 추가: 교육 데이터 관리 훅
+
+// =======================================
+// 1-0. 20261126 추가: 워크스페이스(사업)별 설정
+// GW: 메인 사업, 전체 메뉴 사용 / DS: 월별 캘린더·교육 안내 발송만 사용
+// =======================================
+const WORKSPACES: Record<BusinessType, {
+  avatar: string
+  name: string
+  label: string
+  views: DashboardView[]
+  defaultView: DashboardView
+}> = {
+  GW: {
+    avatar: 'GW',
+    name: '강원SW미래채움',
+    label: 'GW · 강원SW미래채움',
+    views: ['dashboard', 'education', 'calendar', 'logs'],
+    defaultView: 'dashboard',
+  },
+  DS: {
+    avatar: 'DS',
+    name: '디지털새싹',
+    label: 'DS · 디지털새싹',
+    views: ['calendar', 'logs'], // DS는 월별 캘린더·교육 안내 발송만 사용
+    defaultView: 'calendar',
+  },
+}
+
+const WORKSPACE_ORDER: BusinessType[] = ['GW', 'DS']
+
+// 20261126 추가: 사이드바 메뉴 목록 (워크스페이스별로 필터링하여 표시)
+const NAV_ITEMS: { view: DashboardView; icon: IconName; label: string }[] = [
+  { view: 'dashboard', icon: 'dashboard', label: '사업 소개' },
+  { view: 'education', icon: 'book', label: '교육 실적 현황' },
+  { view: 'calendar', icon: 'calendar', label: '월별 캘린더' },
+  { view: 'logs', icon: 'file', label: '교육 안내 발송' },
+]
 
 
 // =======================================
@@ -69,39 +106,7 @@ const PAGE_TITLES: Record<DashboardView, string> = {
 // =======================================
 type DashboardView = 'dashboard' | 'education' | 'calendar' | 'logs'
 
-const SERVICE_FEATURES: {
-  view: Exclude<DashboardView, 'dashboard'>
-  icon: IconName
-  overline: string
-  title: string
-  description: string
-  action: string
-}[] = [
-  {
-    view: 'education',
-    icon: 'book',
-    overline: 'EDUCATION PERFORMANCE',
-    title: '교육 실적 현황',
-    description: '수료 실적을 그래프와 집계 표로 확인하고, GW·DS 교육 일정 데이터를 조회합니다.',
-    action: '교육 실적 보기',
-  },
-  {
-    view: 'logs',
-    icon: 'file',
-    overline: 'DISPATCH',
-    title: '문자·이메일 발송 및 로그',
-    description: '발송 이력을 검색하고, 자동 발송 실행과 선택한 수신자 개별 발송·내용 수정을 처리합니다.',
-    action: '교육 안내 발송 열기',
-  },
-  {
-    view: 'logs',
-    icon: 'calendar',
-    overline: 'SCHEDULE',
-    title: '예약 발송',
-    description: '매일 오전 10시, 설정한 수업일 기준으로 교육 안내 발송 문자와 이메일을 자동 발송합니다.',
-    action: '발송 기준 설정',
-  },
-]
+// 20261126 수정: 서비스 기능 소개는 BusinessOverviewPage로 이동
 
 
 // =======================================
@@ -109,19 +114,7 @@ const SERVICE_FEATURES: {
 // =======================================
 function Dashboard() {
 
-  // =======================================
-  // 2-1. 교육 데이터 관리
-  // 20261123 수정: 커스텀 훅으로 분리
-  // =======================================
-  const {
-    gwData,
-    dsData,
-    gwStatus,
-    dsStatus,
-    isLoading,
-    lastUpdated,
-    loadEducationData,
-  } = useDashboardData()
+  // 20261126 수정: 교육 데이터 조회는 BusinessOverviewPage에서 처리
 
   // =======================================
   // 2-2. 화면 전환 상태
@@ -129,49 +122,58 @@ function Dashboard() {
   // 20261119 수정: 교육 안내 발송 화면 추가
   // 20261126 수정: business 삭제
   // =======================================
-  const [currentView, setCurrentView] = useState<
-    'dashboard' | 'education' | 'calendar' | 'logs'
-  >('dashboard')
+  const [currentView, setCurrentView] = useState<DashboardView>('dashboard')
 
-  const [selectedBusiness, setSelectedBusiness] =
-    useState<BusinessType | null>(null)
+  // 20261126 추가: 현재 워크스페이스(사업) 및 토글 메뉴 상태
+  const [workspace, setWorkspace] = useState<BusinessType>('GW')
+  const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false)
+  const workspaceMenuRef = useRef<HTMLDivElement>(null)
+
+  const workspaceConfig = WORKSPACES[workspace]
 
   // =======================================
-  // 2-3. 교육 데이터 화면 열기
-  // 20261118 추가
+  // 2-4. 워크스페이스 전환
+  // 20261126 추가: 전환한 사업에 없는 화면이면 기본 화면으로 이동
   // =======================================
-  const openEducationPage = (
-    business: BusinessType | null = null,
-  ) => {
-    setSelectedBusiness(business)
-    setCurrentView('education')
+  const switchWorkspace = (nextWorkspace: BusinessType) => {
+    setIsWorkspaceMenuOpen(false)
+
+    if (nextWorkspace === workspace) return
+
+    const nextConfig = WORKSPACES[nextWorkspace]
+
+    setWorkspace(nextWorkspace)
+    setCurrentView((view) =>
+      nextConfig.views.includes(view) ? view : nextConfig.defaultView,
+    )
   }
 
-  // =======================================
-  // 3. 최초 진입 시 교육 데이터 조회
-  // 20261118 추가
-  // =======================================
+  // 20261126 추가: 메뉴 바깥 클릭 / ESC 키로 워크스페이스 메뉴 닫기
   useEffect(() => {
-    const timerId = window.setTimeout(() => {
-      void loadEducationData()
-    }, 0)
+    if (!isWorkspaceMenuOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!workspaceMenuRef.current?.contains(event.target as Node)) {
+        setIsWorkspaceMenuOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsWorkspaceMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
 
     return () => {
-      window.clearTimeout(timerId)
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [loadEducationData])
+  }, [isWorkspaceMenuOpen])
 
   // =======================================
-  // 4. 대시보드 데이터 계산
+  // 4. 상단 날짜
   // =======================================
-  // 20261118 추가: 전체 데이터 건수
-  const totalCount = gwData.length + dsData.length
-
-  // 20261118 추가: 통합 API 연결 상태
-  const isConnected = gwStatus === 'connected' && dsStatus === 'connected'
-
-  const hasPartialConnection = gwStatus === 'connected' || dsStatus === 'connected'
-
   // 오늘 날짜
   const today = new Intl.DateTimeFormat('ko-KR', {
     year: 'numeric',
@@ -201,70 +203,87 @@ function Dashboard() {
             <strong>READER</strong>
           </div>
         </div>
-        <div className="workspace-switcher">
-          <div className="workspace-avatar">GS</div>
+        {/* 20261126 수정: 워크스페이스 토글 (GW / DS 사업 전환) */}
+        <div className="workspace-switcher-wrap" ref={workspaceMenuRef}>
+          <button
+            type="button"
+            className={`workspace-switcher ${isWorkspaceMenuOpen ? 'is-open' : ''}`}
+            onClick={() => setIsWorkspaceMenuOpen((open) => !open)}
+            aria-haspopup="listbox"
+            aria-expanded={isWorkspaceMenuOpen}
+          >
+            <div className="workspace-avatar">
+              {workspaceConfig.avatar}
+            </div>
 
-          <div className="workspace-copy">
-            <span>WORKSPACE</span>
-            <strong>교육사업 운영</strong>
-          </div>
+            <div className="workspace-copy">
+              <span>WORKSPACE</span>
+              <strong>{workspaceConfig.name}</strong>
+            </div>
 
-          <span className="workspace-chevron">
-            <Icon name="chevron" size={15} />
-          </span>
+            <span className="workspace-chevron">
+              <Icon name="chevron" size={15} />
+            </span>
+          </button>
+
+          {isWorkspaceMenuOpen && (
+            <ul className="workspace-menu" role="listbox" aria-label="워크스페이스 선택">
+              {WORKSPACE_ORDER.map((type) => (
+                <li key={type}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={workspace === type}
+                    className={`workspace-menu-item ${workspace === type ? 'is-selected' : ''}`}
+                    onClick={() => switchWorkspace(type)}
+                  >
+                    <span className="workspace-avatar">
+                      {WORKSPACES[type].avatar}
+                    </span>
+                    <span className="workspace-menu-copy">
+                      <strong>{WORKSPACES[type].name}</strong>
+                      <small>
+                        {WORKSPACES[type].views.map((view) => PAGE_TITLES[view]).join(' · ')}
+                      </small>
+                    </span>
+                    {workspace === type && <span className="workspace-menu-check">✓</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* 주 메뉴 */}
+        {/* 20261126 수정: 현재 워크스페이스에서 사용하는 메뉴만 표시 */}
         <nav className="side-navigation" aria-label="주 메뉴">
           <p className="nav-caption">MENU</p>
-          {/* 20261118 수정: 대시보드 화면 전환 연결 */}
-          <button
-            type="button"
-            className={`nav-item ${currentView === 'dashboard' ? 'nav-item-active' : ''}`}
-            onClick={() => setCurrentView('dashboard')}
-          >
-            <Icon name="dashboard" size={18} />
-            <span>사업 소개</span>
-          </button>
+          {NAV_ITEMS.filter((item) => workspaceConfig.views.includes(item.view)).map((item) => (
+            <button
+              key={item.view}
+              type="button"
+              className={`nav-item ${currentView === item.view ? 'nav-item-active' : ''}`}
+              onClick={() => setCurrentView(item.view)}
+            >
+              <Icon name={item.icon} size={18} />
+              <span>{item.label}</span>
+            </button>
+          ))}
 
-          {/* 20261118 수정: 교육 데이터 메뉴 연결 */}
-          <button
-            type="button"
-            className={`nav-item ${currentView === 'education' ? 'nav-item-active' : ''}`}
-            onClick={() => openEducationPage()}
-          >
-            <Icon name="book" size={18} />
-            <span>교육 실적 현황</span>
-          </button>
-
-          {/* 20261125 추가: 월별 캘린더 메뉴 */}
-          <button
-            type="button"
-            className={`nav-item ${currentView === 'calendar' ? 'nav-item-active' : ''}`}
-            onClick={() => setCurrentView('calendar')}
-          >
-            <Icon name="calendar" size={18} />
-            <span>월별 캘린더</span>
-          </button>
-
-          {/* 20261119 수정: 교육 안내 발송 메뉴 연결 */}
-          <button
-            type="button"
-            className={`nav-item ${currentView === 'logs' ? 'nav-item-active' : ''}`}
-            onClick={() => setCurrentView('logs')}
-          >
-            <Icon name="file" size={18} />
-            <span>교육 안내 발송</span>
-          </button>
+          {/* 20261126 수정: 사업 목록 클릭 시 워크스페이스 전환 (좁은 화면에서도 전환 가능) */}
           <p className="nav-caption nav-caption-spaced">BUSINESS</p>
-          <div className="business-nav-item">
-            <span className="business-nav-dot business-dot-gw" />
-            <span>GW · 강원SW미래채움</span>
-          </div>
-          <div className="business-nav-item">
-            <span className="business-nav-dot business-dot-ds" />
-            <span>DS · 디지털새싹</span>
-          </div>
+          {WORKSPACE_ORDER.map((type) => (
+            <button
+              key={type}
+              type="button"
+              className="business-nav-item"
+              onClick={() => switchWorkspace(type)}
+              title={`${WORKSPACES[type].label} 워크스페이스로 전환`}
+            >
+              <span className={`business-nav-dot business-dot-${type.toLowerCase()}`} />
+              <span>{WORKSPACES[type].label}</span>
+            </button>
+          ))}
         </nav>
       </aside>
 
@@ -274,7 +293,7 @@ function Dashboard() {
       <main className="main-area" id="dashboard">
         <header className="topbar">
           <div className="breadcrumb">
-            <span>Workspace</span>
+            <span>{workspaceConfig.label}</span> {/* 20261126 수정: 현재 워크스페이스 표시 */}
             <Icon name="chevron" size={14} />
             <strong>
               {PAGE_TITLES[currentView]} {/* 20261123 수정: 현재 화면에 따른 제목 표시 */}
@@ -291,180 +310,19 @@ function Dashboard() {
 
         {/* 20261118 수정: 대시보드와 교육 데이터 화면 전환 */}
         {currentView === 'education' ? (
-          <EducationDataPage
-            key={selectedBusiness ?? 'ALL'}
-            initialBusiness={selectedBusiness}
-            onBack={() => setCurrentView('dashboard')}
-          />
+          // 20261126 수정: 교육 일정 데이터 영역 삭제, 수료 실적만 표시
+          <EducationDataPage />
         ) : currentView === 'calendar' ? (
-          <MonthlyCalendarPage /> // 20261125 추가: 월별 캘린더 화면 전환
+          // 20261125 추가: 월별 캘린더 화면 전환
+          // 20261126 수정: 워크스페이스 사업만 표시, 사업 전환 시 화면 상태 초기화
+          <MonthlyCalendarPage key={workspace} businessType={workspace} />
         ) : currentView === 'logs' ? (
-          <LogDataPage /> // 20261119 추가: 교육 안내 발송 화면 전환
+          // 20261119 추가: 교육 안내 발송 화면 전환
+          // 20261126 수정: 워크스페이스 사업만 표시, 사업 전환 시 화면 상태 초기화
+          <LogDataPage key={workspace} businessType={workspace} />
         ) : (
-          <div className="page-content">
-
-            {/* =======================================
-                5-3. 페이지 제목 및 버튼
-            ======================================= */}
-            <section className="page-heading">
-              <div>
-                <p className="eyebrow">OVERVIEW</p>
-                <h1>강원SW미래채움 교육 사업 운영 관리</h1>
-                <p className="page-subtitle">
-                  강원SW미래채움 교육 사업의 운영 실적, 데이터 관리 및 문자 발송까지 이 곳에서 한 번에 관리하세요.
-                </p>
-              </div>
-
-              {/* 20261119 수정: 데이터 새로고침 및 발송 실행 버튼 */}
-              {/* 20261124 수정: 발송 실행 버튼 삭제, 데이터 새로고침만 유지 */}
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-
-                <button
-                  className="refresh-button"
-                  type="button"
-                  onClick={() => void loadEducationData()}
-                  disabled={isLoading}
-                  title="교육 데이터를 다시 조회합니다."
-                >
-                  <Icon name="refresh" size={16} />
-                  {isLoading ? '조회 중...' : '데이터 새로고침'}
-                </button>
-              </div>
-            </section>
-
-            {/* =======================================
-                5-4. 핵심 지표
-            ======================================= */}
-            <section className="section-block">
-              <div className="section-heading">
-                <span className="waiting-label">
-                  <span />
-                  {isLoading
-                    ? '데이터 조회 중'
-                    : isConnected
-                      ? '데이터 연결 완료'
-                      : hasPartialConnection
-                        ? '일부 데이터 연결 실패'
-                        : '데이터 연결 실패'}
-                </span>
-              </div>
-
-              <div className="metric-grid">
-                <MetricCard
-                  label="전체 교육 건수"
-                  value={isLoading ? '조회 중' : totalCount.toLocaleString()}
-                  detail="GW + DS 최근 30일"
-                  icon="layers"
-                  tone="blue"
-                />
-
-                <MetricCard
-                  label="GW 교육 건수"
-                  value={isLoading ? '조회 중' : gwData.length.toLocaleString()}
-                  detail={
-                    gwStatus === 'error'
-                      ? '조회 실패'
-                      : '강원SW미래채움'
-                  }
-                  icon="book"
-                  tone="violet"
-                />
-
-                <MetricCard
-                  label="DS 교육 건수"
-                  value={isLoading ? '조회 중' : dsData.length.toLocaleString()}
-                  detail={
-                    dsStatus === 'error'
-                      ? '조회 실패'
-                      : '디지털새싹'
-                  }
-                  icon="grid"
-                  tone="mint"
-                />
-
-                <MetricCard
-                  label="데이터 연결 상태"
-                  value={
-                    isLoading
-                      ? '조회 중'
-                      : isConnected
-                        ? '연결 완료'
-                        : hasPartialConnection
-                          ? '부분 연결'
-                          : '연결 실패'
-                  }
-                  detail={
-                    lastUpdated
-                      ? `마지막 조회 ${lastUpdated}`
-                      : '조회 결과 대기 중'
-                  }
-                  icon="database"
-                  tone="amber"
-                />
-              </div>
-            </section>
-
-            {/* =======================================
-                5-5. 웹 서비스 소개
-                20261125 수정: 교육 운영 추이 그래프 삭제 후 서비스 설명으로 대체
-            ======================================= */}
-            <section className="section-block service-intro-section">
-              <article className="surface-card service-intro-card">
-                <div className="card-heading">
-                  <div>
-                    <h2>서비스 소개</h2>
-                    <p>EDUCATION OPERATIONS &amp; MESSAGE DISPATCH</p>
-                  </div>
-                </div>
-
-                <p className="service-intro-text">
-                  Google Sheets에 기록된 GW·DS 교육 운영 데이터를 웹에서 조회하고,
-                  교육 일정에 맞춰 강사·담당교사에게 문자와 이메일 안내를 발송·관리하는
-                  교육사업 운영 관리 시스템입니다. 발송 결과는 로그로 저장되어 언제든
-                  확인할 수 있고, 필요한 수신자에게는 내용을 수정해 개별로 다시 보낼 수 있습니다.
-                </p>
-              </article>
-
-              <div className="business-card-grid service-feature-grid">
-                {SERVICE_FEATURES.map((feature) => (
-                  <article key={feature.title} className="business-card">
-                    <div>
-                      <div className="business-card-top">
-                        <span className="business-symbol" aria-hidden="true">
-                          <Icon name={feature.icon} size={17} />
-                        </span>
-                      </div>
-
-                      <p className="business-overline">{feature.overline}</p>
-                      <h3>{feature.title}</h3>
-                      <p className="business-description">{feature.description}</p>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="business-card-footer"
-                      onClick={() =>
-                        feature.view === 'education'
-                          ? openEducationPage()
-                          : setCurrentView(feature.view)
-                      }
-                    >
-                      <span>{feature.action}</span>
-                      <Icon name="chevron" size={14} />
-                    </button>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            {/* =======================================
-                5-6. 푸터
-            ======================================= */}
-            <footer className="page-footer">
-              <span>GOOGLE SHEET READER</span>
-              <span>Education Operations Dashboard</span>
-            </footer>
-          </div>
+          // 20261126 수정: GW 사업 소개 화면 (DS 워크스페이스에는 메뉴 없음)
+          <BusinessOverviewPage onNavigate={setCurrentView} />
     )}</main>
     </div>
   )

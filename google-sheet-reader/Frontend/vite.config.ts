@@ -18,7 +18,7 @@ export default defineConfig({
 
     // Cloudflare 임시 터널 접속 허용
     allowedHosts: [
-      'ann-bid-high-founded.trycloudflare.com', // 재배포 할 때마다 수정 필요
+      'scanner-railroad-sandwich-largely.trycloudflare.com', // 재배포 할 때마다 수정 필요
     ],
   },
 })

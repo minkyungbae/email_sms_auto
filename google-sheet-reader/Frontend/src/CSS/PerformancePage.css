@@ -667,25 +667,7 @@
   background: #257de0;
 }
 
-/* =======================================
-   4. 하단 교육 일정 데이터 구분
-======================================= */
-.perf-section-divider {
-  margin-top: 40px;
-  padding-top: 26px;
-  border-top: 1px solid #E5E5E5;
-}
-
-.perf-section-divider h2 {
-  margin: 4px 0 0;
-  color: #2B2B2B;
-  font-size: 18px;
-  font-weight: 750;
-}
-
-.perf-section-divider + .education-filter-card {
-  margin-top: 16px;
-}
+/* 20261126 삭제: 4. 하단 교육 일정 데이터 구분 (교육 일정 데이터 영역 삭제) */
 
 /* =======================================
    5. 반응형

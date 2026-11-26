@@ -2,7 +2,7 @@
  * @file Config.js
  * @author 배민경
  * @created 2026-10-06
- * @updated 2026-10-12
+ * @updated 2026-11-26
  * @description
  * 애플리케이션 전역에서 사용되는 설정 및 환경 변수 관리
  * 
@@ -22,7 +22,11 @@ const CONFIG = {
     BUSINESS_TYPE: ["GW", "DS"],
 
     // 발송 기준일 (0 : 수업 당일 / 7 : 수업 일주일 전)
-    DAYS_BEFORE: 1,
+    // 20261126 수정: 사업별 기본값 (웹에서 저장한 사업별 설정이 있으면 그 값을 우선 적용)
+    DAYS_BEFORE: {
+        GW: 1,
+        DS: 1,
+    },
 
     // 문자를 누구한테 보낼 것인가? (true: 테스트 전화번호 / false: 실제 수신자 전화번호)
     SMS_TEST_RECIPIENT_MODE: true,
