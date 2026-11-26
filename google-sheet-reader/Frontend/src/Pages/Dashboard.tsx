@@ -2,7 +2,7 @@
  * @file Dashboard.tsx
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-25
+ * @updated 2026-11-26
  * @description
  * 메인 화면 구성.
  *
@@ -19,6 +19,7 @@
  * - 2026-11-25: 월별 캘린더 화면 및 메뉴 추가
  * - 2026-11-25: 교육 데이터 메뉴명을 교육 실적 현황으로 변경
  * - 2026-11-25: 발송 로그 -> 교육 안내로 수정
+ * - 2026-11-26: 사업 현황 페이지 삭제
  *
  * 주요 기능:
  * - 좌측 사이드바 및 메뉴
@@ -42,7 +43,6 @@ import {
 import type { IconName } from '../Components/DashboardUI' // 20261125 추가: 기능 소개 아이콘
 
 import EducationDataPage from './EducationDataPage' // 20261118 추가: 교육 데이터 조회 화면
-import BusinessStatusPage from './BusinessStatusPage' // 20261118 추가: 사업 현황 페이지
 import LogDataPage from './LogDataPage' // 20261119 추가: 발송 로그 조회 화면
 import MonthlyCalendarPage from './MonthlyCalendarPage' // 20261125 추가: 월별 캘린더 화면
 
@@ -53,23 +53,21 @@ import { useDashboardData } from '../Hooks/useDashboardData' // 20261123 추가:
 
 // =======================================
 // 1-1. 20261123 추가: 페이지별 breadcrumb 제목
+// 20261126 수정: business 삭제
 // =======================================
-const PAGE_TITLES: Record<
-  'dashboard' | 'education' | 'business' | 'calendar' | 'logs',
-  string
-> = {
-  dashboard: '사업 소개',  // 20261125 수정: 대시 보드 → 사업 소개
-  education: '교육 실적 현황', // 20261125 수정: 교육 데이터 → 교육 실적 현황
-  business: '사업 현황',
-  calendar: '월별 캘린더', // 20261125 추가
+const PAGE_TITLES: Record<DashboardView, string> = {
+  dashboard: '사업 소개',
+  education: '교육 실적 현황',
+  calendar: '월별 캘린더',
   logs: '교육 안내 발송',
 }
 
 
 // =======================================
 // 1-2. 20261125 추가: 웹 서비스 주요 기능 소개
+// 20261126 수정: business 삭제
 // =======================================
-type DashboardView = 'dashboard' | 'education' | 'business' | 'calendar' | 'logs'
+type DashboardView = 'dashboard' | 'education' | 'calendar' | 'logs'
 
 const SERVICE_FEATURES: {
   view: Exclude<DashboardView, 'dashboard'>
@@ -86,14 +84,6 @@ const SERVICE_FEATURES: {
     title: '교육 실적 현황',
     description: '수료 실적을 그래프와 집계 표로 확인하고, GW·DS 교육 일정 데이터를 조회합니다.',
     action: '교육 실적 보기',
-  },
-  {
-    view: 'business',
-    icon: 'chart',
-    overline: 'BUSINESS STATUS',
-    title: '사업 현황',
-    description: '지역·권역·수요처·학교별 교육 건수를 집계하여 운영 현황을 확인합니다.',
-    action: '사업 현황 보기',
   },
   {
     view: 'logs',
@@ -137,9 +127,10 @@ function Dashboard() {
   // 2-2. 화면 전환 상태
   // 20261118 추가
   // 20261119 수정: 교육 안내 발송 화면 추가
+  // 20261126 수정: business 삭제
   // =======================================
   const [currentView, setCurrentView] = useState<
-    'dashboard' | 'education' | 'business' | 'calendar' | 'logs'
+    'dashboard' | 'education' | 'calendar' | 'logs'
   >('dashboard')
 
   const [selectedBusiness, setSelectedBusiness] =
@@ -246,16 +237,6 @@ function Dashboard() {
             <span>교육 실적 현황</span>
           </button>
 
-          {/* 20261118 수정: 사업 현황 메뉴 연결 */}
-          <button
-            type="button"
-            className={`nav-item ${currentView === 'business' ? 'nav-item-active' : ''}`}
-            onClick={() => setCurrentView('business')}
-          >
-            <Icon name="chart" size={18} />
-            <span>사업 현황</span>
-          </button>
-
           {/* 20261125 추가: 월별 캘린더 메뉴 */}
           <button
             type="button"
@@ -315,8 +296,6 @@ function Dashboard() {
             initialBusiness={selectedBusiness}
             onBack={() => setCurrentView('dashboard')}
           />
-        ) : currentView === 'business' ? (
-          <BusinessStatusPage /> // 20261118 추가: 사업 현황 화면 전환
         ) : currentView === 'calendar' ? (
           <MonthlyCalendarPage /> // 20261125 추가: 월별 캘린더 화면 전환
         ) : currentView === 'logs' ? (
