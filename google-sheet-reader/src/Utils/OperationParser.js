@@ -2,7 +2,7 @@
  * @file OperationParser.js
  * @author 배민경
  * @created 2026-11-26
- * @updated 2026-11-26
+ * @updated 2026-11-27
  * @description
  * 운영 데이터 시트(2차원 표시 값 배열)를 화면용 데이터로 변환
  *
@@ -16,6 +16,7 @@
  * - 5.센터_강사비(연간)  → parseFeeAnnual
  * - 6.센터_강사비(지역)  → parseFeeRegion
  * - 7.센터_교구재        → parseMaterials
+ * - MBO                  → parseMbo (20261127 수정: 최종목표지표 표 기준)
  */
 
 
@@ -386,6 +387,111 @@ function parseMaterials(grid) {
 }
 
 
+// =============================================================
+// 9. MBO (20261127 추가)
+// 최종목표지표 표(23행~)를 그래프 집계 기준으로 사용
+// (4~16행 요약표의 실적은 직접 입력값이라 최종목표지표 표와 어긋날 수 있음)
+//
+// 표 구조: 최종목표지표(구분) | 대분류 | 세부지표 | 목표 | 세부내용 | 증빙방법 |
+//          진행현황(완료/미진행) | 정량목표 | 진행실적 | 진행율 | 진행현황(메모) | 진행예정 | 비고
+// - 구분·대분류는 병합 셀이라 위 값을 아래로 채움
+// - 세부지표가 없는 행은 대분류 이름을 지표 이름으로 사용
+// =============================================================
+// meta.listOptions: Apps Script 가 함께 보내는 드롭다운 선택지 [{ row, col, values }] (20261127 추가)
+function parseMbo(grid, meta = {}) {
+    const headerRow = findHeaderRow(grid, ["최종목표지표", "정량목표", "진행실적"]);
+
+    if (headerRow === -1) {
+        throw new Error("MBO 시트에서 최종목표지표 표(최종목표지표, 정량목표, 진행실적)를 찾을 수 없습니다.");
+    }
+
+    const header = (grid[headerRow] ?? []).map(compact);
+    const groupCol = header.indexOf(compact("최종목표지표"));
+
+    // 같은 이름 헤더가 두 번 있음 (진행현황: 상태 / 메모)
+    const columnsOf = (name) => header
+        .map((value, col) => (value === compact(name) ? col : -1))
+        .filter((col) => col !== -1);
+
+    const progressCols = columnsOf("진행현황");
+
+    const cols = {
+        group: groupCol,
+        category: groupCol + 1,
+        sub: groupCol + 2,
+        goal: columnsOf("목표")[0] ?? -1,
+        detail: columnsOf("세부내용")[0] ?? -1,
+        evidence: columnsOf("증빙방법")[0] ?? -1,
+        status: progressCols[0] ?? -1,
+        target: columnsOf("정량목표")[0] ?? -1,
+        actual: columnsOf("진행실적")[0] ?? -1,
+        rate: columnsOf("진행율")[0] ?? -1,
+        note: progressCols[1] ?? -1,
+        plan: columnsOf("진행예정")[0] ?? -1,
+        memo: columnsOf("비고")[0] ?? -1,
+    };
+
+    const read = (row, col) => (col === -1 ? "" : cell(grid, row, col));
+
+    const kpis = [];
+    let group = "";
+    let category = "";
+
+    for (let row = headerRow + 1; row < grid.length; row += 1) {
+        const goal = read(row, cols.goal);
+        const target = read(row, cols.target);
+        const categoryCell = read(row, cols.category);
+        const subCell = read(row, cols.sub);
+
+        // 목표·정량목표·지표 이름이 모두 비면 표 끝
+        if (!goal && !target && !categoryCell && !subCell) break;
+
+        const groupCell = read(row, cols.group);
+        if (groupCell) {
+            group = groupCell;
+            category = "";
+        }
+        if (categoryCell) category = categoryCell;
+
+        kpis.push({
+            행: String(row + 1),
+            구분: group,
+            대분류: subCell ? category : "",
+            성과지표: subCell || categoryCell || category,
+            목표: goal,
+            정량목표: target,
+            진행실적: read(row, cols.actual),
+            진행율: read(row, cols.rate),
+            진행상태: read(row, cols.status),
+            세부내용: read(row, cols.detail),
+            증빙방법: read(row, cols.evidence),
+            진행현황: read(row, cols.note),
+            진행예정: read(row, cols.plan),
+            비고: read(row, cols.memo),
+        });
+    }
+
+    // 진행현황(완료/미진행) 칸의 드롭다운 선택지 (수정 화면용)
+    const lastRow = headerRow + kpis.length;
+    const statusOptions = uniqueInOrder(
+        (Array.isArray(meta.listOptions) ? meta.listOptions : [])
+            .filter((item) => item && item.col === cols.status && item.row > headerRow && item.row <= lastRow)
+            .flatMap((item) => (Array.isArray(item.values) ? item.values.map((value) => String(value).trim()) : []))
+            .filter(Boolean)
+    );
+
+    return {
+        title: findTitle(grid, headerRow),
+        kpis,
+        statusOptions,
+    };
+}
+
+function uniqueInOrder(values) {
+    return values.filter((value, index) => values.indexOf(value) === index);
+}
+
+
 module.exports = {
     parseDemand,
     parseStaff,
@@ -393,4 +499,5 @@ module.exports = {
     parseFeeAnnual,
     parseFeeRegion,
     parseMaterials,
+    parseMbo, // 20261127 추가
 };

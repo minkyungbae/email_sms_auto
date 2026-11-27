@@ -2,7 +2,7 @@
  * @file api.ts
  * @author 배민경
  * @created 2026-11-18
- * @updated 2026-11-26
+ * @updated 2026-11-27
  * @description 프론트엔드 API 주소 및 요청 설정.
  * 
  * EducationService.ts / LogService.ts / DispatchService.ts에 API 주소 전달
@@ -10,6 +10,7 @@
  * 20261125 추가: 교육 실적 현황 API
  * 20261126 추가: 발송 로그 조회 새로고침(refresh) 파라미터
  * 20261126 추가: 운영 데이터(수요처·운영인력·강사배정·강사비·교구재) API
+ * 20261127 추가: MBO 진행현황 수정 API URL
  */
 
 // 교육 사업 유형 타입 가져오기
@@ -125,4 +126,16 @@ export function createOperationApiUrl(key: string, refresh = false): URL {
   }
 
   return url
+}
+
+// =============================================================
+// 8. MBO 진행현황 수정 API URL
+// PATCH /api/operations/mbo/progress/:row
+// 20261127 추가
+// =============================================================
+export function createMboProgressApiUrl(row: string): URL {
+  return new URL(
+    `${API_CONFIG.OPERATIONS_ENDPOINT}/mbo/progress/${encodeURIComponent(row)}`,
+    getApiBaseUrl(),
+  )
 }

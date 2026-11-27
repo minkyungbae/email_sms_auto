@@ -26,6 +26,7 @@
  *               사업 소개 화면을 BusinessOverviewPage로 분리하고 GW 전용 지표로 구성 (DS는 사업 소개 없음)
  *               교육 실적 현황은 GW 데이터만 조회
  * - 2026-11-26: GW에 운영 데이터 메뉴 추가 (수요처 정보 / 운영 인력 / 강사 배정 / 강사비 / 교구재)
+ * - 2026-11-26: GW에 MBO 메뉴 추가 (MBO 시트 4~21행)
  *
  * 주요 기능:
  * - 좌측 사이드바 및 메뉴
@@ -53,6 +54,7 @@ import StaffPage from './StaffPage'
 import AssignmentPage from './AssignmentPage'
 import InstructorFeePage from './InstructorFeePage'
 import MaterialsPage from './MaterialsPage'
+import MboPage from './MboPage' // 20261126 추가: MBO 화면
 
 import type { BusinessType } from '../Types/education' // 20261118 추가: 사업 구분 타입
 
@@ -72,7 +74,7 @@ const WORKSPACES: Record<BusinessType, {
     avatar: 'GW',
     name: '강원SW미래채움',
     label: 'GW · 강원SW미래채움',
-    views: ['dashboard', 'education', 'calendar', 'logs', 'demand', 'staff', 'assignment', 'fee', 'materials'], // 20261126 수정: 운영 데이터 추가
+    views: ['dashboard', 'education', 'mbo', 'calendar', 'logs', 'demand', 'staff', 'assignment', 'fee', 'materials'], // 20261126 수정: 운영 데이터·MBO 추가
     defaultView: 'dashboard',
   },
   DS: {
@@ -91,6 +93,7 @@ const WORKSPACE_ORDER: BusinessType[] = ['GW', 'DS']
 const NAV_ITEMS: { view: DashboardView; icon: IconName; label: string; group: 'menu' | 'operations' }[] = [
   { view: 'dashboard', icon: 'dashboard', label: '사업 소개', group: 'menu' },
   { view: 'education', icon: 'book', label: '교육 실적 현황', group: 'menu' },
+  { view: 'mbo', icon: 'chart', label: 'MBO', group: 'menu' }, // 20261126 추가
   { view: 'calendar', icon: 'calendar', label: '월별 캘린더', group: 'menu' },
   { view: 'logs', icon: 'file', label: '교육 안내 발송', group: 'menu' },
   { view: 'demand', icon: 'building', label: '수요처 정보', group: 'operations' },
@@ -120,6 +123,7 @@ const PAGE_TITLES: Record<DashboardView, string> = {
   assignment: '강사 배정', // 20261126 추가
   fee: '강사비', // 20261126 추가
   materials: '교구재', // 20261126 추가
+  mbo: 'MBO', // 20261126 추가
 }
 
 
@@ -137,6 +141,7 @@ type DashboardView =
   | 'assignment' // 20261126 추가: 강사 배정
   | 'fee' // 20261126 추가: 강사비
   | 'materials' // 20261126 추가: 교구재
+  | 'mbo' // 20261126 추가: MBO
 
 // 20261126 수정: 서비스 기능 소개는 BusinessOverviewPage로 이동
 
@@ -373,6 +378,9 @@ function Dashboard() {
           <InstructorFeePage />
         ) : currentView === 'materials' ? (
           <MaterialsPage />
+        ) : currentView === 'mbo' ? (
+          // 20261126 추가: MBO (GW 전용)
+          <MboPage />
         ) : (
           // 20261126 수정: GW 사업 소개 화면 (DS 워크스페이스에는 메뉴 없음)
           <BusinessOverviewPage onNavigate={setCurrentView} />

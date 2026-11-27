@@ -712,6 +712,640 @@
 }
 
 /* =======================================
+   6-4. MBO (20261126 추가, 20261127 수정: 요약 숫자 + 세로 막대)
+   달성 초록 / 150% 이상 진한 초록 / 미달 빨강
+======================================= */
+
+/* 상단 요약 숫자 */
+.mbo-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mbo-summary article {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+}
+
+.mbo-summary span {
+  color: #888888;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.mbo-summary strong {
+  color: #2B2B2B;
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.mbo-summary strong small {
+  margin-left: 2px;
+  color: #888888;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.mbo-summary article > small {
+  color: #AAAAAA;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.mbo-summary article > small.is-hit { color: #3B6D11; }
+.mbo-summary article > small.is-miss { color: #A32D2D; }
+
+.mbo-summary-bar,
+.mbo-alert-bar {
+  display: block;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: #ECECEC;
+  overflow: hidden;
+}
+
+.mbo-summary-bar i,
+.mbo-alert-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: #639922;
+}
+
+/* 집중 관리 필요 지표 */
+.mbo-alert {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  padding: 14px 20px;
+  border: 1px solid #F09595;
+  border-radius: 12px;
+  color: inherit;
+  background: #FCEBEB;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mbo-alert:hover {
+  border-color: #E24B4A;
+}
+
+.mbo-alert-rate {
+  min-width: 70px;
+  color: #A32D2D;
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.mbo-alert-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mbo-alert-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #791F1F;
+  font-size: 14px;
+}
+
+.mbo-alert-text {
+  color: #A32D2D;
+  font-size: 12px;
+}
+
+.mbo-alert-bar { background: #F7C1C1; }
+.mbo-alert-bar i { background: #E24B4A; }
+
+/* 달성했지만 진행현황이 완료가 아닌 지표 (20261127 추가) */
+.mbo-alert.is-warning { border-color: #EF9F27; background: #FAEEDA; }
+.mbo-alert.is-warning:hover { border-color: #BA7517; }
+.mbo-alert.is-warning .mbo-alert-rate { color: #854F0B; }
+.mbo-alert.is-warning .mbo-alert-title { color: #633806; }
+.mbo-alert.is-warning .mbo-alert-text { color: #854F0B; }
+.mbo-alert.is-warning .mbo-alert-bar { background: #FAC775; }
+.mbo-alert.is-warning .mbo-alert-bar i { background: #BA7517; }
+
+.mbo-pill {
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.mbo-pill.is-hit { color: #27500A; background: #EAF3DE; }
+.mbo-pill.is-miss { color: #791F1F; background: #F7C1C1; }
+
+/* 세로 막대 차트 */
+.mbo-chart-card {
+  padding: 18px 22px 16px;
+}
+
+.mbo-vchart-scroll {
+  overflow-x: auto;
+}
+
+.mbo-vchart {
+  display: grid;
+  grid-template-rows: auto 280px auto auto;
+  min-width: 720px;
+  padding-top: 4px;
+}
+
+.mbo-vchart-group {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 0 6px 28px;
+}
+
+.mbo-vchart-group strong {
+  color: #2B2B2B;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.mbo-vchart-group span {
+  color: #888888;
+  font-size: 12px;
+}
+
+.mbo-vchart-axis {
+  position: relative;
+}
+
+.mbo-vchart-axis span {
+  position: absolute;
+  right: 8px;
+  color: #AAAAAA;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: right;
+  transform: translateY(50%);
+}
+
+.mbo-vchart-axis span.is-target {
+  color: #2B2B2B;
+  font-weight: 800;
+}
+
+.mbo-vchart-grid {
+  position: relative;
+  pointer-events: none;
+}
+
+.mbo-vchart-grid i {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: 1px solid #F0F0F0;
+}
+
+.mbo-vchart-grid i:first-child {
+  border-top-color: #CFCFCF;
+}
+
+.mbo-vchart-grid i.is-target {
+  z-index: 3;
+  border-top: 2px dashed #2B2B2B;
+}
+
+.mbo-vchart-divider {
+  justify-self: center;
+  width: 0;
+  border-left: 1px dashed #CFCFCF;
+}
+
+.mbo-vbar-cell {
+  position: relative;
+}
+
+.mbo-vbar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mbo-vbar-fill {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: 2;
+  width: min(64%, 44px);
+  border-radius: 5px 5px 0 0;
+  transform: translateX(-50%);
+  transition: filter 160ms ease;
+}
+
+.mbo-vbar.is-hit .mbo-vbar-fill { background: #639922; }
+.mbo-vbar.is-max .mbo-vbar-fill { background: #3B6D11; }
+.mbo-vbar.is-miss .mbo-vbar-fill { background: #E24B4A; }
+
+.mbo-vbar:hover .mbo-vbar-fill,
+.mbo-vbar.is-selected .mbo-vbar-fill {
+  filter: brightness(0.88);
+}
+
+.mbo-vbar.is-selected .mbo-vbar-fill {
+  outline: 3px solid rgba(43, 43, 43, 0.18);
+  outline-offset: 2px;
+}
+
+.mbo-vbar:focus-visible {
+  outline: 2px solid #454545;
+  outline-offset: -2px;
+}
+
+.mbo-vbar-value {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mbo-vbar.is-hit .mbo-vbar-value,
+.mbo-vbar.is-max .mbo-vbar-value { color: #3B6D11; }
+.mbo-vbar.is-miss .mbo-vbar-value { color: #A32D2D; font-size: 14px; }
+
+/* 마우스 올렸을 때 전체 지표명 */
+.mbo-vbar-tip {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  z-index: 10;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  width: max-content;
+  max-width: 240px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  color: #FFFFFF;
+  background: #2B2B2B;
+  font-size: 11px;
+  text-align: left;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.mbo-vbar-tip b {
+  font-size: 12px;
+  font-weight: 750;
+  white-space: normal;
+}
+
+.mbo-vbar:hover .mbo-vbar-tip,
+.mbo-vbar:focus-visible .mbo-vbar-tip {
+  display: flex;
+}
+
+.mbo-vbar-label {
+  padding: 8px 2px 0;
+  color: #666666;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.mbo-vbar-label.is-miss { color: #A32D2D; font-weight: 800; }
+.mbo-vbar-label.is-selected { color: #2B2B2B; text-decoration: underline; text-underline-offset: 3px; }
+
+.mbo-vchart-category {
+  margin: 10px 6px 0;
+  padding-top: 5px;
+  border-top: 2px solid #D6D6D6;
+  color: #888888;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.mbo-chart-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #ECECEC;
+  color: #666666;
+  font-size: 12px;
+}
+
+.mbo-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mbo-chart-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.mbo-chart-legend i.is-hit { background: #639922; }
+.mbo-chart-legend i.is-max { background: #3B6D11; }
+.mbo-chart-legend i.is-miss { background: #E24B4A; }
+
+/* 선택한 지표 상세 */
+.mbo-detail {
+  margin-top: 16px;
+  padding: 16px 18px;
+  border: 1px solid #E4E4E4;
+  border-radius: 10px;
+  background: #FCFCFC;
+}
+
+.mbo-detail header {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ECECEC;
+}
+
+.mbo-detail header > div:first-child {
+  flex: 1 1 260px;
+}
+
+.mbo-detail header p {
+  margin: 0 0 3px;
+  color: #888888;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.mbo-detail h3 {
+  margin: 0;
+  color: #2B2B2B;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.mbo-detail-figures {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: #888888;
+  font-size: 12px;
+}
+
+.mbo-detail-figures b {
+  color: #2B2B2B;
+}
+
+.mbo-detail-rate {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.mbo-detail-rate.is-hit { color: #3B6D11; }
+.mbo-detail-rate.is-miss { color: #A32D2D; }
+
+.mbo-detail dl {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.mbo-detail dl > div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 12px;
+}
+
+.mbo-detail dt {
+  color: #888888;
+  font-weight: 650;
+}
+
+.mbo-detail dd {
+  margin: 0;
+  color: #454545;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+/* MBO 진행현황 보기 / 수정 (20261127 추가) */
+.mbo-progress {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #ECECEC;
+  border-radius: 8px;
+  background: #FFFFFF;
+}
+
+.mbo-progress.is-editing {
+  border-color: #B5B5B5;
+}
+
+.mbo-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.mbo-progress-head h4 {
+  margin: 0;
+  color: #454545;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.mbo-progress-note {
+  margin: 0;
+  color: #454545;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.mbo-edit-button,
+.mbo-cancel-button,
+.mbo-save-button {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.mbo-edit-button,
+.mbo-cancel-button {
+  border: 1px solid #DDDDDD;
+  color: #454545;
+  background: #FFFFFF;
+}
+
+.mbo-edit-button:hover,
+.mbo-cancel-button:hover {
+  border-color: #B5B5B5;
+}
+
+.mbo-save-button {
+  border: 1px solid #2B2B2B;
+  color: #FFFFFF;
+  background: #2B2B2B;
+}
+
+.mbo-save-button:disabled,
+.mbo-cancel-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.mbo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.mbo-field > span {
+  color: #888888;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.mbo-field select,
+.mbo-field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #DDDDDD;
+  border-radius: 7px;
+  outline: none;
+  color: #2B2B2B;
+  background: #FFFFFF;
+  font: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.mbo-field select {
+  max-width: 200px;
+  height: 36px;
+  padding: 0 10px;
+}
+
+.mbo-field textarea {
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.mbo-field select:focus,
+.mbo-field textarea:focus {
+  border-color: #8A8A8A;
+  box-shadow: 0 0 0 3px rgba(136, 136, 136, 0.12);
+}
+
+/* 진행실적 입력 (20261127 추가) */
+.mbo-actual-input {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mbo-actual-input input {
+  width: 140px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #DDDDDD;
+  border-radius: 7px;
+  outline: none;
+  color: #2B2B2B;
+  background: #FFFFFF;
+  font: inherit;
+  font-size: 13px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
+}
+
+.mbo-actual-input input:focus {
+  border-color: #8A8A8A;
+  box-shadow: 0 0 0 3px rgba(136, 136, 136, 0.12);
+}
+
+.mbo-actual-input input[aria-invalid='true'] {
+  border-color: #D93025;
+}
+
+.mbo-actual-input em {
+  color: #666666;
+  font-size: 13px;
+  font-style: normal;
+}
+
+.mbo-actual-input small {
+  color: #888888;
+  font-size: 12px;
+}
+
+.mbo-actual-input small.is-error {
+  color: #B3261E;
+  font-weight: 650;
+}
+
+.mbo-progress-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mbo-progress-actions > span {
+  margin-right: auto;
+  color: #AAAAAA;
+  font-size: 11px;
+}
+
+.mbo-progress-message {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.mbo-progress-message.is-success { color: #3B6D11; }
+.mbo-progress-message.is-error { color: #B3261E; }
+
+/* =======================================
    7. 반응형
 ======================================= */
 @media (max-width: 1100px) {
@@ -731,6 +1365,11 @@
 
   .staff-detail-empty {
     display: none;
+  }
+
+  /* 20261127 수정: MBO 요약 숫자 2열 */
+  .mbo-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   /* 20261126 추가: 교구재 칸 - 중간 화면 3열 */

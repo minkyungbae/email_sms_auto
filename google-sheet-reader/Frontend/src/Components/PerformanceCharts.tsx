@@ -2,7 +2,7 @@
  * @file PerformanceCharts.tsx
  * @author 배민경
  * @created 2026-11-25
- * @updated 2026-11-25
+ * @updated 2026-11-27
  * @description
  * 교육 실적 현황 화면의 SVG 그래프 (외부 차트 라이브러리 없이 구현)
  *
@@ -12,6 +12,10 @@
  *   · 두 값 모두 "명" 단위이므로 하나의 y축을 공유
  *   · 마우스를 올리면 해당 월의 수치를 툴팁으로 표시
  *   · 20261125 추가: 막대 위에 월별 수료 인원 숫자 상시 표시
+ *
+ * 20261127 수정: 색상 분리
+ * - 지역별 수료 실적(BreakdownDonut) 색을 바꿔도 월별 그래프 색이 같이 바뀌지 않도록
+ *   REGION_COLORS(지역 도넛) / COMBO_COLORS(월별 그래프)로 나눔
  */
 
 import { useState } from 'react'
@@ -19,9 +23,19 @@ import { useState } from 'react'
 import { formatNumber, formatPercent } from '../Utils/performanceStats'
 
 // =======================================
-// 1. 그래프 공통 색상 (색약 구분 검증 완료 팔레트)
+// 1. 그래프 색상
+// 20261127 수정: 지역 도넛 / 월별 그래프 색상 분리
 // =======================================
-const CHART_COLORS = ['#257de0', '#f47230', '#00b894'] as const
+
+// 지역별 수료 실적 도넛: 항목 순서대로 (강릉 / 원주 / 춘천)
+const REGION_COLORS = ['#E06666', '#57BB8A', '#6D9EEB'] as const
+
+// 월별 수료 인원 · 연간 누적 그래프 (기존 색상 유지)
+const COMBO_COLORS = {
+  bar: '#257de0', // 월별 수료 인원 막대
+  line: '#f47230', // 연간 누적 인원 꺾은선
+} as const
+
 const TRACK_COLOR = '#ECECEC'
 const OTHER_COLOR = '#B5B5B5' // 4번째 이후 항목은 회색으로 묶어 표시
 
@@ -41,7 +55,7 @@ export function ProgressDonut({
   description,
   value,
   target,
-  color = CHART_COLORS[0],
+  color = '#5eb60b',
 }: {
   title: string
   description: string
@@ -133,17 +147,17 @@ export function BreakdownDonut({
 
   // 색상은 항목 순서에 고정 (4번째부터는 "기타"로 묶음)
   const visibleItems: (BreakdownItem & { color: string })[] =
-    items.length <= CHART_COLORS.length
-      ? items.map((item, index) => ({ ...item, color: CHART_COLORS[index] }))
+    items.length <= REGION_COLORS.length
+      ? items.map((item, index) => ({ ...item, color: REGION_COLORS[index] }))
       : [
-          ...items.slice(0, CHART_COLORS.length - 1).map((item, index) => ({
+          ...items.slice(0, REGION_COLORS.length - 1).map((item, index) => ({
             ...item,
-            color: CHART_COLORS[index],
+            color: REGION_COLORS[index],
           })),
           {
             label: '기타',
             value: items
-              .slice(CHART_COLORS.length - 1)
+              .slice(REGION_COLORS.length - 1)
               .reduce((sum, item) => sum + item.value, 0),
             color: OTHER_COLOR,
           },
@@ -343,8 +357,8 @@ export function MonthlyComboChart({
   return (
     <div className="perf-combo">
       <ul className="perf-combo-legend">
-        <li><i className="perf-key-bar" style={{ background: CHART_COLORS[0] }} />월별 수료 인원</li>
-        <li><i className="perf-key-line" style={{ background: CHART_COLORS[1] }} />연간 누적 인원</li>
+        <li><i className="perf-key-bar" style={{ background: COMBO_COLORS.bar }} />월별 수료 인원</li>
+        <li><i className="perf-key-line" style={{ background: COMBO_COLORS.line }} />연간 누적 인원</li>
         <li><i className="perf-key-target" />목표 {formatNumber(target)}명</li>
       </ul>
 
@@ -414,7 +428,7 @@ export function MonthlyComboChart({
                 barWidth,
                 yScale(0) - yScale(item.value),
               )}
-              fill={CHART_COLORS[0]}
+              fill={COMBO_COLORS.bar}
             />
           ))}
 
@@ -458,7 +472,7 @@ export function MonthlyComboChart({
             <polyline
               points={linePoints}
               fill="none"
-              stroke={CHART_COLORS[1]}
+              stroke={COMBO_COLORS.line}
               strokeWidth={2}
               strokeLinejoin="round"
               strokeLinecap="round"
@@ -472,7 +486,7 @@ export function MonthlyComboChart({
                 cx={xCenter(index)}
                 cy={yScale(item.cumulative)}
                 r={hoverIndex === index || index === lastLineIndex ? 5 : 4}
-                fill={CHART_COLORS[1]}
+                fill={COMBO_COLORS.line}
                 stroke="#FFFFFF"
                 strokeWidth={2}
               />
@@ -525,9 +539,9 @@ export function MonthlyComboChart({
             role="status"
           >
             <strong>{hovered.month}월</strong>
-            <span><i style={{ background: CHART_COLORS[0] }} />월 수료 <b>{formatNumber(hovered.value)}명</b></span>
+            <span><i style={{ background: COMBO_COLORS.bar }} />월 수료 <b>{formatNumber(hovered.value)}명</b></span>
             <span>
-              <i style={{ background: CHART_COLORS[1] }} />누적{' '}
+              <i style={{ background: COMBO_COLORS.line }} />누적{' '}
               <b>{hovered.cumulative === null ? '-' : `${formatNumber(hovered.cumulative)}명`}</b>
             </span>
             {hovered.cumulative !== null && target > 0 && (

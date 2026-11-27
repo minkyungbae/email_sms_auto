@@ -5,6 +5,7 @@
  * @updated 2026-11-26
  * @description
  * 운영 데이터 조회 상태 관리 (처음 화면 진입 시 조회, 새로고침 시 서버 캐시 무시)
+ * 20261127 추가: mutate - 다시 조회하지 않고 화면 데이터 일부 수정 (예: MBO 진행현황 저장 후)
  */
 
 import { useEffect, useState } from 'react'
@@ -53,5 +54,9 @@ export function useOperationData<K extends OperationKey>(key: K) {
     error: loadState?.error ?? '',
     isLoading,
     reload: () => setReloadToken((token) => token + 1),
+    mutate: (updater: (data: OperationDataMap[K]) => OperationDataMap[K]) =>
+      setLoadState((current) => (current?.result
+        ? { ...current, result: { ...current.result, data: updater(current.result.data) } }
+        : current)),
   }
 }

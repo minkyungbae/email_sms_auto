@@ -227,6 +227,7 @@ const OPERATIONS = {
         "fee-annual": "5.센터_강사비(연간)",
         "fee-region": "6.센터_강사비(지역)",
         "materials": "7.센터_교구재",
+        "mbo": "MBO", // 20261126 추가: 4~21행만 사용
     },
 };
 

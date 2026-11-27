@@ -2,7 +2,7 @@
  * @file operations.ts
  * @author 배민경
  * @created 2026-11-26
- * @updated 2026-11-26
+ * @updated 2026-11-27
  * @description
  * 운영 데이터 시트 타입 (백엔드 src/Utils/OperationParser.js 결과 구조)
  *
@@ -17,6 +17,7 @@ export type OperationKey =
   | 'fee-annual'
   | 'fee-region'
   | 'materials'
+  | 'mbo' // 20261127 추가
 
 /** 시트 한 행 (헤더 이름 → 표시 값). "행" 은 시트 행 번호 */
 export type SheetRecord = Record<string, string>
@@ -74,6 +75,39 @@ export type MaterialsSheet = {
   }[]
 }
 
+/** MBO 20261127 추가: 최종목표지표 표(23행~) 기준 */
+export type MboKpi = {
+  행: string
+  구분: string // 핵심성과지표 / 자율성과지표
+  대분류: string // ①강사양성교육 등 (세부지표가 있을 때만)
+  성과지표: string
+  목표: string // "75명"
+  정량목표: string // "75"
+  진행실적: string
+  진행율: string
+  진행상태: string // 완료 / 미진행
+  세부내용: string
+  증빙방법: string
+  진행현황: string // 진행 메모
+  진행예정: string
+  비고: string
+}
+
+export type MboSheet = {
+  title: string
+  kpis: MboKpi[]
+  statusOptions?: string[] // 진행현황 드롭다운 선택지 (20261127 추가)
+}
+
+/** MBO 진행현황 수정 결과 (20261127 추가) */
+export type MboProgressResult = {
+  행: string
+  진행상태: string
+  진행현황: string
+  진행실적: string // 20261127 추가
+  진행율: string // 20261127 추가
+}
+
 export type OperationDataMap = {
   demand: ListSheet
   staff: ListSheet
@@ -81,4 +115,5 @@ export type OperationDataMap = {
   'fee-annual': FeeAnnualSheet
   'fee-region': FeeRegionSheet
   materials: MaterialsSheet
+  mbo: MboSheet // 20261126 추가
 }
